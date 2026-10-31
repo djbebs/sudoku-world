@@ -1,5 +1,7 @@
 # MINDPLAY Sudoku — worldwide leaderboard
 
+**Play it: <https://djbebs.github.io/sudoku-world/>** (all games: <https://djbebs.github.io/sudoku-world/landing.html>)
+
 `sudoku.html` now has an optional **worldwide leaderboard**: anyone who opens the game on a phone or a computer can play and compete, with no account. The game itself is unchanged and **stays fully playable offline** — the online ranking is an extra that switches itself off when it is not configured or not reachable.
 
 - Easy, Medium, Hard: each player's **personal best**, top 20.
