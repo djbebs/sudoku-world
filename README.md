@@ -28,7 +28,7 @@ Stack: Firebase **Firestore** + **Anonymous Authentication** + optional **App Ch
 | `tests/` | Unit, security-rules and two-browser end-to-end tests (run on local emulators only). |
 | `index.html` | Tiny redirect so the bare site address opens `sudoku.html`. |
 | `landing.html`, `2048.html`, `minesweeper.html`, `spectrum-flux.html`, `tictactoe.html` | The other games and the portal behind Sudoku's "All games" button. |
-| `assets/` | Link-preview image `og-sudoku-world.png` (1200×630) and the favicons (`favicon.svg`, `favicon-32.png`, `favicon-192.png`, `apple-touch-icon.png`). |
+| `assets/` | Link-preview image `og-sudoku-world-v2.jpg` (1200×630) and the favicons (`favicon-32.png`, `favicon-192.png`, `apple-touch-icon.png`), all made from the Sudoku logo. |
 | `.nojekyll` | Empty file: tells GitHub Pages to serve the files as they are. |
 | `.gitignore` | An **allowlist**: only the files named in it can be committed. Add a file there before publishing it. |
 
@@ -172,7 +172,7 @@ Scores saved in the local scoreboard live in the browser, **per site address**: 
 
 ### Link preview (WhatsApp, Facebook, X, Telegram…)
 
-`index.html` and `sudoku.html` carry Open Graph + Twitter Card tags in their static HTML (title "Sudoku World", a short description, and the 1200×630 image `assets/og-sudoku-world.png` through an absolute `https://djbebs.github.io/sudoku-world/…` URL). Preview robots do not run JavaScript, so this is all they read. The image is the Sudoku card artwork of `landing.html` (the 9×9 grid) plus the game's own `SUDOKU` gradient wordmark; the editable source is `assets-src/og-image.html` (kept local, not published).
+`index.html` and `sudoku.html` carry Open Graph + Twitter Card tags in their static HTML (title "Sudoku World", a short description, and the 1200×630 image `assets/og-sudoku-world-v2.jpg` through an absolute `https://djbebs.github.io/sudoku-world/…` URL). Preview robots do not run JavaScript, so this is all they read. The image is the neon Sudoku logo, centred on the site's dark background; the editable sources (`assets-src/logo-sudoku.png`, the original transparent logo, and `assets-src/og-image.html`) are kept local, not published. The same logo, cropped and resized, gives the favicons.
 
 **WhatsApp caches previews for a long time, per exact URL.** To see a changed preview, share a URL it has never seen — add a throw-away query parameter, which the site ignores:
 
@@ -180,7 +180,7 @@ Scores saved in the local scoreboard live in the browser, **per site address**: 
 https://djbebs.github.io/sudoku-world/?v=2
 ```
 
-Use a new number each time (`?v=3`, …). Send it to yourself ("Messages to yourself") and wait a few seconds. If you change the *image*, also give it a new file name (e.g. `og-sudoku-world-2.png`) and update the tags: robots cache the image URL too. Free checkers: the Facebook Sharing Debugger (<https://developers.facebook.com/tools/debug/>, "Scrape Again"; needs a Facebook login) or <https://www.opengraph.xyz>. Keep the image under ~300 KB — WhatsApp skips larger ones.
+Use a new number each time (`?v=3`, …). Send it to yourself ("Messages to yourself") and wait a few seconds. If you change the *image*, also give it a new file name (e.g. `og-sudoku-world-v3.jpg`) and update the tags: robots cache the image URL too. Free checkers: the Facebook Sharing Debugger (<https://developers.facebook.com/tools/debug/>, "Scrape Again"; needs a Facebook login) or <https://www.opengraph.xyz>. Keep the image under ~300 KB — WhatsApp skips larger ones.
 
 ---
 

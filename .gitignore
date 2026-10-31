@@ -26,8 +26,7 @@
 # Link-preview image + favicons (the editable source in assets-src/ stays local)
 !/assets/
 /assets/*
-!/assets/og-sudoku-world.png
-!/assets/favicon.svg
+!/assets/og-sudoku-world-v2.jpg
 !/assets/favicon-32.png
 !/assets/favicon-192.png
 !/assets/apple-touch-icon.png
