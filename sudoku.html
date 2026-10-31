@@ -94,8 +94,8 @@ h1 {
   flex-shrink: 0;
   margin-right: auto;
   background: linear-gradient(90deg,
-    #ff2244 0%, #ff6600 14%, #ffcc00 28%,
-    #aaff00 43%, #00ff88 57%, #00ccff 71%,
+    #ff6600 0%, #ffcc00 20%,
+    #aaff00 38%, #00ff88 54%, #00ccff 70%,
     #7700ff 85%, #ff00aa 100%);
   -webkit-background-clip: text;
   background-clip: text;
@@ -200,8 +200,8 @@ h1 {
 }
 .heart {
   font-size: 1.35rem;
-  color: #ff2244;
-  filter: drop-shadow(0 0 6px #ff224477);
+  color: #ff00aa;
+  filter: drop-shadow(0 0 6px #ff00aa77);
   transition: color 0.3s, filter 0.3s;
   line-height: 1;
 }
@@ -309,7 +309,7 @@ h1 {
   to   { transform: scale(1); opacity: 1; }
 }
 @keyframes errflash {
-  0%   { background: rgba(255, 34, 68, 0.40); }
+  0%   { background: rgba(255, 0, 170, 0.40); }
   100% { background: transparent; }
 }
 @keyframes shake {
@@ -351,7 +351,7 @@ h1 {
 #ov-title {
   font-size: 2.4rem;
   font-weight: 900;
-  background: linear-gradient(135deg, #ff2244, #ff00aa);
+  background: linear-gradient(135deg, #7700ff, #ff00aa);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -408,8 +408,8 @@ h1 {
 .num-btn:hover  { background: rgba(119,0,255,0.18); border-color: rgba(119,0,255,0.38); }
 .num-btn:active { transform: scale(0.92); }
 
-.erase-btn { color: rgba(255,80,80,0.7); font-size: 0.95rem; }
-.erase-btn:hover { background: rgba(255,34,68,0.14) !important; border-color: rgba(255,34,68,0.38) !important; color: #ff4455; }
+.erase-btn { color: rgba(255,0,170,0.75); font-size: 0.95rem; }
+.erase-btn:hover { background: rgba(255,0,170,0.14) !important; border-color: rgba(255,0,170,0.38) !important; color: #ff4dc4; }
 
 #notes-toggle { font-size: 1rem; }
 #notes-toggle.active {
@@ -591,7 +591,7 @@ body.day .diff-btn.daily-btn:hover { color: rgba(140,70,0,0.9); }
 .sb-row:nth-child(3) .sb-rank { color: #e08a4a; }
 .sb-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sb-time { font-weight: 800; font-variant-numeric: tabular-nums; }
-.sb-heart { font-size: 0.8rem; color: #ff2244; }
+.sb-heart { font-size: 0.8rem; color: #ff00aa; }
 .sb-heart.lost { color: rgba(255,255,255,0.14); }
 #sb-empty {
   margin-top: 18px;
@@ -1133,13 +1133,13 @@ body.day #nick-id { color: rgba(44,31,14,0.5); }
 // CONSTANTS
 // ══════════════════════════════════════════════════════════════
 const DIGIT_COLOR = {
-  1:'#ff2244', 2:'#ff6600', 3:'#ffdd00',
+  1:'#ff00aa', 2:'#ff6600', 3:'#ffdd00',
   4:'#aaff00', 5:'#00ff66', 6:'#00ffcc',
   7:'#00ccff', 8:'#3366ff', 9:'#7700ff'
 };
 // [lighter, base, glow] for splat
 const DIGIT_SPLAT = {
-  1:['#ff4466','#ff2244','#ff2244'],
+  1:['#ff55cc','#ff00aa','#ff00aa'],
   2:['#ff8833','#ff6600','#ff6600'],
   3:['#ffee55','#ffdd00','#ffdd00'],
   4:['#ccff33','#aaff00','#aaff00'],
@@ -1771,9 +1771,13 @@ function renderOverlay() {
     ovMsg.textContent = t('loseMsg');
   }
   ovForm.classList.toggle('on', win && !!pendingScore);
-  const saved = win && ovInfo.rank !== null;
+  // Rank shown in "You are #N": once the worldwide leaderboard is in play, only the WORLDWIDE rank counts
+  // (never the "This device" one) — nothing is shown while it is being sent, kept, queued or denied.
+  let rank = ovInfo.rank;
+  if (win && ovInfo.online) rank = ovInfo.online.status === 'saved' && ovInfo.online.mine ? ovInfo.online.mine.rank : null;
+  const saved = win && rank !== null;
   ovSaved.classList.toggle('on', saved);
-  if (saved) ovSaved.textContent = t(ovInfo.rank <= SCORE_SHOW ? 'savedTop' : 'savedRank')(ovInfo.rank);
+  if (saved) ovSaved.textContent = t(rank <= SCORE_SHOW ? 'savedTop' : 'savedRank')(rank);
   ovOnlineEl.textContent = win ? onlineResultText(ovInfo.online) : '';
 }
 

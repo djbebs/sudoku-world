@@ -195,6 +195,7 @@ await step('score persistence: after a reload the same identity, nickname and ra
 await step('duplicate prevention: a worse repeat run does not create or change an entry', async () => {
   const t = await winGame(A, { mode: 'daily', time: 150, mistakes: 0, name: 'Alice' });
   assert.match(t, /Not an online personal best/, t);
+  assert.equal(await A.$eval('#ov-saved', el => el.classList.contains('on')), false);   // no "you are #N" without a worldwide rank
   const mine = (await serverScores()).filter(s => s.uid === uidA && s.board === 'daily-' + utcToday);
   assert.equal(mine.length, 1);
   assert.equal(mine[0].time, 100);
@@ -205,7 +206,13 @@ await step('a better repeat run replaces the personal best (still one entry)', a
   if (wait > 0) await sleep(wait);
   const t = await winGame(A, { mode: 'daily', time: 90, mistakes: 0, name: 'Alice' });
   assert.match(t, /Worldwide: #2/, t);                                // Carol (80 s) is still ahead
-  const mine = (await serverScores()).filter(s => s.uid === uidA && s.board === 'daily-' + utcToday);
+  // The headline must use the WORLDWIDE rank (#2), not the rank on this device (Alice's 90 s is her best local run: #1)
+  const localTop = await A.evaluate(() => loadScores(scoreKey()).sort(cmpScore)[0].time);
+  assert.equal(localTop, 90);
+  const headline = await A.$eval('#ov-saved', el => el.textContent);
+  assert.match(headline, /you are #2!/, headline);
+  assert.doesNotMatch(headline, /#1\b/, headline);
+  const mine =(await serverScores()).filter(s => s.uid === uidA && s.board === 'daily-' + utcToday);
   assert.equal(mine.length, 1);
   assert.equal(mine[0].time, 90);
 });
@@ -290,7 +297,8 @@ await step('Firebase unreachable (SDK blocked while online): clear message, game
   const t = await winGame(P, { mode: 'easy', time: 61, mistakes: 0, name: 'Dana' });
   assert.match(t, /will be sent automatically later/, t);
   assert.equal(await P.evaluate(() => SudokuOnline.pendingCount()), 1);
-  assert.match(await P.$eval('#ov-saved', el => el.textContent), /Saved/);          // the local scoreboard still records it
+  assert.equal(await P.$eval('#ov-saved', el => el.classList.contains('on')), false);   // no worldwide rank yet → no "you are #N"
+  assert.equal(await P.evaluate(() => loadScores(scoreKey()).length), 1);              // the local scoreboard still records it
   await ctx.close();
 });
 
