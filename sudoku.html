@@ -233,6 +233,17 @@ h1 {
     0 0 80px rgba(119,0,255,0.12);
   overflow: hidden;
 }
+/* Bold frame hugging the 9×9 grid (drawn in the 8px padding, so the cell geometry — and the splat effects — do not move) */
+#board::after {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 3px solid rgba(232,224,255,0.95);
+  border-radius: 11px;
+  box-shadow: 0 0 14px rgba(150,90,255,0.55);
+  pointer-events: none;
+  z-index: 3;
+}
 
 /* ── CELLS ── */
 .sd-cell {
@@ -240,19 +251,19 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-right: 1px solid rgba(255,255,255,0.07);
-  border-bottom: 1px solid rgba(255,255,255,0.07);
+  border-right: 1px solid rgba(255,255,255,0.16);
+  border-bottom: 1px solid rgba(255,255,255,0.16);
   cursor: pointer;
   transition: background 0.1s;
 }
-/* Remove outer borders */
+/* Remove outer borders (the frame above replaces them) */
 .sd-cell[data-c="8"] { border-right: none; }
 .sd-cell[data-r="8"] { border-bottom: none; }
 /* Thick box boundaries */
-.sd-cell[data-c="2"] { border-right: 2px solid rgba(255,255,255,0.22); }
-.sd-cell[data-c="5"] { border-right: 2px solid rgba(255,255,255,0.22); }
-.sd-cell[data-r="2"] { border-bottom: 2px solid rgba(255,255,255,0.22); }
-.sd-cell[data-r="5"] { border-bottom: 2px solid rgba(255,255,255,0.22); }
+.sd-cell[data-c="2"] { border-right: 3px solid rgba(232,224,255,0.62); }
+.sd-cell[data-c="5"] { border-right: 3px solid rgba(232,224,255,0.62); }
+.sd-cell[data-r="2"] { border-bottom: 3px solid rgba(232,224,255,0.62); }
+.sd-cell[data-r="5"] { border-bottom: 3px solid rgba(232,224,255,0.62); }
 
 .sd-cell.given      { background: rgba(255,255,255,0.04); }
 .sd-cell.selected   { background: rgba(0,230,118,0.50) !important; box-shadow: inset 0 0 0 2px #00e676, 0 0 10px rgba(0,230,118,0.4); z-index: 1; }
@@ -277,19 +288,20 @@ h1 {
   grid-template-rows: repeat(3, 1fr);
   width: 100%;
   height: 100%;
-  padding: 2px;
+  padding: 1px;
   pointer-events: none;
 }
+/* Candidates: as large as a 3×3 slot allows (~16px of the ~51px cell) so they stay readable once the board is scaled down on a phone */
 .note {
-  font-size: 0.50rem;
-  font-weight: 700;
+  font-size: 1rem;
+  font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
   color: transparent;
   line-height: 1;
 }
-.note.vis { color: rgba(255,255,255,0.38); }
+.note.vis { color: rgba(255,255,255,0.86); }
 
 /* ── ANIMATIONS ── */
 @keyframes tpop {
@@ -475,11 +487,12 @@ body.day .diff-btn:hover { color: rgba(44,31,14,0.85); }
 body.day .diff-btn.active { background: linear-gradient(135deg, #7700ff, #ff00aa); border-color: transparent; color: #fff; }
 body.day .num-btn { background: #ddd5c8; border-color: rgba(80,50,20,0.12); color: #2c1f0e; }
 body.day .num-btn:hover { background: rgba(0,180,90,0.15); border-color: rgba(0,180,90,0.35); }
-body.day .sd-cell { border-right-color: rgba(80,50,20,0.10); border-bottom-color: rgba(80,50,20,0.10); }
-body.day .sd-cell[data-c="2"], body.day .sd-cell[data-c="5"] { border-right-color: rgba(80,50,20,0.28); }
-body.day .sd-cell[data-r="2"], body.day .sd-cell[data-r="5"] { border-bottom-color: rgba(80,50,20,0.28); }
+body.day .sd-cell { border-right-color: rgba(80,50,20,0.22); border-bottom-color: rgba(80,50,20,0.22); }
+body.day .sd-cell[data-c="2"], body.day .sd-cell[data-c="5"] { border-right-color: rgba(44,31,14,0.62); }
+body.day .sd-cell[data-r="2"], body.day .sd-cell[data-r="5"] { border-bottom-color: rgba(44,31,14,0.62); }
+body.day #board::after { border-color: rgba(44,31,14,0.92); box-shadow: none; }
 body.day .sd-cell.given { background: rgba(80,50,20,0.06); }
-body.day .note.vis { color: rgba(44,31,14,0.40); }
+body.day .note.vis { color: rgba(44,31,14,0.86); }
 body.day #hint { color: rgba(44,31,14,0.30); }
 body.day #overlay { background: rgba(232,224,212,0.93); }
 body.day #ov-msg { color: rgba(44,31,14,0.55); }
