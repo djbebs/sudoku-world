@@ -23,6 +23,15 @@
 !/spectrum-flux.html
 !/tictactoe.html
 
+# Link-preview image + favicons (the editable source in assets-src/ stays local)
+!/assets/
+/assets/*
+!/assets/og-sudoku-world.png
+!/assets/favicon.svg
+!/assets/favicon-32.png
+!/assets/favicon-192.png
+!/assets/apple-touch-icon.png
+
 # Firebase: security rules, indexes, CLI/emulator config
 !/firestore.rules
 !/firestore.indexes.json
