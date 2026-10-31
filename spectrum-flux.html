@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spectrum Flux — MINDPLAY</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { inter: ['Inter', 'system-ui', 'sans-serif'] },
+        colors: {
+          bg: '#0d0d1a', surface: '#0f0f26', card: '#12122a',
+          purple: '#7700ff', magenta: '#ff00aa', gold: '#ffcc00',
+          orange: '#ff6600', red: '#ff2244', green: '#00e676', cyan: '#00ccff',
+        }
+      }
+    }
+  }
+</script>
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: #0d0d1a;
+  font-family: 'Inter', system-ui, sans-serif;
+  color: #fff;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+.ambient-bg {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(ellipse at 20% 10%, rgba(119,0,255,0.18) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 90%, rgba(255,0,170,0.13) 0%, transparent 50%),
+    radial-gradient(ellipse at 60% 40%, rgba(255,204,0,0.05) 0%, transparent 40%);
+}
+.grid-mesh {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image:
+    linear-gradient(rgba(119,0,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(119,0,255,0.04) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse at center, black 20%, transparent 75%);
+  animation: meshDrift 20s ease-in-out infinite alternate;
+}
+@keyframes meshDrift { from{background-position:0 0} to{background-position:30px 30px} }
+
+.orb { position: fixed; border-radius: 50%; filter: blur(60px); pointer-events: none; z-index: 0; animation: orbFloat linear infinite alternate; }
+.orb-1 { width:500px;height:500px;background:rgba(119,0,255,0.12);top:-100px;left:-100px;animation-duration:18s; }
+.orb-2 { width:400px;height:400px;background:rgba(255,0,170,0.10);bottom:-80px;right:-80px;animation-duration:22s;animation-delay:-5s; }
+.orb-3 { width:300px;height:300px;background:rgba(255,204,0,0.06);top:40%;right:20%;animation-duration:15s;animation-delay:-10s; }
+@keyframes orbFloat {
+  0%{transform:translate(0,0) scale(1)} 33%{transform:translate(40px,-30px) scale(1.05)}
+  66%{transform:translate(-20px,40px) scale(0.97)} 100%{transform:translate(30px,-10px) scale(1.02)}
+}
+
+.glass { background:rgba(15,15,38,0.55);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.07); }
+.glass-strong { background:rgba(18,18,42,0.80);backdrop-filter:blur(32px);-webkit-backdrop-filter:blur(32px);border:1px solid rgba(255,255,255,0.09); }
+
+.grad-rainbow {
+  background: linear-gradient(90deg,#ff2244 0%,#ff6600 14%,#ffcc00 28%,#aaff00 43%,#00ff88 57%,#00ccff 71%,#7700ff 85%,#ff00aa 100%);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.grad-primary {
+  background: linear-gradient(135deg,#7700ff,#ff00aa);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #7700ff, #ff00aa);
+  border: none; border-radius: 100px; color: #fff;
+  font-size: 0.85rem; font-weight: 700; padding: 12px 28px;
+  cursor: pointer; letter-spacing: 0.05em; text-transform: uppercase;
+  transition: filter 0.2s, transform 0.15s, box-shadow 0.2s;
+  box-shadow: 0 0 20px rgba(119,0,255,0.3);
+  text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-primary:hover {
+  filter: brightness(1.2);
+  box-shadow: 0 0 35px rgba(119,0,255,0.5), 0 0 60px rgba(255,0,170,0.2);
+  transform: translateY(-2px);
+}
+.btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(255,255,255,0.6), 0 0 35px rgba(119,0,255,0.5); }
+.btn-primary:active { transform: scale(0.96); }
+@keyframes btnPulse {
+  0%,100% { box-shadow: 0 0 20px rgba(119,0,255,0.4), 0 0 40px rgba(255,0,170,0.2); }
+  50%      { box-shadow: 0 0 40px rgba(119,0,255,0.7), 0 0 80px rgba(255,0,170,0.4); }
+}
+.btn-pulse { animation: btnPulse 2s ease-in-out infinite; }
+
+/* ── GAME GRID ── */
+#game-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(5, 1fr);
+  gap: 4px;
+  width: 100%;
+  aspect-ratio: 1;
+  position: relative;
+}
+
+.tile {
+  position: relative;
+  background: rgba(15,15,38,0.7);
+  border: 1px solid rgba(119,0,255,0.15);
+  border-radius: 8px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.2s, background 0.2s, transform 0.1s;
+  aspect-ratio: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+.tile:hover { border-color: rgba(119,0,255,0.4); background: rgba(119,0,255,0.08); transform: scale(1.04); }
+.tile:focus-visible { outline: none; border-color: rgba(119,0,255,0.6); background: rgba(119,0,255,0.1); box-shadow: 0 0 0 2px rgba(119,0,255,0.5), 0 0 16px rgba(119,0,255,0.4); }
+.tile.locked { cursor: default; }
+.tile.locked:hover { transform: none; }
+.tile.locked:focus-visible { outline: none; box-shadow: none; border-color: inherit; }
+
+/* Tile inner SVG wrapper — rotates */
+.tile-inner {
+  width: 80%; height: 80%;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Persistent rotate affordance on every clickable pipe tile, so it always
+   reads as "click = rotate this" rather than an ambiguous decoration. */
+.rotate-badge {
+  position: absolute; bottom: 3px; right: 5px;
+  font-size: 0.6rem; line-height: 1;
+  color: rgba(255,255,255,0.3);
+  pointer-events: none;
+  transition: color 0.2s, transform 0.25s;
+}
+.tile:not(.locked):hover .rotate-badge { color: rgba(255,255,255,0.9); transform: rotate(75deg); }
+
+/* Beam overlay on tile */
+.tile-beam {
+  position: absolute; inset: 0; pointer-events: none;
+  border-radius: 8px;
+}
+
+/* Prism tile */
+.tile.prism { border-color: rgba(255,204,0,0.3); background: rgba(30,25,10,0.7); }
+
+/* Win overlay */
+#win-overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(8,8,20,0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  align-items: center; justify-content: center;
+}
+#win-overlay.show { display: flex; }
+
+.win-card {
+  background: rgba(18,18,42,0.90);
+  backdrop-filter: blur(32px);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 24px;
+  padding: 40px 48px;
+  text-align: center;
+  max-width: 380px;
+  width: 90vw;
+  animation: cardIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes cardIn {
+  from { transform: scale(0.7) translateY(30px); opacity: 0; }
+  to   { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+/* Streak fire */
+@keyframes firePulse {
+  0%,100% { text-shadow: 0 0 10px #ff6600, 0 0 24px #ff2244; }
+  50%      { text-shadow: 0 0 20px #ffcc00, 0 0 40px #ff6600, 0 0 60px #ff2244; }
+}
+.fire-icon { animation: firePulse 1.2s ease-in-out infinite; display: inline-block; }
+
+/* Particle burst */
+.particle {
+  position: fixed; pointer-events: none; z-index: 300;
+  width: 8px; height: 8px; border-radius: 50%;
+  animation: particleFly var(--dur, 0.8s) ease-out forwards;
+}
+@keyframes particleFly {
+  0%   { transform: translate(0,0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--tx,0px), var(--ty,0px)) scale(0); opacity: 0; }
+}
+
+/* Beam canvas layer */
+#beam-canvas {
+  position: absolute; inset: 0; pointer-events: none;
+  width: 100%; height: 100%;
+}
+
+/* Color target display */
+.color-swatch {
+  width: 32px; height: 32px; border-radius: 8px;
+  border: 2px solid rgba(255,255,255,0.2);
+  box-shadow: 0 0 12px var(--swatch-color, #ffffff);
+  flex-shrink: 0;
+}
+
+/* Level indicator */
+.level-badge {
+  background: linear-gradient(135deg, #7700ff, #ff00aa);
+  border-radius: 100px; padding: 4px 14px;
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+}
+
+/* Timer */
+#timer { font-variant-numeric: tabular-nums; }
+
+/* Hint pulse on receiver when close */
+@keyframes receiverPulse {
+  0%,100% { border-color: rgba(255,255,255,0.3); }
+  50%      { border-color: rgba(255,255,255,0.8); box-shadow: 0 0 16px rgba(255,255,255,0.55); }
+}
+.tile.receiver.connected { animation: receiverPulse 1s ease-in-out infinite; }
+
+/* Empty cell — always visible */
+.tile.empty {
+  border: 1px dashed rgba(119,0,255,0.15);
+  background: rgba(119,0,255,0.025);
+  pointer-events: none; cursor: default;
+}
+.tile.empty:hover { transform:none; border-color:rgba(119,0,255,0.15); background:rgba(119,0,255,0.025); }
+
+/* Source tile */
+.tile.source { border-color: var(--src-border,rgba(0,204,255,0.5)); background:rgba(8,8,28,0.95); cursor:default; }
+.tile.source:hover { transform:none; }
+.source-orb-dot {
+  border-radius:50%;
+  animation: srcPulse 1.8s ease-in-out infinite;
+}
+@keyframes srcPulse {
+  0%,100% { box-shadow:0 0 10px var(--sc),0 0 20px var(--sc); }
+  50%      { box-shadow:0 0 20px var(--sc),0 0 40px var(--sc),0 0 60px var(--sc)40; }
+}
+.source-dir-arrow { font-size:0.9rem; line-height:1; opacity:0.7; }
+
+/* Receiver tile */
+.tile.receiver { border-color:var(--rcv-border,rgba(255,255,255,0.25)); background:rgba(8,8,28,0.95); cursor:default; }
+.tile.receiver:hover { transform:none; }
+.receiver-ring-outer { border-radius:50%; border:2px solid var(--rc); opacity:0.45; }
+.receiver-ring-inner { border-radius:50%; border:2px solid var(--rc); box-shadow:0 0 8px var(--rc); }
+.receiver-dot        { border-radius:50%; background:var(--rc); box-shadow:0 0 8px var(--rc); }
+.tile.receiver.connected .receiver-ring-inner { box-shadow:0 0 18px var(--rc),0 0 36px var(--rc); }
+
+/* Grid wrapper card */
+#grid-wrapper {
+  position:relative;
+  width:min(420px,92vw);
+  background:rgba(8,6,24,0.7);
+  border:1px solid rgba(119,0,255,0.3);
+  border-radius:14px;
+  padding:8px;
+  box-shadow:0 0 50px rgba(119,0,255,0.1),0 4px 40px rgba(0,0,0,0.5);
+}
+
+/* Beam-lit pipe tiles */
+.tile.beam-lit {
+  border-color:var(--bc,#00ccff) !important;
+  box-shadow:inset 0 0 12px rgba(0,204,255,0.15),0 0 8px var(--bc,#00ccff) !important;
+}
+
+/* How-to-play strip */
+#how-to-play {
+  width:min(420px,92vw);
+  display:flex; align-items:stretch;
+  background:rgba(8,6,24,0.6);
+  border:1px solid rgba(119,0,255,0.18);
+  border-radius:12px;
+  overflow:hidden;
+  margin-bottom:10px;
+}
+.htp-step {
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:4px; padding:8px 4px;
+  border-right:1px solid rgba(119,0,255,0.12);
+  text-align:center;
+}
+.htp-step:last-child { border-right:none; }
+.htp-icon { font-size:1.1rem; line-height:1; }
+.htp-title { font-size:0.6rem; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; color:rgba(255,255,255,0.7); }
+.htp-desc  { font-size:0.56rem; font-weight:500; color:rgba(255,255,255,0.5); line-height:1.3; }
+
+/* Win match row */
+.win-match-row {
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  padding:10px 16px; margin-bottom:16px;
+  background:rgba(0,255,136,0.05);
+  border:1px solid rgba(0,255,136,0.2);
+  border-radius:12px;
+}
+.win-match-swatch {
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+}
+.win-match-swatch-dot {
+  width:24px; height:24px; border-radius:6px;
+  border:2px solid rgba(255,255,255,0.2);
+}
+.win-match-swatch-lbl { font-size:0.54rem; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.55); }
+.win-match-check { font-size:0.8rem; font-weight:900; color:#00ff88; text-shadow:0 0 14px #00ff88; white-space:nowrap; }
+.win-reason { font-size:0.72rem; color:rgba(255,255,255,0.6); margin-bottom:14px; }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grid-mesh, .orb, .fire-icon, .source-orb-dot,
+  .tile.receiver.connected, .btn-pulse {
+    animation: none !important;
+  }
+  .win-card { animation: cardIn 0.01s linear; }
+  .particle { animation: none !important; opacity: 0 !important; }
+  .tile, .tile-inner, .btn-primary {
+    transition-duration: 0.01s !important;
+  }
+}
+</style>
+</head>
+<body class="font-inter min-h-screen">
+
+<!-- Background layers -->
+<div class="ambient-bg"></div>
+<div class="grid-mesh"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<div id="sr-status" class="sr-only" role="status" aria-live="polite"></div>
+
+<!-- Nav -->
+<nav class="fixed top-0 left-0 right-0 z-50 px-6 py-4 flex items-center justify-between"
+     style="background:rgba(13,13,26,0.7);backdrop-filter:blur(24px);border-bottom:1px solid rgba(255,255,255,0.05)">
+  <a href="landing.html" class="font-black text-xl tracking-tight" style="letter-spacing:-0.04em">
+    <span class="grad-rainbow">MIND</span><span style="color:rgba(255,255,255,0.9)">PLAY</span>
+  </a>
+  <a href="landing.html" class="text-xs font-medium uppercase tracking-widest"
+     style="color:rgba(255,255,255,0.5);text-decoration:none;transition:color 0.2s"
+     onmouseover="this.style.color='rgba(255,255,255,0.9)'" onmouseout="this.style.color='rgba(255,255,255,0.5)'">
+    ← Back to Hub
+  </a>
+</nav>
+
+<!-- Main -->
+<main class="relative z-10 min-h-screen flex flex-col items-center justify-start pt-20 pb-8 px-4">
+
+  <!-- Header -->
+  <div class="text-center mb-4">
+    <div class="level-badge mb-2" id="level-badge">Level 1</div>
+    <h1 class="text-3xl font-black tracking-tight">
+      <span class="grad-rainbow">Spectrum</span>
+      <span style="color:rgba(255,255,255,0.92)"> Flux</span>
+    </h1>
+  </div>
+
+  <!-- Stats bar -->
+  <div class="flex items-center gap-6 mb-4 glass rounded-2xl px-6 py-2">
+    <div class="text-center">
+      <div class="text-xs uppercase tracking-widest mb-1" style="color:rgba(255,255,255,0.5)">Time</div>
+      <div id="timer" class="text-base font-bold" style="color:#00ccff">0:00</div>
+    </div>
+    <div style="width:1px;height:28px;background:rgba(255,255,255,0.08)"></div>
+    <div class="text-center">
+      <div class="text-xs uppercase tracking-widest mb-1" style="color:rgba(255,255,255,0.5)">Moves</div>
+      <div id="move-count" class="text-base font-bold" style="color:#ffcc00">0</div>
+    </div>
+    <div style="width:1px;height:28px;background:rgba(255,255,255,0.08)"></div>
+    <div class="flex items-center gap-2">
+      <div class="text-center">
+        <div class="text-xs uppercase tracking-widest mb-1" style="color:rgba(255,255,255,0.5)">Streak</div>
+        <div class="text-base font-bold" style="color:#ff6600">
+          <span class="fire-icon">🔥</span>
+          <span id="streak-count">0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Target color display -->
+  <div class="flex items-center gap-3 mb-4 glass rounded-xl px-5 py-2">
+    <span class="text-xs uppercase tracking-widest" style="color:rgba(255,255,255,0.55)">Target</span>
+    <div class="color-swatch" id="target-swatch" style="--swatch-color:#00ccff;background:#00ccff"></div>
+    <span id="target-label" class="text-sm font-bold" style="color:#00ccff">Cyan</span>
+    <div style="width:1px;height:20px;background:rgba(255,255,255,0.08)"></div>
+    <span class="text-xs uppercase tracking-widest" style="color:rgba(255,255,255,0.55)">Current</span>
+    <div class="color-swatch" id="current-swatch" style="--swatch-color:#7700ff;background:#7700ff"></div>
+    <span id="current-label" class="text-sm font-bold" style="color:#7700ff">—</span>
+  </div>
+
+  <!-- How to play strip -->
+  <div id="how-to-play">
+    <div class="htp-step">
+      <div class="htp-icon">⊙</div>
+      <div class="htp-title">Source</div>
+      <div class="htp-desc">Emits the light beam</div>
+    </div>
+    <div class="htp-step">
+      <div class="htp-icon">↻</div>
+      <div class="htp-title">Click to rotate</div>
+      <div class="htp-desc">Pipes rotate 90°</div>
+    </div>
+    <div class="htp-step">
+      <div class="htp-icon">◈</div>
+      <div class="htp-title">Prism</div>
+      <div class="htp-desc">Shifts beam color</div>
+    </div>
+    <div class="htp-step">
+      <div class="htp-icon">◎</div>
+      <div class="htp-title">Receiver</div>
+      <div class="htp-desc">Match target color!</div>
+    </div>
+  </div>
+
+  <!-- Grid wrapper with beam canvas -->
+  <div id="grid-wrapper">
+    <canvas id="beam-canvas" style="position:absolute;inset:0;z-index:5;pointer-events:none;width:100%;height:100%"></canvas>
+    <div id="game-grid"></div>
+  </div>
+
+  <!-- Hint / reset row -->
+  <div class="flex gap-3 mt-4">
+    <button id="reset-btn" class="btn-primary" style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);box-shadow:none;color:rgba(255,255,255,0.7)">
+      ↺ Reset
+    </button>
+  </div>
+
+</main>
+
+<!-- Win Overlay -->
+<div id="win-overlay">
+  <div class="win-card">
+    <div class="text-xs uppercase tracking-widest mb-2" style="color:rgba(255,255,255,0.55)">Puzzle Solved</div>
+    <h2 class="text-3xl font-black tracking-tight mb-1">
+      <span class="grad-rainbow">LEVEL</span>
+      <span style="color:rgba(255,255,255,0.95)"> COMPLETE</span>
+    </h2>
+    <div style="height:2px;background:linear-gradient(90deg,transparent,#7700ff,#ff00aa,transparent);border-radius:2px;margin:16px 0"></div>
+
+    <!-- Color match explanation -->
+    <p id="win-reason" class="win-reason">You routed the beam to the receiver!</p>
+    <div class="win-match-row" id="win-match-row">
+      <div class="win-match-swatch">
+        <div class="win-match-swatch-dot" id="win-src-dot"></div>
+        <div class="win-match-swatch-lbl">Source</div>
+      </div>
+      <span style="color:rgba(255,255,255,0.25);font-size:1rem">→</span>
+      <div class="win-match-swatch" id="win-prism-slot" style="display:none">
+        <div class="win-match-swatch-dot" style="background:linear-gradient(135deg,#ffcc00,#ff6600);box-shadow:0 0 10px #ffcc0080"></div>
+        <div class="win-match-swatch-lbl">Prism</div>
+      </div>
+      <span id="win-prism-arrow" style="color:rgba(255,255,255,0.25);font-size:1rem;display:none">→</span>
+      <div class="win-match-swatch">
+        <div class="win-match-swatch-dot" id="win-tgt-dot"></div>
+        <div class="win-match-swatch-lbl">Target</div>
+      </div>
+      <span class="win-match-check">✓ MATCHED</span>
+    </div>
+
+    <div class="flex justify-center gap-8 mb-6">
+      <div class="text-center">
+        <div class="text-xs uppercase tracking-widest mb-1" style="color:rgba(255,255,255,0.5)">Time</div>
+        <div id="win-time" class="text-2xl font-black" style="color:#00ccff">0:00</div>
+      </div>
+      <div class="text-center">
+        <div class="text-xs uppercase tracking-widest mb-1" style="color:rgba(255,255,255,0.5)">Moves</div>
+        <div id="win-moves" class="text-2xl font-black" style="color:#ffcc00">0</div>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-center gap-2 mb-6 rounded-xl py-3"
+         style="background:rgba(255,102,0,0.1);border:1px solid rgba(255,102,0,0.2)">
+      <span class="fire-icon text-2xl">🔥</span>
+      <span class="text-sm uppercase tracking-widest" style="color:rgba(255,255,255,0.5)">Win Streak</span>
+      <span id="win-streak" class="text-2xl font-black" style="color:#ff6600">0</span>
+    </div>
+
+    <button id="next-level-btn" class="btn-primary btn-pulse w-full justify-center text-base">
+      Next Level →
+    </button>
+    <button id="replay-btn" class="mt-3 text-xs uppercase tracking-widest"
+            style="background:none;border:none;color:rgba(255,255,255,0.5);cursor:pointer;transition:color 0.2s"
+            onmouseover="this.style.color='rgba(255,255,255,0.7)'" onmouseout="this.style.color='rgba(255,255,255,0.5)'">
+      Replay level
+    </button>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   SPECTRUM FLUX — Game Engine
+   ═══════════════════════════════════════════════════════ */
+
+// ── CONSTANTS ──
+const COLORS = {
+  red:    { hex: '#ff2244', label: 'Red'    },
+  orange: { hex: '#ff6600', label: 'Orange' },
+  yellow: { hex: '#ffcc00', label: 'Yellow' },
+  green:  { hex: '#00ff88', label: 'Green'  },
+  cyan:   { hex: '#00ccff', label: 'Cyan'   },
+  blue:   { hex: '#7700ff', label: 'Blue'   },
+  magenta:{ hex: '#ff00aa', label: 'Magenta'},
+};
+const COLOR_KEYS = Object.keys(COLORS);
+
+// Directions: 0=up, 1=right, 2=down, 3=left
+const DIR_NAMES = ['up','right','down','left'];
+const DIR_VEC   = [[-1,0],[0,1],[1,0],[0,-1]];
+const OPPOSITE  = [2,3,0,1];
+
+// Pipe types: which directions have openings (bitmask or array of dirs)
+// Types: straight (0°,90°), elbow, T, cross, deadend
+const PIPE_TYPES = {
+  straight_h: { dirs:[1,3],  symbol:'━' },
+  straight_v: { dirs:[0,2],  symbol:'┃' },
+  elbow_ne:   { dirs:[0,1],  symbol:'┗' },
+  elbow_se:   { dirs:[2,1],  symbol:'┏' },
+  elbow_sw:   { dirs:[2,3],  symbol:'┓' },
+  elbow_nw:   { dirs:[0,3],  symbol:'┛' },
+  tee_r:      { dirs:[0,1,2],symbol:'┣' },
+  tee_l:      { dirs:[0,2,3],symbol:'┫' },
+  tee_u:      { dirs:[0,1,3],symbol:'┻' },
+  tee_d:      { dirs:[1,2,3],symbol:'┳' },
+  cross:      { dirs:[0,1,2,3],symbol:'╋' },
+};
+const PIPE_KEYS = Object.keys(PIPE_TYPES);
+
+// Prism color cycle order
+const PRISM_CYCLE = ['red','orange','yellow','green','cyan','blue','magenta'];
+
+/* ── LEVEL DEFINITIONS ──
+   Each level specifies a 5×5 grid of tiles.
+   Tile types: 'empty'|pipe key|'source'|'receiver'|'prism'|'block'
+   source/receiver have a color and fixed pipe type.
+   rotation: 0-3 (each = 90° clockwise)
+*/
+const LEVELS = [
+  // Level 1 — simple straight path, no prism
+  {
+    target: 'cyan',
+    sourceColor: 'cyan',
+    grid: [
+      ['empty',      'empty',       'empty',     'empty',     'empty'     ],
+      ['empty',      'empty',       'empty',     'empty',     'empty'     ],
+      ['source',     'straight_h',  'straight_h','straight_h','receiver'  ],
+      ['empty',      'empty',       'empty',     'empty',     'empty'     ],
+      ['empty',      'empty',       'empty',     'empty',     'empty'     ],
+    ],
+    // rotation per cell [row][col]
+    rotations: [
+      [0,0,0,0,0],
+      [0,0,0,0,0],
+      [0,0,0,0,0],
+      [0,0,0,0,0],
+      [0,0,0,0,0],
+    ],
+    // which non-source/receiver pipes start rotated (puzzle pieces)
+    scramble: [[2,1],[2,2],[2,3]],
+  },
+
+  // Level 2 — L-shaped path
+  {
+    target: 'magenta',
+    sourceColor: 'magenta',
+    sourceDir: 2, // emit downward
+    grid: [
+      ['empty',    'empty',    'empty',    'empty',    'empty'   ],
+      ['empty',    'source',   'empty',    'empty',    'empty'   ],
+      ['empty',    'straight_v','empty',   'empty',    'empty'   ],
+      ['empty',    'elbow_ne', 'straight_h','straight_h','receiver'],
+      ['empty',    'empty',    'empty',    'empty',    'empty'   ],
+    ],
+    rotations: [[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0]],
+    scramble: [[2,1],[3,1],[3,2],[3,3]],
+  },
+
+  // Level 3 — straight path through prism changes color
+  {
+    target: 'red',
+    sourceColor: 'blue',
+    grid: [
+      ['empty',    'empty',    'empty',      'empty',    'empty'    ],
+      ['empty',    'empty',    'empty',      'empty',    'empty'    ],
+      ['source',   'straight_h','prism',     'straight_h','receiver'],
+      ['empty',    'empty',    'empty',      'empty',    'empty'    ],
+      ['empty',    'empty',    'empty',      'empty',    'empty'    ],
+    ],
+    rotations: [[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0]],
+    scramble: [[2,1],[2,3]],
+    prismAt: [[2,2]], // prism shifts blue(5)+2=7%7=0=red
+    prismShift: { '2,2': 2 },
+  },
+
+  // Level 4 — Z-shape routing
+  // Path: source[2,0] -> right -> [2,1] -> right -> [2,2] elbow_sw (left+down)
+  //       -> down -> [3,2] straight_v -> down -> [4,2] elbow_ne (up+right)
+  //       -> right -> [4,3] straight_h -> right -> [4,4] receiver
+  {
+    target: 'green',
+    sourceColor: 'green',
+    sourceDir: 1,
+    grid: [
+      ['empty',    'empty',    'empty',      'empty',    'empty'    ],
+      ['empty',    'empty',    'empty',      'empty',    'empty'    ],
+      ['source',   'straight_h','elbow_sw',  'empty',    'empty'    ],
+      ['empty',    'empty',    'straight_v', 'empty',    'empty'    ],
+      ['empty',    'empty',    'elbow_ne',   'straight_h','receiver'],
+    ],
+    rotations: [[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0]],
+    scramble: [[2,1],[2,2],[3,2],[4,2],[4,3]],
+  },
+
+  // Level 5 — prism + L-turn
+  // Path: src[1,0]→R→[1,1]str_h→[1,2]prism(cyan+2=magenta)→[1,3]str_h→[1,4]
+  //       elbow_sw dirs[2,3]: left+down. entry left=3 ✓, exit down=2
+  //       →[2,4]str_v→[3,4]str_v→[4,4]receiver ✓
+  {
+    target: 'magenta',
+    sourceColor: 'cyan',
+    sourceDir: 1,
+    grid: [
+      ['empty',   'empty',    'empty',     'empty',    'empty'    ],
+      ['source',  'straight_h','prism',    'straight_h','elbow_sw'],
+      ['empty',   'empty',    'empty',     'empty',    'straight_v'],
+      ['empty',   'empty',    'empty',     'empty',    'straight_v'],
+      ['empty',   'empty',    'empty',     'empty',    'receiver' ],
+    ],
+    rotations: [[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0]],
+    scramble: [[1,1],[1,3],[1,4],[2,4],[3,4]],
+    prismAt: [[1,2]],
+    prismShift: { '1,2': 2 }, // cyan(4)+2=6=magenta
+  },
+];
+
+/* ── STATE ── */
+let currentLevel = 0;
+let tiles        = [];      // 5×5 array of tile objects
+let moves        = 0;
+let timerSec     = 0;
+let timerInterval= null;
+let gameWon      = false;
+let streak       = 0;
+let lastStreakTs  = null;
+
+/* ── STREAK (localStorage) ── */
+function loadStreak() {
+  const s  = parseInt(localStorage.getItem('sf-streak') || '0', 10);
+  const ts = parseInt(localStorage.getItem('sf-streak-ts') || '0', 10);
+  const now = Date.now();
+  if (ts && (now - ts) > 86400000) {
+    streak = 0;
+    localStorage.setItem('sf-streak','0');
+    localStorage.setItem('sf-streak-ts', String(now));
+  } else {
+    streak = isNaN(s) ? 0 : s;
+    lastStreakTs = ts || now;
+  }
+  updateStreakUI();
+}
+function saveStreak(val) {
+  streak = val;
+  const now = Date.now();
+  localStorage.setItem('sf-streak', String(val));
+  localStorage.setItem('sf-streak-ts', String(now));
+  updateStreakUI();
+}
+function updateStreakUI() {
+  document.getElementById('streak-count').textContent = streak;
+  document.getElementById('win-streak').textContent   = streak;
+}
+
+/* ── TIMER ── */
+function startTimer() {
+  stopTimer();
+  timerSec = 0;
+  renderTimer();
+  timerInterval = setInterval(() => { timerSec++; renderTimer(); }, 1000);
+}
+function stopTimer() { clearInterval(timerInterval); timerInterval = null; }
+function renderTimer() {
+  const m = Math.floor(timerSec/60);
+  const s = String(timerSec%60).padStart(2,'0');
+  document.getElementById('timer').textContent = `${m}:${s}`;
+}
+
+/* ── TILE LOGIC ── */
+function getPipeDirs(typeKey, rotation) {
+  if (!PIPE_TYPES[typeKey]) return [];
+  const baseDirs = PIPE_TYPES[typeKey].dirs;
+  return baseDirs.map(d => (d + rotation) % 4);
+}
+
+function tileHasOpenings(tile, dirIn, dirOut) {
+  // Does this tile connect dirIn (beam arrives) to dirOut (beam exits)?
+  const dirs = getPipeDirs(tile.type, tile.rotation);
+  const entryDir = OPPOSITE[dirIn]; // beam comes from dirIn direction relative to us
+  return dirs.includes(entryDir) && dirs.includes(dirOut);
+}
+
+/* ── BEAM TRACING ── */
+function traceBeam() {
+  const levelDef = LEVELS[currentLevel];
+  let beamPaths = []; // array of {cells: [{r,c}], color, complete}
+
+  // Find source position
+  let srcR = -1, srcC = -1;
+  for (let r=0;r<5;r++) for (let c=0;c<5;c++) {
+    if (tiles[r][c].type === 'source') { srcR=r; srcC=c; break; }
+    if (srcR !== -1) break;
+  }
+  if (srcR < 0) return beamPaths;
+
+  const sourceColor = levelDef.sourceColor;
+
+  // Source emits in the direction defined by the level (default: right=1)
+  const sourcePipeDirs = [levelDef.sourceDir !== undefined ? levelDef.sourceDir : 1];
+
+  // Trace from source in each of its open directions
+  for (const startDir of sourcePipeDirs) {
+    const path = { cells: [{r:srcR, c:srcC}], color: sourceColor, complete: false };
+    let curR = srcR, curC = srcC, curDir = startDir;
+    let colorKey = sourceColor;
+    const visited = new Set();
+
+    for (let step=0; step<25; step++) {
+      const [dr, dc] = DIR_VEC[curDir];
+      const nR = curR + dr;
+      const nC = curC + dc;
+      if (nR<0||nR>=5||nC<0||nC>=5) break;
+
+      const nextTile = tiles[nR][nC];
+      if (!nextTile || nextTile.type === 'empty' || nextTile.type === 'block') break;
+
+      const key = `${nR},${nC},${curDir}`;
+      if (visited.has(key)) break;
+      visited.add(key);
+
+      // Check if next tile accepts beam from curDir
+      if (nextTile.type === 'receiver') {
+        // Receiver just needs the beam to arrive
+        path.cells.push({r:nR, c:nC});
+        path.complete = true;
+        path.finalColor = colorKey;
+        break;
+      }
+
+      if (nextTile.type === 'prism') {
+        // Beam passes through prism and shifts color
+        const shift = (levelDef.prismShift && levelDef.prismShift[`${nR},${nC}`]) || 1;
+        const idx = PRISM_CYCLE.indexOf(colorKey);
+        colorKey = PRISM_CYCLE[(idx + shift) % PRISM_CYCLE.length];
+        path.cells.push({r:nR, c:nC});
+        // Prism passes beam straight through in curDir
+        curR = nR; curC = nC;
+        continue;
+      }
+
+      // Regular pipe tile — find exit direction
+      const pipeDirs = getPipeDirs(nextTile.type, nextTile.rotation);
+      const entryFromDir = OPPOSITE[curDir]; // direction beam came FROM
+      if (!pipeDirs.includes(entryFromDir)) break; // tile doesn't accept from this direction
+
+      // Find exit direction (other opening)
+      const exitDirs = pipeDirs.filter(d => d !== entryFromDir);
+      if (exitDirs.length === 0) break;
+
+      path.cells.push({r:nR, c:nC});
+      curR = nR; curC = nC;
+      // For simplicity take first exit (single path)
+      curDir = exitDirs[0];
+    }
+
+    if (path.cells.length > 1) beamPaths.push(path);
+  }
+
+  return beamPaths;
+}
+
+/* ── BEAM RENDERING ── */
+function renderBeams(paths) {
+  const canvas = document.getElementById('beam-canvas');
+  const grid   = document.getElementById('game-grid');
+  const gRect  = grid.getBoundingClientRect();
+
+  canvas.width  = gRect.width;
+  canvas.height = gRect.height;
+
+  // Clear beam-lit from all tiles
+  document.querySelectorAll('.tile.beam-lit').forEach(el => {
+    el.classList.remove('beam-lit');
+    el.style.removeProperty('--bc');
+  });
+
+  // Apply beam-lit to all cells in paths
+  for (const path of paths) {
+    const hex = COLORS[path.color]?.hex || '#ffffff';
+    for (const {r,c} of path.cells) {
+      const el = getTileEl(r,c);
+      if (el && !el.classList.contains('source') && !el.classList.contains('receiver')) {
+        el.classList.add('beam-lit');
+        el.style.setProperty('--bc', hex);
+      }
+    }
+  }
+
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const cellW = gRect.width / 5;
+  const cellH = gRect.height / 5;
+
+  for (const path of paths) {
+    const colorHex = COLORS[path.color]?.hex || '#ffffff';
+    ctx.strokeStyle = colorHex;
+    ctx.lineWidth   = 4;
+    ctx.lineCap     = 'round';
+    ctx.shadowBlur  = 18;
+    ctx.shadowColor = colorHex;
+
+    ctx.beginPath();
+    for (let i = 0; i < path.cells.length; i++) {
+      const {r,c} = path.cells[i];
+      const x = c * cellW + cellW / 2;
+      const y = r * cellH + cellH / 2;
+      if (i === 0) ctx.moveTo(x, y);
+      else         ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // Second thinner bright core
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth   = 1.5;
+    ctx.shadowBlur  = 6;
+    ctx.shadowColor = '#ffffff';
+    ctx.globalAlpha = 0.6;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // Update current color indicator
+  const completePaths = paths.filter(p => p.complete);
+  const currentColorKey = completePaths.length > 0 ? completePaths[0].finalColor : null;
+  updateCurrentColor(currentColorKey);
+
+  return completePaths;
+}
+
+function updateCurrentColor(colorKey) {
+  const swatch = document.getElementById('current-swatch');
+  const label  = document.getElementById('current-label');
+  if (colorKey && COLORS[colorKey]) {
+    const hex = COLORS[colorKey].hex;
+    swatch.style.background  = hex;
+    swatch.style.setProperty('--swatch-color', hex);
+    label.style.color        = hex;
+    label.textContent        = COLORS[colorKey].label;
+  } else {
+    swatch.style.background  = '#333';
+    swatch.style.setProperty('--swatch-color','rgba(255,255,255,0.2)');
+    label.style.color        = 'rgba(255,255,255,0.3)';
+    label.textContent        = '—';
+  }
+}
+
+/* ── WIN CHECK ── */
+function checkWin(completePaths) {
+  if (gameWon) return;
+  const levelDef = LEVELS[currentLevel];
+  for (const path of completePaths) {
+    if (path.finalColor === levelDef.target) {
+      triggerWin();
+      return;
+    }
+  }
+  // Highlight receiver as connected if beam arrives (even wrong color)
+  const receiverConnected = completePaths.length > 0;
+  for (let r=0;r<5;r++) for (let c=0;c<5;c++) {
+    const el = getTileEl(r,c);
+    if (tiles[r][c].type === 'receiver') {
+      el.classList.toggle('connected', receiverConnected);
+    }
+  }
+}
+
+function getTileEl(r,c) {
+  return document.querySelectorAll('.tile')[r*5+c];
+}
+
+/* ── WIN TRIGGER ── */
+function triggerWin() {
+  gameWon = true;
+  stopTimer();
+  const newStreak = streak + 1;
+  saveStreak(newStreak);
+
+  document.getElementById('win-time').textContent  = document.getElementById('timer').textContent;
+  document.getElementById('win-moves').textContent = moves;
+  document.getElementById('win-streak').textContent = newStreak;
+
+  // Populate color match row
+  const levelDef = LEVELS[currentLevel];
+  const srcHex = COLORS[levelDef.sourceColor]?.hex || '#fff';
+  const tgtHex = COLORS[levelDef.target]?.hex || '#fff';
+  const hasPrism = levelDef.prismAt && levelDef.prismAt.length > 0;
+  const srcDot = document.getElementById('win-src-dot');
+  const tgtDot = document.getElementById('win-tgt-dot');
+  srcDot.style.background = srcHex;
+  srcDot.style.boxShadow  = `0 0 10px ${srcHex}`;
+  tgtDot.style.background = tgtHex;
+  tgtDot.style.boxShadow  = `0 0 10px ${tgtHex}`;
+  document.getElementById('win-prism-slot').style.display  = hasPrism ? 'flex' : 'none';
+  document.getElementById('win-prism-arrow').style.display = hasPrism ? 'inline' : 'none';
+  const srcLabel = COLORS[levelDef.sourceColor]?.label || '';
+  const tgtLabel = COLORS[levelDef.target]?.label || '';
+  const reasonText = hasPrism
+    ? `The ${srcLabel} beam passed through a prism and became ${tgtLabel}!`
+    : `Your ${srcLabel} beam reached the ${tgtLabel} receiver — perfect match!`;
+  document.getElementById('win-reason').textContent = reasonText;
+
+  const overlay = document.getElementById('win-overlay');
+  overlay.classList.add('show');
+  announce(`Level ${currentLevel + 1} complete. ${reasonText}`);
+
+  // Particle burst from center of grid
+  const grid = document.getElementById('game-grid');
+  const rect  = grid.getBoundingClientRect();
+  const cx    = rect.left + rect.width/2;
+  const cy    = rect.top  + rect.height/2;
+  spawnParticles(cx, cy, newStreak > 1);
+}
+
+/* ── PARTICLE BURST ── */
+function spawnParticles(cx, cy, big) {
+  const count = big ? 64 : 40;
+  const colorPalette = ['#ff2244','#ff6600','#ffcc00','#00ff88','#00ccff','#7700ff','#ff00aa'];
+  for (let i=0; i<count; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const angle = (Math.random() * 2 * Math.PI);
+    const dist  = 60 + Math.random() * 180;
+    const tx    = Math.cos(angle) * dist;
+    const ty    = Math.sin(angle) * dist;
+    const dur   = 0.5 + Math.random() * 0.7;
+    const color = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+    const size  = 4 + Math.random() * 8;
+    p.style.cssText = `left:${cx}px;top:${cy}px;width:${size}px;height:${size}px;background:${color};` +
+                      `box-shadow:0 0 6px ${color};--tx:${tx}px;--ty:${ty}px;--dur:${dur}s;`;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), (dur + 0.1) * 1000);
+  }
+}
+
+/* ── SCREEN-READER ANNOUNCER ── */
+function announce(text) {
+  document.getElementById('sr-status').textContent = text;
+}
+
+/* ── BUILD GRID ── */
+function buildGrid() {
+  const levelDef = LEVELS[currentLevel];
+  const gridEl   = document.getElementById('game-grid');
+  gridEl.innerHTML = '';
+  tiles = [];
+
+  for (let r=0; r<5; r++) {
+    tiles[r] = [];
+    for (let c=0; c<5; c++) {
+      const typeKey = levelDef.grid[r][c];
+      const rot     = (levelDef.rotations && levelDef.rotations[r][c]) || 0;
+      const tileObj = { type: typeKey, rotation: rot, r, c };
+      tiles[r][c] = tileObj;
+
+      const el = document.createElement('div');
+      el.className = 'tile';
+      el.dataset.r = r;
+      el.dataset.c = c;
+
+      const isFixed = typeKey === 'source' || typeKey === 'receiver' || typeKey === 'empty' || typeKey === 'block';
+      if (isFixed) el.classList.add('locked');
+      if (typeKey === 'empty') el.classList.add('empty');
+      if (typeKey === 'source') {
+        const sc = COLORS[levelDef.sourceColor]?.hex || '#fff';
+        el.style.setProperty('--src-border', sc + '60');
+      }
+      if (typeKey === 'receiver') {
+        const rc = COLORS[levelDef.target]?.hex || '#fff';
+        el.style.setProperty('--rcv-border', rc + '60');
+        el.style.setProperty('--rc', rc);
+      }
+
+      // Scramble puzzle pieces — only pick a rotation that actually differs
+      // from the solved orientation (symmetric pipes like straight pieces
+      // look/behave identical at 0deg and 180deg, so a naive random pick
+      // could silently leave the puzzle pre-solved).
+      if (levelDef.scramble) {
+        const isScrambled = levelDef.scramble.some(([sr,sc]) => sr===r && sc===c);
+        if (isScrambled) {
+          const solvedDirs = new Set(getPipeDirs(typeKey, rot));
+          const realOptions = [0,1,2,3].filter(extra => {
+            const dirs = getPipeDirs(typeKey, (rot + extra) % 4);
+            return dirs.length !== solvedDirs.size || dirs.some(d => !solvedDirs.has(d));
+          });
+          const choices = realOptions.length > 0 ? realOptions : [1,2,3];
+          const extraRot = choices[Math.floor(Math.random() * choices.length)];
+          tileObj.rotation = (rot + extraRot) % 4;
+        }
+      }
+
+      el.innerHTML = renderTileHTML(tileObj, levelDef);
+
+      if (!isFixed) {
+        el.tabIndex = 0;
+        el.setAttribute('role', 'button');
+        el.setAttribute('aria-label', `Rotate ${PIPE_KEYS.includes(typeKey) ? typeKey.replace('_', ' ') : 'pipe'} tile, row ${r + 1}, column ${c + 1}`);
+        el.addEventListener('click', () => rotateTile(r, c));
+        el.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            rotateTile(r, c);
+          }
+        });
+      }
+
+      gridEl.appendChild(el);
+    }
+  }
+
+  updateTargetUI(levelDef);
+  document.getElementById('level-badge').textContent = `Level ${currentLevel + 1}`;
+  updateBeams();
+}
+
+function renderTileHTML(tileObj, levelDef) {
+  const {type, rotation, r, c} = tileObj;
+
+  if (type === 'empty') return '';
+  if (type === 'block') return `<div style="width:60%;height:60%;background:rgba(255,255,255,0.05);border-radius:4px"></div>`;
+
+  if (type === 'source') {
+    const color = COLORS[levelDef.sourceColor]?.hex || '#ffffff';
+    const dir = levelDef.sourceDir !== undefined ? levelDef.sourceDir : 1;
+    const arrows = ['▲','▶','▼','◀'];
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;width:100%">
+      <div class="source-orb-dot" style="--sc:${color};width:22px;height:22px;background:${color};box-shadow:0 0 12px ${color},0 0 24px ${color}60"></div>
+      <div class="source-dir-arrow" style="color:${color}">${arrows[dir]}</div>
+      <div style="font-size:0.5rem;font-weight:900;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.55)">SOURCE</div>
+    </div>`;
+  }
+
+  if (type === 'receiver') {
+    const color = COLORS[levelDef.target]?.hex || '#ffffff';
+    return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:4px 0;width:100%;--rc:${color}">
+      <div style="position:relative;width:28px;height:28px;display:flex;align-items:center;justify-content:center">
+        <div class="receiver-ring-outer" style="position:absolute;width:28px;height:28px;--rc:${color}"></div>
+        <div class="receiver-ring-inner" style="position:absolute;width:16px;height:16px;--rc:${color}"></div>
+        <div class="receiver-dot" style="position:absolute;width:6px;height:6px;--rc:${color}"></div>
+      </div>
+      <div style="font-size:0.5rem;font-weight:900;letter-spacing:0.1em;text-transform:uppercase;color:${color};opacity:0.85">TARGET</div>
+    </div>`;
+  }
+
+  if (type === 'prism') {
+    return `<div style="position:relative;width:70%;height:70%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
+      <div style="width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-bottom:28px solid rgba(255,204,0,0.85);filter:drop-shadow(0 0 8px #ffcc00)"></div>
+      <div style="font-size:0.44rem;font-weight:900;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,204,0,0.85)">PRISM</div>
+    </div>`;
+  }
+
+  return `<div class="tile-inner" style="transform:rotate(${rotation*90}deg)">${pipeSVG(type)}</div><div class="rotate-badge">↻</div>`;
+}
+
+function pipeSVG(typeKey) {
+  // Render each pipe as a tube: a dim outer duct wall, a bright inner
+  // lumen, and a glowing port dot at every open end (so it's unambiguous
+  // which sides of the tube actually connect to neighboring tiles).
+  const lumenColor = 'rgba(210,180,255,0.95)';
+  const wallColor  = 'rgba(90,40,160,0.55)';
+  const pipeGlow   = 'rgba(150,80,255,0.5)';
+  const wallStroke  = `stroke="${wallColor}" stroke-width="18" stroke-linecap="round" fill="none"`;
+  const lumenStroke = `stroke="${lumenColor}" stroke-width="7" stroke-linecap="round" fill="none"`;
+
+  const paths = {
+    straight_h: 'M0,50 L100,50',
+    straight_v: 'M50,0 L50,100',
+    elbow_ne:   'M50,100 L50,50 L100,50',
+    elbow_se:   'M50,0 L50,50 L100,50',
+    elbow_sw:   'M50,0 L50,50 L0,50',
+    elbow_nw:   'M50,100 L50,50 L0,50',
+    tee_r:      'M50,0 L50,100 M50,50 L100,50',
+    tee_l:      'M50,0 L50,100 M50,50 L0,50',
+    tee_u:      'M0,50 L100,50 M50,50 L50,0',
+    tee_d:      'M0,50 L100,50 M50,50 L50,100',
+    cross:      'M0,50 L100,50 M50,0 L50,100',
+  };
+
+  // Edge point for each open direction, used to draw a port dot marking
+  // where this tube connects to the neighboring tile.
+  const PORT_POINT = { 0:[50,4], 1:[96,50], 2:[50,96], 3:[4,50] };
+  const dirs = (PIPE_TYPES[typeKey] && PIPE_TYPES[typeKey].dirs) || [];
+  const ports = dirs.map(d => {
+    const [x,y] = PORT_POINT[d];
+    return `<circle cx="${x}" cy="${y}" r="9" fill="${wallColor}"/><circle cx="${x}" cy="${y}" r="4.5" fill="#ffffff"/>`;
+  }).join('');
+
+  const d = paths[typeKey] || '';
+  return `<svg viewBox="0 0 100 100" style="width:100%;height:100%;filter:drop-shadow(0 0 4px ${pipeGlow})">
+    <path d="${d}" ${wallStroke}/>
+    <path d="${d}" ${lumenStroke}/>
+    ${ports}
+  </svg>`;
+}
+
+function updateTargetUI(levelDef) {
+  const color = COLORS[levelDef.target];
+  const swatch = document.getElementById('target-swatch');
+  const label  = document.getElementById('target-label');
+  swatch.style.background = color.hex;
+  swatch.style.setProperty('--swatch-color', color.hex);
+  label.textContent  = color.label;
+  label.style.color  = color.hex;
+}
+
+/* ── ROTATE TILE ── */
+function rotateTile(r, c) {
+  if (gameWon) return;
+  const tile = tiles[r][c];
+  tile.rotation = (tile.rotation + 1) % 4;
+  moves++;
+  document.getElementById('move-count').textContent = moves;
+
+  // Update DOM rotation of tile-inner
+  const el = getTileEl(r, c);
+  const inner = el.querySelector('.tile-inner');
+  if (inner) inner.style.transform = `rotate(${tile.rotation * 90}deg)`;
+
+  updateBeams();
+}
+
+/* ── UPDATE BEAMS ── */
+function updateBeams() {
+  const paths = traceBeam();
+  const completePaths = renderBeams(paths);
+  checkWin(completePaths);
+}
+
+/* ── INIT LEVEL ── */
+function initLevel(lvl) {
+  currentLevel = lvl % LEVELS.length;
+  moves        = 0;
+  gameWon      = false;
+  document.getElementById('move-count').textContent = '0';
+  document.getElementById('win-overlay').classList.remove('show');
+  buildGrid();
+  startTimer();
+  announce(`Level ${currentLevel + 1} started.`);
+}
+
+/* ── RESET ── */
+function resetLevel() { initLevel(currentLevel); }
+
+/* ── NEXT LEVEL ── */
+function nextLevel() { initLevel(currentLevel + 1); }
+
+/* ── EVENT LISTENERS ── */
+document.getElementById('reset-btn').addEventListener('click', resetLevel);
+document.getElementById('next-level-btn').addEventListener('click', nextLevel);
+document.getElementById('replay-btn').addEventListener('click', resetLevel);
+
+/* ── RESPONSIVE CANVAS ── */
+window.addEventListener('resize', () => {
+  const grid   = document.getElementById('game-grid');
+  const canvas = document.getElementById('beam-canvas');
+  const gRect  = grid.getBoundingClientRect();
+  canvas.style.width  = gRect.width  + 'px';
+  canvas.style.height = gRect.height + 'px';
+  updateBeams();
+});
+
+/* ── BOOT ── */
+loadStreak();
+initLevel(0);
+</script>
+</body>
+</html>

@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Minesweeper</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0d0d1a;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: #fff;
+  user-select: none;
+  -webkit-user-select: none;
+  overflow: hidden;
+  touch-action: none;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 25% 15%, rgba(119,0,255,0.10) 0%, transparent 55%),
+    radial-gradient(ellipse at 75% 85%, rgba(255,0,170,0.08) 0%, transparent 55%);
+  pointer-events: none;
+}
+
+/* ── CONTAINER ── */
+#container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform-origin: center center;
+}
+
+/* ── HEADER ── */
+#header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 484px;
+  margin-bottom: 8px;
+}
+
+h1 {
+  font-size: 2.1rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  flex-shrink: 0;
+  background: linear-gradient(90deg,
+    #ff2244 0%, #ff6600 14%, #ffcc00 28%,
+    #aaff00 43%, #00ff88 57%, #00ccff 71%,
+    #7700ff 85%, #ff00aa 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ── DIFFICULTY BUTTONS ── */
+#diff-btns {
+  display: flex;
+  gap: 6px;
+  flex: 1;
+  justify-content: center;
+}
+
+.diff-btn {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 20px;
+  color: rgba(255,255,255,0.45);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 6px 13px;
+  cursor: pointer;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  transition: all 0.15s;
+}
+.diff-btn:hover { color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.22); }
+.diff-btn.active {
+  background: linear-gradient(135deg, #7700ff, #ff00aa);
+  border-color: transparent;
+  color: #fff;
+}
+
+/* ── SMILEY / NEW GAME ── */
+#smiley-btn {
+  background: #12122a;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  font-size: 1.25rem;
+  padding: 5px 10px;
+  cursor: pointer;
+  line-height: 1;
+  transition: background 0.15s, transform 0.1s;
+  flex-shrink: 0;
+}
+#smiley-btn:hover  { background: rgba(119,0,255,0.22); }
+#smiley-btn:active { transform: scale(0.93); }
+
+/* ── THEME TOGGLE ── */
+#theme-toggle {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  font-size: 1rem;
+  padding: 7px 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+#theme-toggle:hover { background: rgba(255,255,255,0.13); }
+
+/* ── STATS ROW ── */
+#stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 484px;
+  margin-bottom: 14px;
+}
+
+.sbox {
+  background: #12122a;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  padding: 7px 16px;
+  text-align: center;
+  min-width: 96px;
+}
+.slabel {
+  font-size: 0.55rem;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: rgba(255,255,255,0.28);
+  margin-bottom: 2px;
+}
+.sval {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── BOARD WRAP ── */
+#board-wrap {
+  position: relative;
+  width: 484px;
+  height: 484px;
+}
+
+/* ── BOARD ── */
+#board {
+  position: absolute;
+  inset: 0;
+  background: #0f0f26;
+  border-radius: 18px;
+  padding: 8px;
+  display: grid;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.05),
+    0 12px 50px rgba(0,0,0,0.7),
+    0 0 80px rgba(119,0,255,0.12);
+  overflow: hidden;
+}
+
+/* ── CELLS ── */
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 3px;
+  cursor: pointer;
+  font-weight: 900;
+  font-size: var(--cell-fs, 1rem);
+  line-height: 1;
+  transition: background 0.1s;
+}
+.cell:hover:not(.revealed):not(.flagged) { background: rgba(119,0,255,0.22); border-color: rgba(119,0,255,0.38); }
+
+.cell.revealed {
+  background: transparent;
+  border-color: rgba(255,255,255,0.03);
+  cursor: default;
+}
+
+.cell.flagged { background: rgba(255,255,255,0.05); }
+
+.cell.mine-hit {
+  background: rgba(255,34,68,0.45) !important;
+  border-color: rgba(255,34,68,0.6) !important;
+}
+
+.cell.mine-shown { background: rgba(255,255,255,0.02); }
+
+.cell.wrong-flag {
+  background: rgba(255,34,68,0.22) !important;
+}
+
+/* ── NUMBER POP ANIMATION ── */
+@keyframes tpop {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+.num-pop { animation: tpop 190ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+/* ── SPLAT CANVAS ── */
+#splat {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+  border-radius: 18px;
+}
+
+/* ── OVERLAY ── */
+#overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 8, 22, 0.88);
+  border-radius: 18px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  z-index: 20;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+#overlay.on { display: flex; }
+
+#ov-title {
+  font-size: 2.4rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, #ff2244, #ff00aa);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.02em;
+}
+#overlay.win #ov-title {
+  background: linear-gradient(135deg, #ffcc00, #ff00aa, #7700ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+#ov-msg {
+  color: rgba(255,255,255,0.42);
+  font-size: 0.92rem;
+  text-align: center;
+  line-height: 1.65;
+}
+.ov-btns { display: flex; gap: 10px; margin-top: 4px; }
+.ov-btn {
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 12px 26px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  background: linear-gradient(135deg, #7700ff, #ff00aa);
+  transition: filter 0.15s, transform 0.1s;
+}
+.ov-btn:hover  { filter: brightness(1.2); }
+.ov-btn:active { transform: scale(0.96); }
+
+/* ── HINT ── */
+#hint {
+  margin-top: 12px;
+  color: rgba(255,255,255,0.13);
+  font-size: 0.67rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ── DAY MODE ── */
+body.day { background: #e8e0d4; color: #2c1f0e; }
+body.day::before { display: none; }
+body.day #board  { background: #f5efe4; box-shadow: 0 4px 24px rgba(80,50,20,0.15); }
+body.day .sbox   { background: #ddd5c8; border-color: rgba(80,50,20,0.1); }
+body.day .slabel { color: rgba(44,31,14,0.45); }
+body.day .diff-btn { background: rgba(80,50,20,0.07); border-color: rgba(80,50,20,0.14); color: rgba(44,31,14,0.55); }
+body.day .diff-btn:hover { color: rgba(44,31,14,0.85); }
+body.day .diff-btn.active { background: linear-gradient(135deg, #7700ff, #ff00aa); border-color: transparent; color: #fff; }
+body.day #theme-toggle { background: rgba(80,50,20,0.07); border-color: rgba(80,50,20,0.14); }
+body.day #smiley-btn   { background: #ddd5c8; border-color: rgba(80,50,20,0.12); }
+body.day #smiley-btn:hover { background: rgba(0,180,90,0.15); }
+body.day .cell { background: rgba(80,50,20,0.07); border-color: rgba(80,50,20,0.11); }
+body.day .cell:hover:not(.revealed):not(.flagged) { background: rgba(119,0,255,0.10); border-color: rgba(119,0,255,0.28); }
+body.day .cell.revealed   { background: transparent; border-color: rgba(80,50,20,0.05); }
+body.day .cell.mine-hit   { background: rgba(255,34,68,0.30) !important; }
+body.day .cell.mine-shown { background: rgba(80,50,20,0.04); }
+body.day #overlay  { background: rgba(232,224,212,0.93); }
+body.day #ov-msg   { color: rgba(44,31,14,0.55); }
+body.day #hint     { color: rgba(44,31,14,0.22); }
+</style>
+</head>
+<body>
+<div id="container">
+
+  <!-- Header -->
+  <div id="header">
+    <h1>MINES</h1>
+    <div id="diff-btns">
+      <button class="diff-btn active" data-diff="easy">Easy</button>
+      <button class="diff-btn" data-diff="medium">Medium</button>
+      <button class="diff-btn" data-diff="hard">Hard</button>
+    </div>
+    <button id="smiley-btn" title="New game">🙂</button>
+    <button id="theme-toggle" title="Toggle theme">☀️</button>
+  </div>
+
+  <!-- Stats -->
+  <div id="stats">
+    <div class="sbox">
+      <div class="slabel">Mines</div>
+      <div class="sval" id="mine-count">010</div>
+    </div>
+    <div style="flex:1"></div>
+    <div class="sbox">
+      <div class="slabel">Time</div>
+      <div class="sval" id="timer-el">0:00</div>
+    </div>
+    <div class="sbox">
+      <div class="slabel">Best</div>
+      <div class="sval" id="best-el">--:--</div>
+    </div>
+  </div>
+
+  <!-- Board -->
+  <div id="board-wrap">
+    <div id="board"></div>
+    <canvas id="splat"></canvas>
+    <div id="overlay">
+      <div id="ov-title">BOOM! 💥</div>
+      <div id="ov-msg"></div>
+      <div class="ov-btns">
+        <button class="ov-btn" id="ov-newgame">Play Again</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="hint">Left-click to reveal &nbsp;&middot;&nbsp; Right-click to flag 🚩 &nbsp;&middot;&nbsp; Click 🙂 for new game</div>
+
+</div>
+
+<script>
+'use strict';
+
+// ══════════════════════════════════════════════════════════════
+// CONSTANTS
+// ══════════════════════════════════════════════════════════════
+const DIFFS = {
+  easy:   { cols: 9,  rows: 9,  mines: 10, cell: 52 },
+  medium: { cols: 16, rows: 16, mines: 40, cell: 29 },
+  hard:   { cols: 30, rows: 16, mines: 99, cell: 29 },
+};
+const BPAD = 8;
+const NUM_COLORS = ['','#ff2244','#ff6600','#ffdd00','#aaff00','#00ff66','#00ffcc','#00ccff','#7700ff'];
+const WIN_SPLAT = [
+  ['#ff4466','#ff2244','#ff2244'], ['#ff8833','#ff6600','#ff6600'],
+  ['#ffee55','#ffdd00','#ffdd00'], ['#ccff33','#aaff00','#aaff00'],
+  ['#44ff99','#00ff66','#00ff66'], ['#44ffee','#00ffcc','#00ffcc'],
+  ['#44ddff','#00ccff','#00ccff'], ['#aa44ff','#7700ff','#7700ff'],
+];
+
+// ══════════════════════════════════════════════════════════════
+// DOM REFS
+// ══════════════════════════════════════════════════════════════
+const boardEl    = document.getElementById('board');
+const boardWrap  = document.getElementById('board-wrap');
+const canvas     = document.getElementById('splat');
+const ctx        = canvas.getContext('2d');
+const overlay    = document.getElementById('overlay');
+const ovTitle    = document.getElementById('ov-title');
+const ovMsg      = document.getElementById('ov-msg');
+const mineCountEl= document.getElementById('mine-count');
+const timerEl    = document.getElementById('timer-el');
+const bestEl     = document.getElementById('best-el');
+const smileyBtn  = document.getElementById('smiley-btn');
+const headerEl   = document.getElementById('header');
+const statsEl    = document.getElementById('stats');
+
+// ══════════════════════════════════════════════════════════════
+// GAME STATE
+// ══════════════════════════════════════════════════════════════
+let diff         = 'easy';
+let grid         = [];    // grid[r][c] = { mine, revealed, flagged, adj, el }
+let firstClick   = true;
+let gameEnded    = false;
+let won          = false;
+let timerSecs    = 0;
+let timerIv      = null;
+let timerStarted = false;
+let flagCount    = 0;
+
+const bestTimes = {
+  easy:   +localStorage.getItem('ms-best-easy')   || 0,
+  medium: +localStorage.getItem('ms-best-medium') || 0,
+  hard:   +localStorage.getItem('ms-best-hard')   || 0,
+};
+
+// ══════════════════════════════════════════════════════════════
+// BOARD SIZE HELPERS
+// ══════════════════════════════════════════════════════════════
+function getBW() { const d = DIFFS[diff]; return d.cols * d.cell + 2 * BPAD; }
+function getBH() { const d = DIFFS[diff]; return d.rows * d.cell + 2 * BPAD; }
+
+// ══════════════════════════════════════════════════════════════
+// BUILD BOARD DOM
+// ══════════════════════════════════════════════════════════════
+function buildBoard() {
+  const { cols, rows, cell } = DIFFS[diff];
+  const bw = getBW(), bh = getBH();
+
+  boardWrap.style.width  = bw + 'px';
+  boardWrap.style.height = bh + 'px';
+  canvas.width  = bw;
+  canvas.height = bh;
+  ctx.clearRect(0, 0, bw, bh);
+
+  headerEl.style.width = bw + 'px';
+  statsEl.style.width  = bw + 'px';
+
+  boardEl.style.gridTemplateColumns = `repeat(${cols}, ${cell}px)`;
+  boardEl.style.gridTemplateRows    = `repeat(${rows}, ${cell}px)`;
+  boardEl.style.setProperty('--cell-fs', cell >= 40 ? '1.3rem' : '0.82rem');
+  boardEl.innerHTML = '';
+  grid = [];
+
+  for (let r = 0; r < rows; r++) {
+    grid[r] = [];
+    for (let c = 0; c < cols; c++) {
+      const el = document.createElement('div');
+      el.className = 'cell';
+      el.addEventListener('click',       () => onCellClick(r, c));
+      el.addEventListener('contextmenu', e  => { e.preventDefault(); onRightClick(r, c); });
+      boardEl.appendChild(el);
+      grid[r][c] = { mine: false, revealed: false, flagged: false, adj: 0, el };
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// MINE PLACEMENT  (after first click — guarantees safe open)
+// ══════════════════════════════════════════════════════════════
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function placeMines(safeR, safeC) {
+  const { cols, rows, mines } = DIFFS[diff];
+
+  // Exclude clicked cell + all 8 neighbours
+  const exclude = new Set();
+  for (let dr = -1; dr <= 1; dr++)
+    for (let dc = -1; dc <= 1; dc++) {
+      const nr = safeR + dr, nc = safeC + dc;
+      if (nr >= 0 && nr < rows && nc >= 0 && nc < cols)
+        exclude.add(nr * cols + nc);
+    }
+
+  const candidates = [];
+  for (let i = 0; i < rows * cols; i++) if (!exclude.has(i)) candidates.push(i);
+  shuffle(candidates);
+
+  for (let i = 0; i < Math.min(mines, candidates.length); i++) {
+    const pos = candidates[i];
+    grid[Math.floor(pos / cols)][pos % cols].mine = true;
+  }
+
+  // Compute adjacency counts
+  for (let r = 0; r < rows; r++)
+    for (let c = 0; c < cols; c++)
+      if (!grid[r][c].mine) grid[r][c].adj = countAdj(r, c);
+}
+
+function countAdj(r, c) {
+  const { cols, rows } = DIFFS[diff];
+  let n = 0;
+  for (let dr = -1; dr <= 1; dr++)
+    for (let dc = -1; dc <= 1; dc++) {
+      if (dr === 0 && dc === 0) continue;
+      const nr = r + dr, nc = c + dc;
+      if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && grid[nr][nc].mine) n++;
+    }
+  return n;
+}
+
+// ══════════════════════════════════════════════════════════════
+// REVEAL LOGIC
+// ══════════════════════════════════════════════════════════════
+function revealCell(r, c, animate) {
+  const cell = grid[r][c];
+  if (cell.revealed || cell.flagged) return;
+  cell.revealed = true;
+
+  const el = cell.el;
+  el.classList.add('revealed');
+
+  if (cell.adj > 0) {
+    el.textContent       = cell.adj;
+    el.style.color       = NUM_COLORS[cell.adj];
+    el.style.textShadow  = `0 0 14px ${NUM_COLORS[cell.adj]}99`;
+    if (animate) {
+      el.classList.add('num-pop');
+      el.addEventListener('animationend', () => el.classList.remove('num-pop'), { once: true });
+    }
+  }
+}
+
+function floodReveal(startR, startC) {
+  const { cols, rows } = DIFFS[diff];
+  const visited = new Set();
+  const queue   = [[startR, startC]];
+  visited.add(startR * cols + startC);
+  let count = 0;
+
+  while (queue.length) {
+    const [r, c] = queue.shift();
+    if (grid[r][c].adj === 0) {
+      for (let dr = -1; dr <= 1; dr++)
+        for (let dc = -1; dc <= 1; dc++) {
+          if (dr === 0 && dc === 0) continue;
+          const nr = r + dr, nc = c + dc;
+          if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+            const key = nr * cols + nc;
+            if (!visited.has(key) && !grid[nr][nc].mine && !grid[nr][nc].flagged) {
+              visited.add(key);
+              revealCell(nr, nc, false);
+              queue.push([nr, nc]);
+              count++;
+            }
+          }
+        }
+    }
+  }
+
+  if (count > 4) playCascade();
+}
+
+// ══════════════════════════════════════════════════════════════
+// INPUT — LEFT CLICK
+// ══════════════════════════════════════════════════════════════
+function onCellClick(r, c) {
+  if (gameEnded || won) return;
+  const cell = grid[r][c];
+  if (cell.revealed || cell.flagged) return;
+
+  if (firstClick) {
+    firstClick = false;
+    placeMines(r, c);
+    startTimerIfNeeded();
+  }
+
+  if (cell.mine) {
+    doExplosion(r, c);
+    return;
+  }
+
+  revealCell(r, c, true);
+  if (cell.adj === 0) floodReveal(r, c);
+  else playReveal();
+
+  if (checkWin()) doWin();
+}
+
+// ══════════════════════════════════════════════════════════════
+// INPUT — RIGHT CLICK (flag toggle)
+// ══════════════════════════════════════════════════════════════
+function onRightClick(r, c) {
+  if (gameEnded || won) return;
+  const cell = grid[r][c];
+  if (cell.revealed) return;
+
+  cell.flagged = !cell.flagged;
+  flagCount   += cell.flagged ? 1 : -1;
+
+  if (cell.flagged) {
+    cell.el.classList.add('flagged');
+    cell.el.textContent = '🚩';
+    playFlagPlace();
+  } else {
+    cell.el.classList.remove('flagged');
+    cell.el.textContent = '';
+    playFlagRemove();
+  }
+
+  updateMineCount();
+}
+
+// ══════════════════════════════════════════════════════════════
+// WIN / LOSE
+// ══════════════════════════════════════════════════════════════
+function checkWin() {
+  const { cols, rows } = DIFFS[diff];
+  for (let r = 0; r < rows; r++)
+    for (let c = 0; c < cols; c++)
+      if (!grid[r][c].mine && !grid[r][c].revealed) return false;
+  return true;
+}
+
+function doExplosion(r, c) {
+  gameEnded = true;
+  stopTimer();
+  smileyBtn.textContent = '😵';
+
+  // Highlight hit mine
+  const hitCell = grid[r][c];
+  hitCell.revealed = true;
+  hitCell.el.classList.add('revealed', 'mine-hit');
+  hitCell.el.textContent = '💣';
+
+  const { cols, rows } = DIFFS[diff];
+  for (let rr = 0; rr < rows; rr++)
+    for (let cc = 0; cc < cols; cc++) {
+      const cell = grid[rr][cc];
+      if (rr === r && cc === c) continue;
+      if (cell.mine && !cell.flagged) {
+        cell.revealed = true;
+        cell.el.classList.add('revealed', 'mine-shown');
+        cell.el.textContent = '💣';
+      }
+      // Mark incorrectly flagged cells
+      if (cell.flagged && !cell.mine) {
+        cell.el.classList.add('wrong-flag');
+        cell.el.textContent = '❌';
+      }
+    }
+
+  const cellSz = DIFFS[diff].cell;
+  const cx = BPAD + (c + 0.5) * cellSz;
+  const cy = BPAD + (r + 0.5) * cellSz;
+  startSplat();
+  drawSplat(cx,      cy,      ['#ff4466','#ff2244','#ff2244'], cellSz);
+  drawSplat(cx + 24, cy - 18, ['#ff8833','#ff6600','#ff6600'], cellSz);
+  drawSplat(cx - 20, cy + 15, ['#ffee55','#ffdd00','#ffdd00'], cellSz);
+  endSplat();
+
+  playExplosion();
+
+  setTimeout(() => {
+    overlay.classList.remove('win');
+    overlay.classList.add('on');
+    ovTitle.textContent = 'BOOM! 💥';
+    ovMsg.textContent   = 'You hit a mine.  Time: ' + fmtTime(timerSecs);
+  }, 650);
+}
+
+function doWin() {
+  won = true;
+  stopTimer();
+  smileyBtn.textContent = '😎';
+
+  const prev    = bestTimes[diff];
+  const newBest = !prev || timerSecs < prev;
+  if (newBest) {
+    bestTimes[diff] = timerSecs;
+    localStorage.setItem('ms-best-' + diff, timerSecs);
+    updateBest();
+  }
+
+  // Auto-flag remaining unflagged mines
+  const { cols, rows } = DIFFS[diff];
+  for (let r = 0; r < rows; r++)
+    for (let c = 0; c < cols; c++) {
+      const cell = grid[r][c];
+      if (cell.mine && !cell.flagged) {
+        cell.flagged = true;
+        cell.el.classList.add('flagged');
+        cell.el.textContent = '🚩';
+      }
+    }
+  flagCount = DIFFS[diff].mines;
+  updateMineCount();
+
+  // Rainbow splat
+  const bw = getBW(), bh = getBH();
+  const pts = [
+    [bw*0.50, bh*0.50], [bw*0.18, bh*0.18], [bw*0.82, bh*0.18],
+    [bw*0.18, bh*0.82], [bw*0.82, bh*0.82], [bw*0.50, bh*0.18],
+    [bw*0.50, bh*0.82], [bw*0.18, bh*0.50], [bw*0.82, bh*0.50],
+  ];
+  startSplat();
+  const csz = DIFFS[diff].cell;
+  for (let i = 0; i < pts.length; i++)
+    drawSplat(pts[i][0], pts[i][1], WIN_SPLAT[i % WIN_SPLAT.length], csz);
+  endSplat();
+
+  playWin();
+
+  let msg = 'Time: ' + fmtTime(timerSecs);
+  if (newBest) msg += '<br><span style="color:#ffdd00;font-weight:800">&#9733; New best time!</span>';
+
+  setTimeout(() => {
+    overlay.classList.add('on', 'win');
+    ovTitle.textContent = 'YOU WIN! 😎';
+    ovMsg.innerHTML = msg;
+  }, 500);
+}
+
+// ══════════════════════════════════════════════════════════════
+// NEW GAME
+// ══════════════════════════════════════════════════════════════
+function newGame() {
+  stopTimer();
+  clearSplatTimers();
+  overlay.classList.remove('on', 'win');
+
+  firstClick   = true;
+  gameEnded    = false;
+  won          = false;
+  timerSecs    = 0;
+  timerStarted = false;
+  flagCount    = 0;
+
+  smileyBtn.textContent = '🙂';
+  updateTimer();
+  updateBest();
+  updateMineCount();
+  buildBoard();
+  fitScreen();
+}
+
+// ══════════════════════════════════════════════════════════════
+// TIMER
+// ══════════════════════════════════════════════════════════════
+function startTimerIfNeeded() {
+  if (timerStarted) return;
+  timerStarted = true;
+  timerIv = setInterval(() => { timerSecs++; updateTimer(); }, 1000);
+}
+function stopTimer() { clearInterval(timerIv); timerIv = null; }
+
+function fmtTime(s) {
+  return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+}
+function updateTimer()     { timerEl.textContent     = fmtTime(timerSecs); }
+function updateBest()      { bestEl.textContent      = bestTimes[diff] ? fmtTime(bestTimes[diff]) : '--:--'; }
+function updateMineCount() { mineCountEl.textContent = String(Math.max(0, DIFFS[diff].mines - flagCount)).padStart(3, '0'); }
+
+// ══════════════════════════════════════════════════════════════
+// AUDIO  (Web Audio API — procedural, no external files)
+// ══════════════════════════════════════════════════════════════
+let _ac = null;
+function getAC() {
+  if (!_ac) _ac = new (window.AudioContext || window.webkitAudioContext)();
+  if (_ac.state === 'suspended') _ac.resume();
+  return _ac;
+}
+
+function playReveal() {
+  try {
+    const a = getAC();
+    const n = Math.floor(a.sampleRate * 0.05);
+    const b = a.createBuffer(1, n, a.sampleRate);
+    const d = b.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/n, 1.8);
+    const src = a.createBufferSource(); src.buffer = b;
+    const flt = a.createBiquadFilter(); flt.type = 'bandpass'; flt.frequency.value = 1200; flt.Q.value = 0.6;
+    const g   = a.createGain(); g.gain.value = 0.045;
+    src.connect(flt); flt.connect(g); g.connect(a.destination);
+    src.start();
+  } catch(_){}
+}
+
+function playCascade() {
+  try {
+    const a = getAC();
+    const n = Math.floor(a.sampleRate * 0.18);
+    const b = a.createBuffer(1, n, a.sampleRate);
+    const d = b.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/n, 1.1);
+    const src = a.createBufferSource(); src.buffer = b;
+    const flt = a.createBiquadFilter(); flt.type = 'lowpass'; flt.frequency.value = 550;
+    const g   = a.createGain(); g.gain.value = 0.06;
+    src.connect(flt); flt.connect(g); g.connect(a.destination);
+    src.start();
+  } catch(_){}
+}
+
+function playFlagPlace() {
+  try {
+    const a   = getAC();
+    const osc = a.createOscillator();
+    const g   = a.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(400, a.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(650, a.currentTime + 0.06);
+    g.gain.setValueAtTime(0.05, a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + 0.10);
+    osc.connect(g); g.connect(a.destination);
+    osc.start(); osc.stop(a.currentTime + 0.11);
+  } catch(_){}
+}
+
+function playFlagRemove() {
+  try {
+    const a   = getAC();
+    const osc = a.createOscillator();
+    const g   = a.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(650, a.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(280, a.currentTime + 0.09);
+    g.gain.setValueAtTime(0.04, a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + 0.11);
+    osc.connect(g); g.connect(a.destination);
+    osc.start(); osc.stop(a.currentTime + 0.12);
+  } catch(_){}
+}
+
+function playExplosion() {
+  try {
+    const a = getAC();
+    // Noise boom
+    const n = Math.floor(a.sampleRate * 0.55);
+    const b = a.createBuffer(1, n, a.sampleRate);
+    const d = b.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/n, 0.65);
+    const src = a.createBufferSource(); src.buffer = b;
+    const flt = a.createBiquadFilter(); flt.type = 'lowpass'; flt.frequency.value = 220;
+    const g   = a.createGain(); g.gain.value = 0.38;
+    src.connect(flt); flt.connect(g); g.connect(a.destination);
+    src.start();
+    // Sine sub-punch
+    const osc = a.createOscillator();
+    const og  = a.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(80, a.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(28, a.currentTime + 0.45);
+    og.gain.setValueAtTime(0.28, a.currentTime);
+    og.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + 0.5);
+    osc.connect(og); og.connect(a.destination);
+    osc.start(); osc.stop(a.currentTime + 0.55);
+  } catch(_){}
+}
+
+function playWin() {
+  try {
+    const a = getAC();
+    [440, 554, 659, 784, 880].forEach((freq, i) => {
+      const osc = a.createOscillator();
+      const g   = a.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const t = a.currentTime + i * 0.12;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.12, t + 0.05);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+      osc.connect(g); g.connect(a.destination);
+      osc.start(t); osc.stop(t + 0.6);
+    });
+  } catch(_){}
+}
+
+// ══════════════════════════════════════════════════════════════
+// CANVAS SPLAT  (identical algorithm to 2048 / Sudoku)
+// ══════════════════════════════════════════════════════════════
+let _st1 = null, _st2 = null;
+
+function clearSplatTimers() {
+  clearTimeout(_st1); clearTimeout(_st2);
+  _st1 = _st2 = null;
+}
+
+function startSplat() {
+  clearSplatTimers();
+  ctx.clearRect(0, 0, getBW(), getBH());
+  canvas.style.transition = 'none';
+  canvas.style.opacity    = '1';
+}
+
+function drawSplat(cx, cy, [ca, cb, cg], cellSz) {
+  const sz = cellSz || 52;
+  const blobCount = 9 + Math.floor(Math.random() * 8);
+  const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, sz * 0.54);
+  grd.addColorStop(0, cg + 'cc');
+  grd.addColorStop(1, cg + '00');
+  ctx.save();
+  ctx.globalAlpha = 0.55;
+  ctx.fillStyle   = grd;
+  ctx.beginPath();
+  ctx.arc(cx, cy, sz * 0.54, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  for (let i = 0; i < blobCount; i++) {
+    const baseAngle = (Math.PI * 2 / blobCount) * i;
+    const angle     = baseAngle + (Math.random() - 0.5) * 0.9;
+    const dist      = 16 + Math.random() * 120;
+    const bsz       = 6 + Math.random() * 22;
+    const bx        = cx + Math.cos(angle) * dist;
+    const by        = cy + Math.sin(angle) * dist;
+    const col       = dist < 62 ? ca : cb;
+    ctx.save();
+    ctx.globalAlpha = 0.62 + Math.random() * 0.38;
+    ctx.fillStyle   = col;
+    ctx.translate(bx, by);
+    ctx.rotate(angle + Math.PI / 2 + (Math.random() - 0.5) * 0.5);
+    ctx.scale(0.65 + Math.random() * 0.75, 1);
+    ctx.beginPath();
+    ctx.moveTo(0, -bsz * 0.65);
+    ctx.bezierCurveTo( bsz*0.55, -bsz*0.40,  bsz*0.62,  bsz*0.25, 0,  bsz*0.65);
+    ctx.bezierCurveTo(-bsz*0.62,  bsz*0.25, -bsz*0.55, -bsz*0.40, 0, -bsz*0.65);
+    ctx.fill();
+    if (Math.random() > 0.42) {
+      const sd = bsz * (0.85 + Math.random() * 0.9);
+      const sa = angle + (Math.random() - 0.5) * 1.5;
+      ctx.beginPath();
+      ctx.arc(Math.cos(sa)*sd, Math.sin(sa)*sd, bsz*0.22, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+function endSplat() {
+  _st1 = setTimeout(() => {
+    canvas.style.transition = 'opacity 760ms ease-out';
+    canvas.style.opacity    = '0';
+    _st2 = setTimeout(() => {
+      ctx.clearRect(0, 0, getBW(), getBH());
+      canvas.style.transition = 'none';
+      canvas.style.opacity    = '1';
+    }, 790);
+  }, 160);
+}
+
+// ══════════════════════════════════════════════════════════════
+// EVENT LISTENERS
+// ══════════════════════════════════════════════════════════════
+document.querySelectorAll('.diff-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    diff = btn.dataset.diff;
+    document.querySelectorAll('.diff-btn').forEach(b => b.classList.toggle('active', b === btn));
+    newGame();
+  });
+});
+
+smileyBtn.addEventListener('click', newGame);
+document.getElementById('ov-newgame').addEventListener('click', newGame);
+
+let isDayMode = false;
+document.getElementById('theme-toggle').addEventListener('click', () => {
+  isDayMode = !isDayMode;
+  document.body.classList.toggle('day', isDayMode);
+  document.getElementById('theme-toggle').textContent = isDayMode ? '🌙' : '☀️';
+});
+
+// Suppress native context menu on the whole board
+boardEl.addEventListener('contextmenu', e => e.preventDefault());
+
+// ══════════════════════════════════════════════════════════════
+// RESPONSIVE SCALE  (identical formula to Sudoku / 2048)
+// ══════════════════════════════════════════════════════════════
+function fitScreen() {
+  const bw = getBW(), bh = getBH();
+  const s = Math.min(1,
+    (window.innerWidth  - 16) / (bw + 20),
+    (window.innerHeight - 20) / (bh + 220));
+  document.getElementById('container').style.transform = 'scale(' + s + ')';
+}
+window.addEventListener('resize', fitScreen);
+
+// ══════════════════════════════════════════════════════════════
+// START
+// ══════════════════════════════════════════════════════════════
+newGame();
+</script>
+</body>
+</html>

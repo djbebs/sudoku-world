@@ -1,0 +1,23 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "scores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "board", "order": "ASCENDING" },
+        { "fieldPath": "time", "order": "ASCENDING" },
+        { "fieldPath": "mistakes", "order": "ASCENDING" },
+        { "fieldPath": "ts", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "scores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "board", "order": "ASCENDING" },
+        { "fieldPath": "time", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

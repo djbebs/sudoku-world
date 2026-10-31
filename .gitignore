@@ -1,0 +1,37 @@
+# Allowlist: ONLY the files listed below are ever published to GitHub.
+# Everything else in this folder (Python files, the AI model, design notes, node_modules, …) stays local.
+# A new file you want online must be added here first.
+
+/*
+
+!/.gitignore
+!/.nojekyll
+!/index.html
+!/README.md
+
+# Sudoku + worldwide leaderboard
+!/sudoku.html
+!/online.js
+!/online-core.js
+!/firebase-config.js
+!/firebase-config.example.js
+
+# The other games and the portal ("All games" button)
+!/landing.html
+!/2048.html
+!/minesweeper.html
+!/spectrum-flux.html
+!/tictactoe.html
+
+# Firebase: security rules, indexes, CLI/emulator config
+!/firestore.rules
+!/firestore.indexes.json
+!/firebase.json
+
+# Tests (never node_modules)
+!/tests/
+/tests/*
+!/tests/core.test.mjs
+!/tests/rules.test.mjs
+!/tests/e2e.mjs
+!/tests/package.json

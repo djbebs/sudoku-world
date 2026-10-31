@@ -1,0 +1,1548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MINDPLAY — Premium Puzzle Gaming</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { inter: ['Inter', 'system-ui', 'sans-serif'] },
+        colors: {
+          bg:      '#0d0d1a',
+          surface: '#0f0f26',
+          card:    '#12122a',
+          purple:  '#7700ff',
+          magenta: '#ff00aa',
+          gold:    '#ffcc00',
+          orange:  '#ff6600',
+          red:     '#ff2244',
+          green:   '#00e676',
+          cyan:    '#00ccff',
+        }
+      }
+    }
+  }
+</script>
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: #0d0d1a;
+  font-family: 'Inter', system-ui, sans-serif;
+  color: #fff;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── AMBIENT BACKGROUND ── */
+.ambient-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse at 20% 10%, rgba(119,0,255,0.18) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 90%, rgba(255,0,170,0.13) 0%, transparent 50%),
+    radial-gradient(ellipse at 60% 40%, rgba(255,204,0,0.05) 0%, transparent 40%);
+}
+
+/* ── ANIMATED GRID MESH ── */
+.grid-mesh {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(119,0,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(119,0,255,0.04) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse at center, black 20%, transparent 75%);
+  animation: meshDrift 20s ease-in-out infinite alternate;
+}
+@keyframes meshDrift {
+  from { background-position: 0 0; }
+  to   { background-position: 30px 30px; }
+}
+
+/* ── FLOATING ORBS ── */
+.orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(60px);
+  pointer-events: none;
+  z-index: 0;
+  animation: orbFloat linear infinite alternate;
+}
+.orb-1 {
+  width: 500px; height: 500px;
+  background: rgba(119,0,255,0.12);
+  top: -100px; left: -100px;
+  animation-duration: 18s;
+}
+.orb-2 {
+  width: 400px; height: 400px;
+  background: rgba(255,0,170,0.10);
+  bottom: -80px; right: -80px;
+  animation-duration: 22s;
+  animation-delay: -5s;
+}
+.orb-3 {
+  width: 300px; height: 300px;
+  background: rgba(255,204,0,0.06);
+  top: 40%; right: 20%;
+  animation-duration: 15s;
+  animation-delay: -10s;
+}
+@keyframes orbFloat {
+  0%   { transform: translate(0, 0) scale(1); }
+  33%  { transform: translate(40px, -30px) scale(1.05); }
+  66%  { transform: translate(-20px, 40px) scale(0.97); }
+  100% { transform: translate(30px, -10px) scale(1.02); }
+}
+
+/* ── GLASSMORPHISM BASE ── */
+.glass {
+  background: rgba(15, 15, 38, 0.55);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.07);
+}
+.glass-strong {
+  background: rgba(18, 18, 42, 0.75);
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
+  border: 1px solid rgba(255,255,255,0.09);
+}
+
+/* ── GRADIENT TEXT ── */
+.grad-rainbow {
+  background: linear-gradient(90deg,
+    #ff2244 0%, #ff6600 14%, #ffcc00 28%,
+    #aaff00 43%, #00ff88 57%, #00ccff 71%,
+    #7700ff 85%, #ff00aa 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.grad-primary {
+  background: linear-gradient(135deg, #7700ff, #ff00aa);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.grad-gold {
+  background: linear-gradient(135deg, #ffcc00, #ff6600);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.grad-cyan {
+  background: linear-gradient(135deg, #00ccff, #00e676);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ── NAV ── */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  padding: 18px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(13, 13, 26, 0.7);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  transition: background 0.3s;
+}
+.nav-logo {
+  font-size: 1.35rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+.nav-links {
+  display: flex;
+  gap: 32px;
+  align-items: center;
+}
+.nav-link {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: rgba(255,255,255,0.5);
+  text-decoration: none;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: color 0.2s;
+}
+.nav-link:hover { color: rgba(255,255,255,0.9); }
+
+.btn-primary {
+  background: linear-gradient(135deg, #7700ff, #ff00aa);
+  border: none;
+  border-radius: 100px;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 10px 24px;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: filter 0.2s, transform 0.15s, box-shadow 0.2s;
+  box-shadow: 0 0 20px rgba(119,0,255,0.3);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+.btn-primary:hover {
+  filter: brightness(1.2);
+  box-shadow: 0 0 35px rgba(119,0,255,0.5), 0 0 60px rgba(255,0,170,0.2);
+  transform: translateY(-1px);
+}
+.btn-primary:active { transform: scale(0.96); }
+
+.btn-ghost {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 100px;
+  color: rgba(255,255,255,0.8);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 10px 24px;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+.btn-ghost:hover {
+  background: rgba(255,255,255,0.09);
+  border-color: rgba(255,255,255,0.22);
+  transform: translateY(-1px);
+}
+
+/* ── HERO ── */
+#hero {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 140px 24px 80px;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(119,0,255,0.12);
+  border: 1px solid rgba(119,0,255,0.3);
+  border-radius: 100px;
+  padding: 7px 18px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(200,150,255,0.9);
+  margin-bottom: 32px;
+  animation: fadeInDown 0.7s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+.hero-badge-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #7700ff;
+  box-shadow: 0 0 8px #7700ff;
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.5; transform: scale(0.8); }
+}
+
+.hero-title {
+  font-size: clamp(3.5rem, 9vw, 8rem);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+  margin-bottom: 28px;
+  animation: fadeInUp 0.7s cubic-bezier(0.34,1.56,0.64,1) 0.1s both;
+}
+.hero-sub {
+  font-size: clamp(1rem, 2.5vw, 1.25rem);
+  font-weight: 400;
+  color: rgba(255,255,255,0.42);
+  max-width: 560px;
+  line-height: 1.7;
+  margin-bottom: 48px;
+  animation: fadeInUp 0.7s ease 0.2s both;
+}
+.hero-ctas {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 80px;
+  animation: fadeInUp 0.7s ease 0.3s both;
+}
+.btn-primary-lg {
+  font-size: 0.9rem;
+  padding: 16px 36px;
+  border-radius: 100px;
+  gap: 10px;
+}
+.btn-ghost-lg {
+  font-size: 0.9rem;
+  padding: 16px 36px;
+  border-radius: 100px;
+  gap: 10px;
+}
+
+/* ── HERO STATS BAR ── */
+.hero-stats {
+  display: flex;
+  gap: 48px;
+  justify-content: center;
+  align-items: center;
+  animation: fadeInUp 0.7s ease 0.4s both;
+  flex-wrap: wrap;
+}
+.stat-item {
+  text-align: center;
+}
+.stat-value {
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.stat-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.28);
+  margin-top: 4px;
+}
+.stat-divider {
+  width: 1px;
+  height: 36px;
+  background: rgba(255,255,255,0.08);
+}
+
+/* ── SCROLL INDICATOR ── */
+.scroll-indicator {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.4;
+  animation: scrollBounce 2s ease-in-out infinite;
+}
+.scroll-mouse {
+  width: 22px; height: 34px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-radius: 12px;
+  position: relative;
+}
+.scroll-mouse::after {
+  content: '';
+  width: 3px; height: 7px;
+  background: #fff;
+  border-radius: 2px;
+  position: absolute;
+  top: 5px; left: 50%;
+  transform: translateX(-50%);
+  animation: scrollWheel 2s ease infinite;
+}
+.scroll-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+@keyframes scrollBounce {
+  0%,100% { transform: translateX(-50%) translateY(0); }
+  50%      { transform: translateX(-50%) translateY(6px); }
+}
+@keyframes scrollWheel {
+  0%   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(10px); }
+}
+
+/* ── SECTION COMMON ── */
+.section {
+  position: relative;
+  z-index: 1;
+  padding: 100px 24px;
+}
+.section-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.28);
+  margin-bottom: 12px;
+  display: block;
+}
+.section-title {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  margin-bottom: 16px;
+}
+.section-sub {
+  font-size: 1rem;
+  color: rgba(255,255,255,0.42);
+  line-height: 1.7;
+  max-width: 480px;
+}
+
+/* ── GAME CARDS ── */
+.games-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+@media (max-width: 900px) {
+  .games-grid { grid-template-columns: 1fr; max-width: 480px; }
+}
+@media (min-width: 600px) and (max-width: 900px) {
+  .games-grid { grid-template-columns: repeat(2, 1fr); max-width: 760px; }
+}
+
+.game-card {
+  position: relative;
+  background: rgba(15, 15, 38, 0.6);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 24px;
+  overflow: hidden;
+  cursor: pointer;
+  text-decoration: none;
+  display: block;
+  transition:
+    transform 0.4s cubic-bezier(0.34,1.56,0.64,1),
+    border-color 0.3s,
+    box-shadow 0.4s;
+  group: true;
+}
+.game-card:hover {
+  transform: translateY(-10px) scale(1.02);
+}
+.game-card.sudoku-card:hover {
+  border-color: rgba(119,0,255,0.4);
+  box-shadow:
+    0 30px 80px rgba(0,0,0,0.5),
+    0 0 60px rgba(119,0,255,0.2),
+    inset 0 1px 0 rgba(119,0,255,0.2);
+}
+.game-card.mines-card:hover {
+  border-color: rgba(0,204,255,0.4);
+  box-shadow:
+    0 30px 80px rgba(0,0,0,0.5),
+    0 0 60px rgba(0,204,255,0.2),
+    inset 0 1px 0 rgba(0,204,255,0.2);
+}
+.game-card.g2048-card:hover {
+  border-color: rgba(255,204,0,0.4);
+  box-shadow:
+    0 30px 80px rgba(0,0,0,0.5),
+    0 0 60px rgba(255,204,0,0.2),
+    inset 0 1px 0 rgba(255,204,0,0.2);
+}
+.game-card.flux-card:hover {
+  border-color: rgba(0,255,136,0.4);
+  box-shadow:
+    0 30px 80px rgba(0,0,0,0.5),
+    0 0 60px rgba(0,255,136,0.2),
+    inset 0 1px 0 rgba(0,255,136,0.2);
+}
+
+/* ── CARD PREVIEW ── */
+.card-preview {
+  position: relative;
+  width: 100%;
+  height: 220px;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.preview-gradient-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: linear-gradient(to bottom, transparent 40%, rgba(15,15,38,0.8) 100%);
+}
+
+/* ── SUDOKU PREVIEW ── */
+.sudoku-preview {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  grid-template-rows: repeat(9, 1fr);
+  padding: 16px;
+  gap: 2px;
+  background: rgba(10,10,28,0.4);
+}
+.sp-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 800;
+  border-radius: 2px;
+  transition: background 0.3s, color 0.3s;
+}
+.sp-cell.given {
+  background: rgba(119,0,255,0.12);
+  color: rgba(255,255,255,0.8);
+}
+.sp-cell.empty {
+  background: rgba(255,255,255,0.02);
+  color: transparent;
+}
+.sp-cell.highlight {
+  background: rgba(119,0,255,0.3);
+  color: #c080ff;
+  box-shadow: 0 0 8px rgba(119,0,255,0.4);
+}
+.game-card.sudoku-card:hover .sp-cell.given {
+  background: rgba(119,0,255,0.2);
+}
+.game-card.sudoku-card:hover .sp-cell.highlight {
+  background: rgba(119,0,255,0.45);
+  box-shadow: 0 0 12px rgba(119,0,255,0.6);
+}
+/* Thick box borders at 3s */
+.sp-cell[data-bc="2"] { border-right: 2px solid rgba(255,255,255,0.15); }
+.sp-cell[data-bc="5"] { border-right: 2px solid rgba(255,255,255,0.15); }
+.sp-cell[data-br="2"] { border-bottom: 2px solid rgba(255,255,255,0.15); }
+.sp-cell[data-br="5"] { border-bottom: 2px solid rgba(255,255,255,0.15); }
+
+/* ── MINESWEEPER PREVIEW ── */
+.mines-preview {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  padding: 16px;
+  gap: 3px;
+  background: rgba(10,10,28,0.4);
+}
+.mp-cell {
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.55rem;
+  font-weight: 900;
+  transition: background 0.3s, transform 0.2s;
+}
+.mp-cell.covered {
+  background: rgba(0,204,255,0.08);
+  border: 1px solid rgba(0,204,255,0.12);
+}
+.mp-cell.revealed {
+  background: rgba(0,204,255,0.04);
+  border: 1px solid rgba(255,255,255,0.04);
+}
+.mp-cell.mine-flag {
+  background: rgba(255,34,68,0.15);
+  border: 1px solid rgba(255,34,68,0.3);
+  color: #ff2244;
+}
+.mp-cell.n1 { color: #00ccff; }
+.mp-cell.n2 { color: #00e676; }
+.mp-cell.n3 { color: #ff2244; }
+.mp-cell.n4 { color: #7700ff; }
+.game-card.mines-card:hover .mp-cell.covered {
+  background: rgba(0,204,255,0.14);
+}
+.mp-cell.covered.anim-reveal {
+  animation: cellReveal 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+@keyframes cellReveal {
+  from { transform: scale(0.8); opacity: 0.4; background: rgba(0,204,255,0.3); }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+/* ── 2048 PREVIEW ── */
+.g2048-preview {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  padding: 16px;
+  gap: 6px;
+  background: rgba(10,10,28,0.4);
+}
+.tp-cell {
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  transition: background 0.3s, transform 0.3s, box-shadow 0.3s;
+}
+.tp-empty { background: rgba(255,204,0,0.04); border: 1px solid rgba(255,204,0,0.06); }
+.tp-2    { background: rgba(255,204,0,0.12); color: rgba(255,204,0,0.7); }
+.tp-4    { background: rgba(255,150,0,0.15); color: rgba(255,150,0,0.8); }
+.tp-8    { background: rgba(255,100,0,0.2);  color: rgba(255,120,0,0.9); }
+.tp-16   { background: rgba(255,60,0,0.22);  color: #ff6600; }
+.tp-32   { background: rgba(255,34,68,0.2);  color: #ff2244; }
+.tp-64   { background: rgba(200,0,60,0.25);  color: #ff2244; box-shadow: 0 0 10px rgba(255,34,68,0.3); }
+.tp-128  { background: rgba(119,0,255,0.2);  color: #aa44ff; box-shadow: 0 0 10px rgba(119,0,255,0.3); }
+.tp-256  { background: rgba(150,0,255,0.25); color: #cc66ff; box-shadow: 0 0 14px rgba(150,0,255,0.4); }
+.tp-512  { background: rgba(180,0,255,0.28); color: #dd88ff; box-shadow: 0 0 16px rgba(180,0,255,0.4); }
+.tp-1024 { background: rgba(119,0,255,0.35); color: #ee99ff; box-shadow: 0 0 20px rgba(119,0,255,0.5); font-size: 0.62rem; }
+.tp-2048 {
+  background: linear-gradient(135deg, rgba(255,204,0,0.6), rgba(255,0,170,0.4));
+  color: #fff;
+  box-shadow: 0 0 24px rgba(255,204,0,0.5), 0 0 40px rgba(255,0,170,0.3);
+  font-size: 0.62rem;
+  animation: t2048Pulse 2s ease-in-out infinite;
+}
+@keyframes t2048Pulse {
+  0%,100% { box-shadow: 0 0 24px rgba(255,204,0,0.5), 0 0 40px rgba(255,0,170,0.3); }
+  50%      { box-shadow: 0 0 40px rgba(255,204,0,0.7), 0 0 60px rgba(255,0,170,0.5); }
+}
+.game-card.g2048-card:hover .tp-cell:not(.tp-empty) {
+  transform: scale(1.05);
+}
+
+/* ── CARD BODY ── */
+.card-body {
+  padding: 24px 28px 28px;
+}
+.card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 100px;
+  padding: 4px 12px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.badge-purple { background: rgba(119,0,255,0.15); color: rgba(180,120,255,0.9); border: 1px solid rgba(119,0,255,0.25); }
+.badge-cyan   { background: rgba(0,204,255,0.12); color: rgba(100,220,255,0.9); border: 1px solid rgba(0,204,255,0.2); }
+.badge-gold   { background: rgba(255,204,0,0.12); color: rgba(255,210,80,0.9);  border: 1px solid rgba(255,204,0,0.2); }
+.badge-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+}
+.badge-dot-purple { background: #7700ff; box-shadow: 0 0 6px #7700ff; }
+.badge-dot-cyan   { background: #00ccff; box-shadow: 0 0 6px #00ccff; }
+.badge-dot-gold   { background: #ffcc00; box-shadow: 0 0 6px #ffcc00; }
+
+.card-title {
+  font-size: 1.55rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  margin-bottom: 8px;
+  line-height: 1;
+}
+.card-desc {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.4);
+  line-height: 1.6;
+  margin-bottom: 22px;
+}
+.card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.card-stats {
+  display: flex;
+  gap: 16px;
+}
+.card-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.card-stat-val {
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.card-stat-key {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.28);
+}
+.card-play-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 100px;
+  padding: 10px 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  transition: filter 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+.play-purple {
+  background: linear-gradient(135deg, #7700ff, #ff00aa);
+  color: #fff;
+  box-shadow: 0 0 16px rgba(119,0,255,0.25);
+}
+.play-purple:hover {
+  filter: brightness(1.2);
+  box-shadow: 0 0 28px rgba(119,0,255,0.5);
+  transform: scale(1.05);
+}
+.play-cyan {
+  background: linear-gradient(135deg, #00ccff, #00e676);
+  color: #001a20;
+  box-shadow: 0 0 16px rgba(0,204,255,0.2);
+}
+.play-cyan:hover {
+  filter: brightness(1.15);
+  box-shadow: 0 0 28px rgba(0,204,255,0.45);
+  transform: scale(1.05);
+}
+.play-gold {
+  background: linear-gradient(135deg, #ffcc00, #ff6600);
+  color: #1a0a00;
+  box-shadow: 0 0 16px rgba(255,204,0,0.2);
+}
+.play-gold:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 0 28px rgba(255,204,0,0.5);
+  transform: scale(1.05);
+}
+
+.play-arrow {
+  width: 14px; height: 14px;
+  transition: transform 0.2s;
+}
+.card-play-btn:hover .play-arrow {
+  transform: translateX(3px);
+}
+
+/* ── CARD SHINE EFFECT ── */
+.card-shine {
+  position: absolute;
+  inset: 0;
+  border-radius: 24px;
+  background: linear-gradient(
+    135deg,
+    rgba(255,255,255,0.05) 0%,
+    transparent 50%
+  );
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.game-card:hover .card-shine { opacity: 1; }
+
+/* ── FEATURES SECTION ── */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  max-width: 900px;
+  margin: 56px auto 0;
+}
+@media (max-width: 640px) {
+  .features-grid { grid-template-columns: 1fr; }
+}
+
+.feature-pill {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(15,15,38,0.5);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  padding: 18px 20px;
+  transition: border-color 0.3s, transform 0.3s;
+}
+.feature-pill:hover {
+  border-color: rgba(119,0,255,0.2);
+  transform: translateY(-3px);
+}
+.feature-icon {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+.feature-text .feature-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 2px;
+  color: rgba(255,255,255,0.85);
+}
+.feature-text .feature-desc {
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.35);
+  line-height: 1.5;
+}
+
+/* ── LEADERBOARD TEASER ── */
+.lb-row {
+  display: grid;
+  grid-template-columns: 36px 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  transition: background 0.2s;
+}
+.lb-row:last-child { border-bottom: none; }
+.lb-row:hover { background: rgba(119,0,255,0.05); }
+.lb-rank {
+  font-size: 0.8rem;
+  font-weight: 900;
+  text-align: center;
+  color: rgba(255,255,255,0.25);
+}
+.lb-rank.top-1 { color: #ffcc00; }
+.lb-rank.top-2 { color: rgba(180,180,200,0.8); }
+.lb-rank.top-3 { color: rgba(200,120,60,0.8); }
+.lb-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.75);
+}
+.lb-tag {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 100px;
+}
+.lb-score {
+  font-size: 0.88rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── CTA SECTION ── */
+.cta-section {
+  position: relative;
+  z-index: 1;
+  padding: 100px 24px;
+  text-align: center;
+}
+.cta-card {
+  max-width: 700px;
+  margin: 0 auto;
+  background: rgba(15,15,38,0.65);
+  backdrop-filter: blur(32px);
+  border: 1px solid rgba(119,0,255,0.15);
+  border-radius: 32px;
+  padding: 64px 48px;
+  position: relative;
+  overflow: hidden;
+}
+.cta-card::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: 10%; right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(119,0,255,0.6), rgba(255,0,170,0.6), transparent);
+}
+.cta-glow {
+  position: absolute;
+  width: 400px; height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(119,0,255,0.15) 0%, transparent 70%);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+/* ── FOOTER ── */
+footer {
+  position: relative;
+  z-index: 1;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  padding: 40px 40px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: gap;
+  gap: 24px;
+}
+.footer-logo {
+  font-size: 1.1rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+.footer-links {
+  display: flex;
+  gap: 24px;
+}
+.footer-link {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.32);
+  text-decoration: none;
+  letter-spacing: 0.04em;
+  transition: color 0.2s;
+}
+.footer-link:hover { color: rgba(255,255,255,0.7); }
+.footer-copy {
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.2);
+  letter-spacing: 0.04em;
+}
+
+/* ── DIVIDER ── */
+.divider-line {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(119,0,255,0.3),
+    rgba(255,0,170,0.3),
+    transparent
+  );
+}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── SCROLL REVEAL ── */
+.reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.34,1.56,0.64,1);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.2s; }
+.reveal-delay-3 { transition-delay: 0.3s; }
+
+/* ── GLOW SEPARATOR ── */
+.glow-sep {
+  width: 80px; height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #7700ff, #ff00aa);
+  box-shadow: 0 0 12px rgba(119,0,255,0.5), 0 0 24px rgba(255,0,170,0.3);
+  margin: 20px auto;
+}
+</style>
+</head>
+
+<body>
+
+<!-- AMBIENT EFFECTS -->
+<div class="ambient-bg"></div>
+<div class="grid-mesh"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<!-- ── NAV ── -->
+<nav>
+  <div class="nav-logo">
+    <span class="grad-rainbow">MINDPLAY</span>
+  </div>
+  <div class="nav-links" style="display:flex; gap:28px; align-items:center;">
+    <a href="#games" class="nav-link">Games</a>
+    <a href="#features" class="nav-link">Features</a>
+    <a href="#leaderboard" class="nav-link">Rankings</a>
+  </div>
+  <a href="#games" class="btn-primary" style="font-size:0.75rem; padding:9px 22px;">
+    Play Free
+    <svg class="play-arrow" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="5,2 10,7 5,12"/>
+    </svg>
+  </a>
+</nav>
+
+<!-- ── HERO ── -->
+<section id="hero">
+  <div class="hero-badge">
+    <span class="hero-badge-dot"></span>
+    Premium Puzzle Gaming Platform
+  </div>
+
+  <h1 class="hero-title">
+    <span class="grad-rainbow">Train Your</span><br>
+    <span style="color:#fff;">Mind.</span>
+    <span class="grad-primary"> Master</span><br>
+    <span style="color:#fff;">the</span>
+    <span class="grad-gold"> Game.</span>
+  </h1>
+
+  <p class="hero-sub">
+    Three world-class puzzle games. One premium platform.
+    Challenge your logic, strategy, and spatial reasoning — no downloads, no accounts.
+  </p>
+
+  <div class="hero-ctas">
+    <a href="#games" class="btn-primary btn-primary-lg" style="font-size:0.9rem; padding:16px 36px; border-radius:100px; display:inline-flex; align-items:center; gap:10px; text-decoration:none; background:linear-gradient(135deg,#7700ff,#ff00aa); border:none; color:#fff; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; transition:filter 0.2s,transform 0.15s,box-shadow 0.2s; box-shadow:0 0 20px rgba(119,0,255,0.3);">
+      Browse Games
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="5,2 10,7 5,12"/></svg>
+    </a>
+    <a href="#features" class="btn-ghost btn-ghost-lg" style="font-size:0.9rem; padding:16px 36px; border-radius:100px; display:inline-flex; align-items:center; gap:10px; text-decoration:none; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.8); font-weight:600; letter-spacing:0.05em; text-transform:uppercase; transition:background 0.2s,border-color 0.2s,transform 0.15s;">
+      Learn More
+    </a>
+  </div>
+
+  <div class="hero-stats">
+    <div class="stat-item">
+      <div class="stat-value grad-primary">50K+</div>
+      <div class="stat-label">Players</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <div class="stat-value grad-gold">3</div>
+      <div class="stat-label">Premium Games</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <div class="stat-value grad-cyan">∞</div>
+      <div class="stat-label">Puzzles</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <div class="stat-value" style="color:#00e676;">Free</div>
+      <div class="stat-label">Always</div>
+    </div>
+  </div>
+
+  <div class="scroll-indicator">
+    <div class="scroll-mouse"></div>
+    <span class="scroll-label">Scroll</span>
+  </div>
+</section>
+
+<!-- ── GAMES ── -->
+<section id="games" class="section">
+  <div style="max-width:1200px; margin:0 auto;">
+    <div class="reveal" style="text-align:center; margin-bottom:56px;">
+      <span class="section-label">The Collection</span>
+      <h2 class="section-title" style="text-align:center;">
+        <span class="grad-rainbow">Three</span> <span style="color:#fff;">Legendary Games</span>
+      </h2>
+      <div class="glow-sep"></div>
+      <p class="section-sub" style="margin:0 auto; text-align:center;">
+        Meticulously crafted puzzle experiences with stunning visuals and infinite replayability.
+      </p>
+    </div>
+
+    <div class="games-grid">
+
+      <!-- SUDOKU CARD -->
+      <a href="sudoku.html" class="game-card sudoku-card reveal reveal-delay-1">
+        <div class="card-shine"></div>
+        <div class="card-preview">
+          <div class="preview-gradient-overlay" style="background:linear-gradient(to bottom, transparent 40%, rgba(15,15,38,0.85) 100%);"></div>
+          <!-- Sudoku mini grid -->
+          <div class="sudoku-preview" id="sudoku-preview"></div>
+        </div>
+        <div class="card-body">
+          <div class="card-badge badge-purple">
+            <span class="badge-dot badge-dot-purple"></span>
+            Logic Puzzle
+          </div>
+          <div class="card-title grad-primary">Sudoku</div>
+          <p class="card-desc">Fill the 9×9 grid with digits 1–9. No number may repeat in any row, column, or 3×3 box. Four difficulties await.</p>
+          <div class="card-meta">
+            <div class="card-stats">
+              <div class="card-stat">
+                <span class="card-stat-val grad-primary">4</span>
+                <span class="card-stat-key">Difficulties</span>
+              </div>
+              <div class="card-stat">
+                <span class="card-stat-val" style="color:rgba(255,255,255,0.7);">9×9</span>
+                <span class="card-stat-key">Grid</span>
+              </div>
+            </div>
+            <button class="card-play-btn play-purple">
+              Play
+              <svg class="play-arrow" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="5,2 10,7 5,12"/></svg>
+            </button>
+          </div>
+        </div>
+      </a>
+
+      <!-- MINESWEEPER CARD -->
+      <a href="minesweeper.html" class="game-card mines-card reveal reveal-delay-2">
+        <div class="card-shine"></div>
+        <div class="card-preview">
+          <div class="preview-gradient-overlay" style="background:linear-gradient(to bottom, transparent 40%, rgba(15,15,38,0.85) 100%);"></div>
+          <div class="mines-preview" id="mines-preview"></div>
+        </div>
+        <div class="card-body">
+          <div class="card-badge badge-cyan">
+            <span class="badge-dot badge-dot-cyan"></span>
+            Strategy
+          </div>
+          <div class="card-title grad-cyan">Minesweeper</div>
+          <p class="card-desc">Reveal the board without detonating a mine. Use logic and deduction to flag every danger and clear every safe tile.</p>
+          <div class="card-meta">
+            <div class="card-stats">
+              <div class="card-stat">
+                <span class="card-stat-val grad-cyan">3</span>
+                <span class="card-stat-key">Modes</span>
+              </div>
+              <div class="card-stat">
+                <span class="card-stat-val" style="color:rgba(255,255,255,0.7);">💣</span>
+                <span class="card-stat-key">Danger</span>
+              </div>
+            </div>
+            <button class="card-play-btn play-cyan">
+              Play
+              <svg class="play-arrow" viewBox="0 0 14 14" fill="none" stroke="#001a20" stroke-width="2.5" stroke-linecap="round"><polyline points="5,2 10,7 5,12"/></svg>
+            </button>
+          </div>
+        </div>
+      </a>
+
+      <!-- 2048 CARD -->
+      <a href="2048.html" class="game-card g2048-card reveal reveal-delay-3">
+        <div class="card-shine"></div>
+        <div class="card-preview">
+          <div class="preview-gradient-overlay" style="background:linear-gradient(to bottom, transparent 40%, rgba(15,15,38,0.85) 100%);"></div>
+          <!-- 2048 mini grid -->
+          <div class="g2048-preview" id="g2048-preview"></div>
+        </div>
+        <div class="card-body">
+          <div class="card-badge badge-gold">
+            <span class="badge-dot badge-dot-gold"></span>
+            Sliding Puzzle
+          </div>
+          <div class="card-title grad-gold">2048</div>
+          <p class="card-desc">Slide tiles across the board, merging matching numbers to build toward the elusive 2048 tile — and beyond.</p>
+          <div class="card-meta">
+            <div class="card-stats">
+              <div class="card-stat">
+                <span class="card-stat-val grad-gold">4×4</span>
+                <span class="card-stat-key">Grid</span>
+              </div>
+              <div class="card-stat">
+                <span class="card-stat-val" style="color:rgba(255,255,255,0.7);">∞</span>
+                <span class="card-stat-key">Depth</span>
+              </div>
+            </div>
+            <button class="card-play-btn play-gold">
+              Play
+              <svg class="play-arrow" viewBox="0 0 14 14" fill="none" stroke="#1a0a00" stroke-width="2.5" stroke-linecap="round"><polyline points="5,2 10,7 5,12"/></svg>
+            </button>
+          </div>
+        </div>
+      </a>
+
+      <!-- Spectrum Flux card -->
+      <a href="spectrum-flux.html" class="game-card flux-card reveal reveal-delay-4">
+        <div class="card-shine"></div>
+        <div class="card-preview">
+          <div class="preview-gradient-overlay" style="background:linear-gradient(to bottom, transparent 40%, rgba(15,15,38,0.85) 100%);"></div>
+          <!-- Spectrum Flux mini grid preview -->
+          <div style="position:absolute;inset:0;display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(5,1fr);padding:20px;gap:4px;background:rgba(10,10,28,0.4);">
+            <!-- Row 0 -->
+            <div style="border-radius:6px;background:rgba(15,15,38,0.6);border:1px solid rgba(119,0,255,0.1)"></div>
+            <div style="border-radius:6px;background:rgba(15,15,38,0.6);border:1px solid rgba(119,0,255,0.1)"></div>
+            <div style="border-radius:6px;background:rgba(15,15,38,0.6);border:1px solid rgba(119,0,255,0.1)"></div>
+            <div style="border-radius:6px;background:rgba(15,15,38,0.6);border:1px solid rgba(119,0,255,0.1)"></div>
+            <div style="border-radius:6px;background:rgba(15,15,38,0.6);border:1px solid rgba(119,0,255,0.1)"></div>
+            <!-- Row 1 -->
+            <div style="border-radius:6px;background:rgba(15,15,38,0.6);border:1px solid rgba(119,0,255,0.1)"></div>
+            <div style="border-radius:6px;background:rgba(0,204,255,0.15);border:1px solid rgba(0,204,255,0.3);display:flex;align-items:center;justify-content:center"><div style="width:8px;height:8px;border-radius:50%;background:#00ccff;box-shadow:0 0 8px #00ccff"></div></div>
+            <div style="border-radius:6px;background:rgba(0,204,255,0.08);border:1px solid rgba(0,204,255,0.2)"></div>
+            <div style="border-radius:6px;background:rgba(0,204,255,0.08);border:1px solid rgba(0,204,255,0.2)"></div>
+            <div style="border-radius:6px;background:rgba(15,15,38,0.6);border:1px solid rgba(119,0,255,0.1)"></div>
+            <!-- Row 2 -->
+            <div style="border-radius:6px;background:rgba(15,15,38,0.6);border:1px solid rgba(119,0,255,0.1)"></div>
+            <div style="border-radius:6px;background:rgba(0,204,255,0.08);border:1px solid rgba(0,204,255,0.2)"></div>
+            <div style="border-radius:6px;background:rgba(255,204,0,0.15);border:1px solid rgba(255,204,0,0.4);display:flex;align-items:center;justify-content:center"><div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:10px solid rgba(255,204,0,0.9)"></div></div>
+            <div style="border-radius:6px;background:rgba(255,0,170,0.08);border:1px solid rgba(255,0,170,0.2)"></div>
+            <div style="border-radius:6px;background:rgba(15,15,38,0.6);border:1px solid rgba(119,0,255,0.1)"></div>
+            <!-- Row 3 -->
+            <div style="border-radius:6px;background:rgba(15,15,38,0.6);border:1px solid rgba(119,0,255,0.1)"></div>
+            <div style="border-radius:6px;background:rgba(15,15,38,0.6);border:1px solid rgba(119,0,255,0.1)"></div>
+            <div style="border-radius:6px;background:rgba(255,0,170,0.08);border:1px solid rgba(255,0,170,0.2)"></div>
+            <div style="border-radius:6px;background:rgba(255,0,170,0.08);border:1px solid rgba(255,0,170,0.2)"></div>
+            <div style="border-radius:6px;background:rgba(15,15,38,0.6);border:1px solid rgba(119,0,255,0.1)"></div>
+            <!-- Row 4 -->
+            <div style="border-radius:6px;background:rgba(15,15,38,0.6);border:1px solid rgba(119,0,255,0.1)"></div>
+            <div style="border-radius:6px;background:rgba(15,15,38,0.6);border:1px solid rgba(119,0,255,0.1)"></div>
+            <div style="border-radius:6px;background:rgba(15,15,38,0.6);border:1px solid rgba(119,0,255,0.1)"></div>
+            <div style="border-radius:6px;background:rgba(255,0,170,0.15);border:1px solid rgba(255,0,170,0.4);display:flex;align-items:center;justify-content:center"><div style="width:10px;height:10px;border-radius:3px;border:2px solid #ff00aa;box-shadow:0 0 8px #ff00aa60"></div></div>
+            <div style="border-radius:6px;background:rgba(15,15,38,0.6);border:1px solid rgba(119,0,255,0.1)"></div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-badge" style="background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.2);color:rgba(0,255,136,0.8)">
+            <span style="width:5px;height:5px;border-radius:50%;background:#00ff88;box-shadow:0 0 6px #00ff88;display:inline-block;margin-right:6px"></span>
+            Light Puzzle
+          </div>
+          <div class="card-title" style="background:linear-gradient(135deg,#00ff88,#00ccff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">Spectrum Flux</div>
+          <p class="card-desc">Rotate pipe tiles to guide a beam of light from Source to Receiver. Hit prisms to shift colors and match the target.</p>
+          <div class="card-meta">
+            <div class="card-stats">
+              <div class="card-stat">
+                <span class="card-stat-val" style="color:#00ccff">5×5</span>
+                <span class="card-stat-key">Grid</span>
+              </div>
+              <div class="card-stat">
+                <span class="card-stat-val" style="color:#00ff88">5</span>
+                <span class="card-stat-key">Levels</span>
+              </div>
+            </div>
+            <button class="card-play-btn" style="background:linear-gradient(135deg,#00ff88,#00ccff);color:#002222">
+              Play
+              <svg class="play-arrow" viewBox="0 0 14 14" fill="none" stroke="#002222" stroke-width="2.5" stroke-linecap="round"><polyline points="5,2 10,7 5,12"/></svg>
+            </button>
+          </div>
+        </div>
+      </a>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── DIVIDER ── -->
+<div style="padding:0 40px; position:relative; z-index:1;"><div class="divider-line"></div></div>
+
+<!-- ── FEATURES ── -->
+<section id="features" class="section" style="padding:80px 24px;">
+  <div style="max-width:900px; margin:0 auto; text-align:center;">
+    <div class="reveal">
+      <span class="section-label">Why MINDPLAY</span>
+      <h2 class="section-title">
+        Built For <span class="grad-rainbow">Serious Players</span>
+      </h2>
+      <div class="glow-sep"></div>
+    </div>
+    <div class="features-grid reveal">
+      <div class="feature-pill">
+        <div class="feature-icon" style="background:rgba(119,0,255,0.15);">⚡</div>
+        <div class="feature-text">
+          <div class="feature-name">Instant Load</div>
+          <div class="feature-desc">Zero installs. Pure browser performance.</div>
+        </div>
+      </div>
+      <div class="feature-pill">
+        <div class="feature-icon" style="background:rgba(0,204,255,0.12);">🎯</div>
+        <div class="feature-text">
+          <div class="feature-name">Smart Difficulty</div>
+          <div class="feature-desc">Adaptive challenge from beginner to expert.</div>
+        </div>
+      </div>
+      <div class="feature-pill">
+        <div class="feature-icon" style="background:rgba(255,204,0,0.12);">📱</div>
+        <div class="feature-text">
+          <div class="feature-name">Any Device</div>
+          <div class="feature-desc">Desktop, tablet, and mobile — pixel perfect.</div>
+        </div>
+      </div>
+      <div class="feature-pill">
+        <div class="feature-icon" style="background:rgba(0,230,118,0.12);">🏆</div>
+        <div class="feature-text">
+          <div class="feature-name">Leaderboards</div>
+          <div class="feature-desc">Compete globally. Track your best times.</div>
+        </div>
+      </div>
+      <div class="feature-pill">
+        <div class="feature-icon" style="background:rgba(255,34,68,0.12);">🔥</div>
+        <div class="feature-text">
+          <div class="feature-name">Daily Streaks</div>
+          <div class="feature-desc">Build habits with daily puzzle challenges.</div>
+        </div>
+      </div>
+      <div class="feature-pill">
+        <div class="feature-icon" style="background:rgba(255,0,170,0.12);">✨</div>
+        <div class="feature-text">
+          <div class="feature-name">Premium UX</div>
+          <div class="feature-desc">Animations, haptics, and sound design.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── DIVIDER ── -->
+<div style="padding:0 40px; position:relative; z-index:1;"><div class="divider-line"></div></div>
+
+<!-- ── LEADERBOARD ── -->
+<section id="leaderboard" class="section" style="padding:80px 24px;">
+  <div style="max-width:700px; margin:0 auto;">
+    <div class="reveal" style="text-align:center; margin-bottom:40px;">
+      <span class="section-label">Global Rankings</span>
+      <h2 class="section-title" style="text-align:center;">
+        Top <span class="grad-gold">Players</span>
+      </h2>
+      <div class="glow-sep"></div>
+    </div>
+    <div class="glass-strong reveal" style="border-radius:24px; overflow:hidden;">
+      <div style="padding:16px 18px; border-bottom:1px solid rgba(255,255,255,0.06); display:flex; gap:10px; align-items:center;">
+        <span style="font-size:0.68rem; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:rgba(255,255,255,0.28);">All-Time Leaderboard</span>
+        <span style="margin-left:auto; font-size:0.65rem; padding:3px 10px; border-radius:100px; background:rgba(0,230,118,0.12); color:#00e676; border:1px solid rgba(0,230,118,0.2); font-weight:700; letter-spacing:0.1em; text-transform:uppercase;">Live</span>
+      </div>
+      <div class="lb-row">
+        <span class="lb-rank top-1">🥇</span>
+        <span class="lb-name">CryptoLogic</span>
+        <span class="lb-tag" style="background:rgba(119,0,255,0.15); color:rgba(180,120,255,0.9); border:1px solid rgba(119,0,255,0.2);">Sudoku</span>
+        <span class="lb-score grad-gold">98,210</span>
+      </div>
+      <div class="lb-row">
+        <span class="lb-rank top-2">🥈</span>
+        <span class="lb-name">NeonSweeper</span>
+        <span class="lb-tag" style="background:rgba(0,204,255,0.12); color:rgba(100,220,255,0.9); border:1px solid rgba(0,204,255,0.2);">Mines</span>
+        <span class="lb-score" style="color:rgba(200,200,220,0.8);">87,540</span>
+      </div>
+      <div class="lb-row">
+        <span class="lb-rank top-3">🥉</span>
+        <span class="lb-name">TileRunner</span>
+        <span class="lb-tag" style="background:rgba(255,204,0,0.12); color:rgba(255,210,80,0.9); border:1px solid rgba(255,204,0,0.2);">2048</span>
+        <span class="lb-score" style="color:rgba(200,160,100,0.9);">81,320</span>
+      </div>
+      <div class="lb-row">
+        <span class="lb-rank" style="font-size:0.8rem; font-weight:900; color:rgba(255,255,255,0.25);">4</span>
+        <span class="lb-name" style="color:rgba(255,255,255,0.55);">VoidMaster</span>
+        <span class="lb-tag" style="background:rgba(119,0,255,0.15); color:rgba(180,120,255,0.9); border:1px solid rgba(119,0,255,0.2);">Sudoku</span>
+        <span class="lb-score" style="color:rgba(255,255,255,0.55);">76,890</span>
+      </div>
+      <div class="lb-row">
+        <span class="lb-rank" style="font-size:0.8rem; font-weight:900; color:rgba(255,255,255,0.25);">5</span>
+        <span class="lb-name" style="color:rgba(255,255,255,0.55);">PurplePulse</span>
+        <span class="lb-tag" style="background:rgba(255,204,0,0.12); color:rgba(255,210,80,0.9); border:1px solid rgba(255,204,0,0.2);">2048</span>
+        <span class="lb-score" style="color:rgba(255,255,255,0.55);">71,445</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ── -->
+<section class="cta-section">
+  <div class="cta-card reveal">
+    <div class="cta-glow"></div>
+    <div style="position:relative; z-index:1;">
+      <div style="font-size:0.68rem; font-weight:700; letter-spacing:0.2em; text-transform:uppercase; color:rgba(255,255,255,0.28); margin-bottom:16px;">Ready to Play?</div>
+      <h2 style="font-size:clamp(2rem,5vw,3rem); font-weight:900; letter-spacing:-0.04em; line-height:1.05; margin-bottom:16px;">
+        Your Next <span class="grad-rainbow">Challenge</span><br>Awaits
+      </h2>
+      <p style="font-size:0.95rem; color:rgba(255,255,255,0.38); line-height:1.7; max-width:440px; margin:0 auto 36px;">
+        Sharpen your mind, beat your best time, and climb the global leaderboard. Free. Forever.
+      </p>
+      <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap;">
+        <a href="sudoku.html" style="display:inline-flex; align-items:center; gap:8px; background:linear-gradient(135deg,#7700ff,#ff00aa); border:none; border-radius:100px; color:#fff; font-size:0.88rem; font-weight:700; padding:14px 32px; cursor:pointer; letter-spacing:0.05em; text-transform:uppercase; transition:filter 0.2s,transform 0.15s,box-shadow 0.2s; box-shadow:0 0 24px rgba(119,0,255,0.35); text-decoration:none;">
+          Play Sudoku
+        </a>
+        <a href="minesweeper.html" style="display:inline-flex; align-items:center; gap:8px; background:linear-gradient(135deg,#00ccff,#00e676); border:none; border-radius:100px; color:#001a20; font-size:0.88rem; font-weight:700; padding:14px 32px; cursor:pointer; letter-spacing:0.05em; text-transform:uppercase; transition:filter 0.2s,transform 0.15s,box-shadow 0.2s; box-shadow:0 0 24px rgba(0,204,255,0.25); text-decoration:none;">
+          Play Minesweeper
+        </a>
+        <a href="2048.html" style="display:inline-flex; align-items:center; gap:8px; background:linear-gradient(135deg,#ffcc00,#ff6600); border:none; border-radius:100px; color:#1a0a00; font-size:0.88rem; font-weight:700; padding:14px 32px; cursor:pointer; letter-spacing:0.05em; text-transform:uppercase; transition:filter 0.2s,transform 0.15s,box-shadow 0.2s; box-shadow:0 0 24px rgba(255,204,0,0.25); text-decoration:none;">
+          Play 2048
+        </a>
+        <a href="tictactoe.html" style="display:inline-flex; align-items:center; gap:8px; background:linear-gradient(135deg,#00ccff,#7700ff); border:none; border-radius:100px; color:#fff; font-size:0.88rem; font-weight:700; padding:14px 32px; cursor:pointer; letter-spacing:0.05em; text-transform:uppercase; transition:filter 0.2s,transform 0.15s,box-shadow 0.2s; box-shadow:0 0 24px rgba(0,204,255,0.25); text-decoration:none;">
+          Play Tic-Tac-Toe
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="footer-logo grad-rainbow">MINDPLAY</div>
+  <div class="footer-links">
+    <a href="#" class="footer-link">About</a>
+    <a href="#" class="footer-link">Privacy</a>
+    <a href="#" class="footer-link">Contact</a>
+  </div>
+  <div class="footer-copy">© 2026 MINDPLAY. All rights reserved.</div>
+</footer>
+
+<script>
+// ── BUILD SUDOKU PREVIEW ──
+(function() {
+  const grid = [
+    [5,3,0, 0,7,0, 0,0,0],
+    [6,0,0, 1,9,5, 0,0,0],
+    [0,9,8, 0,0,0, 0,6,0],
+    [8,0,0, 0,6,0, 0,0,3],
+    [4,0,0, 8,0,3, 0,0,1],
+    [7,0,0, 0,2,0, 0,0,6],
+    [0,6,0, 0,0,0, 2,8,0],
+    [0,0,0, 4,1,9, 0,0,5],
+    [0,0,0, 0,8,0, 0,7,9]
+  ];
+  const highlights = [[0,4],[1,3],[2,1],[3,4],[4,4],[5,4],[6,4],[7,4],[8,4]];
+  const hSet = new Set(highlights.map(([r,c])=>r+','+c));
+  const container = document.getElementById('sudoku-preview');
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      const div = document.createElement('div');
+      div.className = 'sp-cell';
+      if (c === 2 || c === 5) div.dataset.bc = c;
+      if (r === 2 || r === 5) div.dataset.br = r;
+      const val = grid[r][c];
+      if (hSet.has(r+','+c)) {
+        div.classList.add('highlight');
+        if (val) div.textContent = val;
+      } else if (val) {
+        div.classList.add('given');
+        div.textContent = val;
+      } else {
+        div.classList.add('empty');
+      }
+      container.appendChild(div);
+    }
+  }
+})();
+
+// ── BUILD MINESWEEPER PREVIEW ──
+(function() {
+  const pattern = [
+    ['c','c','r1','c','c','c','r2','c','c','c'],
+    ['c','r1','r2','r1','c','r2','r3','r2','c','c'],
+    ['r1','r1','c','c','r1','r1','c','r1','c','c'],
+    ['c','c','c','r2','r1','c','c','r1','c','c'],
+    ['c','c','r3','r1','c','f','c','c','c','c'],
+    ['c','c','r2','c','c','c','c','r1','r2','c'],
+    ['c','c','r1','r1','c','c','r1','c','r1','c'],
+    ['c','c','c','c','c','c','c','c','c','c'],
+  ];
+  const container = document.getElementById('mines-preview');
+  pattern.flat().forEach(type => {
+    const div = document.createElement('div');
+    div.className = 'mp-cell';
+    if (type === 'c') {
+      div.classList.add('covered');
+    } else if (type === 'f') {
+      div.classList.add('mine-flag');
+      div.textContent = '🚩';
+    } else {
+      div.classList.add('revealed', type);
+      div.textContent = type.replace('r','');
+    }
+    container.appendChild(div);
+  });
+})();
+
+// ── BUILD 2048 PREVIEW ──
+(function() {
+  const board = [
+    [2,   4,  16,  32],
+    [0,   8,  64, 128],
+    [4,  16, 256, 512],
+    [2,  32,1024,2048],
+  ];
+  const container = document.getElementById('g2048-preview');
+  board.flat().forEach(val => {
+    const div = document.createElement('div');
+    div.className = 'tp-cell';
+    if (val === 0) {
+      div.classList.add('tp-empty');
+    } else {
+      div.classList.add('tp-' + val);
+      div.textContent = val >= 1000 ? (val >= 2048 ? '2048' : val) : val;
+    }
+    container.appendChild(div);
+  });
+})();
+
+// ── SCROLL REVEAL ──
+(function() {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+})();
+
+// ── NAV SCROLL EFFECT ──
+window.addEventListener('scroll', () => {
+  const nav = document.querySelector('nav');
+  if (window.scrollY > 40) {
+    nav.style.background = 'rgba(13,13,26,0.92)';
+    nav.style.borderBottomColor = 'rgba(255,255,255,0.08)';
+  } else {
+    nav.style.background = 'rgba(13,13,26,0.7)';
+    nav.style.borderBottomColor = 'rgba(255,255,255,0.05)';
+  }
+}, { passive: true });
+
+// ── CARD TILT ON HOVER ──
+document.querySelectorAll('.game-card').forEach(card => {
+  card.addEventListener('mousemove', e => {
+    const rect = card.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width  - 0.5;
+    const y = (e.clientY - rect.top)  / rect.height - 0.5;
+    card.style.transform = `translateY(-10px) scale(1.02) rotateY(${x * 6}deg) rotateX(${-y * 4}deg)`;
+  });
+  card.addEventListener('mouseleave', () => {
+    card.style.transform = '';
+  });
+});
+
+// ── MINES CARD REVEAL ANIMATION ON HOVER ──
+document.querySelector('.mines-card').addEventListener('mouseenter', () => {
+  const cells = document.querySelectorAll('#mines-preview .mp-cell.covered');
+  const subset = Array.from(cells).sort(() => Math.random() - 0.5).slice(0, 8);
+  subset.forEach((cell, i) => {
+    setTimeout(() => cell.classList.add('anim-reveal'), i * 60);
+  });
+});
+document.querySelector('.mines-card').addEventListener('mouseleave', () => {
+  document.querySelectorAll('#mines-preview .mp-cell.anim-reveal')
+    .forEach(cell => cell.classList.remove('anim-reveal'));
+});
+</script>
+</body>
+</html>

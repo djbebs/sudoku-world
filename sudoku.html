@@ -1,0 +1,2669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="theme-color" content="#0d0d1a">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Sudoku Enhanced</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0d0d1a;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+  color: #fff;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  overscroll-behavior: none;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  overflow: hidden;
+  touch-action: none;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 25% 15%, rgba(119,0,255,0.10) 0%, transparent 55%),
+    radial-gradient(ellipse at 75% 85%, rgba(255,0,170,0.08) 0%, transparent 55%);
+  pointer-events: none;
+}
+
+/* ── LAYOUT (game + scoreboard side by side; scaled with CSS zoom by fitScreen()) ── */
+#layout {
+  display: flex;
+  align-items: stretch;
+  gap: 24px;
+  transform-origin: center center;
+}
+
+/* ── CONTAINER ── */
+#container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform-origin: center center;
+}
+
+/* ── HEADER (row 1: title + buttons, row 2: difficulty) ── */
+#header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  width: 480px;
+  margin-bottom: 8px;
+}
+
+h1 {
+  font-size: 2.1rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  flex-shrink: 0;
+  margin-right: auto;
+  background: linear-gradient(90deg,
+    #ff2244 0%, #ff6600 14%, #ffcc00 28%,
+    #aaff00 43%, #00ff88 57%, #00ccff 71%,
+    #7700ff 85%, #ff00aa 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ── DIFFICULTY BUTTONS ── */
+#diff-btns {
+  display: flex;
+  gap: 6px;
+  flex: 1 1 100%;
+  justify-content: center;
+}
+
+.diff-btn {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 20px;
+  color: rgba(255,255,255,0.45);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 6px 13px;
+  cursor: pointer;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  transition: all 0.15s;
+}
+.diff-btn:hover { color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.22); }
+.diff-btn.active {
+  background: linear-gradient(135deg, #7700ff, #ff00aa);
+  border-color: transparent;
+  color: #fff;
+}
+
+/* ── NEW GAME BTN ── */
+#newbtn {
+  background: linear-gradient(135deg, #7700ff, #ff00aa);
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 9px 12px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  white-space: nowrap;
+  transition: filter 0.15s, transform 0.1s;
+  flex-shrink: 0;
+}
+#newbtn:hover  { filter: brightness(1.25); }
+#newbtn:active { transform: scale(0.95); }
+
+/* ── STATS ROW ── */
+#stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 480px;
+  margin-bottom: 14px;
+}
+
+.sbox {
+  background: #12122a;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  padding: 7px 16px;
+  text-align: center;
+  min-width: 96px;
+}
+.slabel {
+  font-size: 0.55rem;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: rgba(255,255,255,0.28);
+  margin-bottom: 2px;
+}
+.sval {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── HEARTS ── */
+#hearts-wrap {
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+#hearts-label {
+  font-size: 0.55rem;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: rgba(255,255,255,0.28);
+  margin-bottom: 4px;
+}
+#hearts-row {
+  display: flex;
+  gap: 5px;
+}
+.heart {
+  font-size: 1.35rem;
+  color: #ff2244;
+  filter: drop-shadow(0 0 6px #ff224477);
+  transition: color 0.3s, filter 0.3s;
+  line-height: 1;
+}
+.heart.lost {
+  color: rgba(255,255,255,0.12);
+  filter: none;
+}
+
+/* ── BOARD WRAP ── */
+#board-wrap {
+  position: relative;
+  width: 480px;
+  height: 480px;
+}
+
+/* ── BOARD GRID ── */
+#board {
+  position: absolute;
+  inset: 0;
+  background: #0f0f26;
+  border-radius: 18px;
+  padding: 8px;
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  grid-template-rows: repeat(9, 1fr);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.05),
+    0 12px 50px rgba(0,0,0,0.7),
+    0 0 80px rgba(119,0,255,0.12);
+  overflow: hidden;
+}
+
+/* ── CELLS ── */
+.sd-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid rgba(255,255,255,0.07);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+/* Remove outer borders */
+.sd-cell[data-c="8"] { border-right: none; }
+.sd-cell[data-r="8"] { border-bottom: none; }
+/* Thick box boundaries */
+.sd-cell[data-c="2"] { border-right: 2px solid rgba(255,255,255,0.22); }
+.sd-cell[data-c="5"] { border-right: 2px solid rgba(255,255,255,0.22); }
+.sd-cell[data-r="2"] { border-bottom: 2px solid rgba(255,255,255,0.22); }
+.sd-cell[data-r="5"] { border-bottom: 2px solid rgba(255,255,255,0.22); }
+
+.sd-cell.given      { background: rgba(255,255,255,0.04); }
+.sd-cell.selected   { background: rgba(0,230,118,0.50) !important; box-shadow: inset 0 0 0 2px #00e676, 0 0 10px rgba(0,230,118,0.4); z-index: 1; }
+.sd-cell.highlight  { background: rgba(0,230,118,0.28); }
+
+/* ── CELL NUMBER ── */
+.cell-num {
+  font-size: 1.45rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  pointer-events: none;
+  display: block;
+}
+.cell-num.is-new {
+  animation: tpop 190ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* ── NOTES MINI-GRID ── */
+.notes-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  width: 100%;
+  height: 100%;
+  padding: 2px;
+  pointer-events: none;
+}
+.note {
+  font-size: 0.50rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: transparent;
+  line-height: 1;
+}
+.note.vis { color: rgba(255,255,255,0.38); }
+
+/* ── ANIMATIONS ── */
+@keyframes tpop {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+@keyframes errflash {
+  0%   { background: rgba(255, 34, 68, 0.40); }
+  100% { background: transparent; }
+}
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20%     { transform: translateX(-5px); }
+  40%     { transform: translateX(5px); }
+  60%     { transform: translateX(-3px); }
+  80%     { transform: translateX(3px); }
+}
+
+/* ── SPLAT CANVAS ── */
+#splat {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+  border-radius: 18px;
+}
+
+/* ── OVERLAY ── */
+#overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 8, 22, 0.88);
+  border-radius: 18px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  z-index: 20;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+#overlay.on { display: flex; }
+
+#ov-title {
+  font-size: 2.4rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, #ff2244, #ff00aa);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.02em;
+}
+#overlay.win #ov-title {
+  background: linear-gradient(135deg, #ffcc00, #ff00aa, #7700ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+#ov-msg {
+  color: rgba(255,255,255,0.42);
+  font-size: 0.92rem;
+  text-align: center;
+  line-height: 1.65;
+}
+.ov-btns { display: flex; gap: 10px; margin-top: 4px; }
+.ov-btn {
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 12px 26px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  background: linear-gradient(135deg, #7700ff, #ff00aa);
+  transition: filter 0.15s, transform 0.1s;
+}
+.ov-btn:hover  { filter: brightness(1.2); }
+.ov-btn:active { transform: scale(0.96); }
+
+/* ── NUMBER PAD ── */
+#numpad {
+  display: flex;
+  gap: 5px;
+  width: 480px;
+  margin-top: 14px;
+}
+.num-btn {
+  flex: 1;
+  height: 50px;
+  background: #12122a;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 1.15rem;
+  font-weight: 800;
+  cursor: pointer;
+  touch-action: auto;
+  transition: background 0.1s, border-color 0.1s, transform 0.08s;
+}
+.num-btn:hover  { background: rgba(119,0,255,0.18); border-color: rgba(119,0,255,0.38); }
+.num-btn:active { transform: scale(0.92); }
+
+.erase-btn { color: rgba(255,80,80,0.7); font-size: 0.95rem; }
+.erase-btn:hover { background: rgba(255,34,68,0.14) !important; border-color: rgba(255,34,68,0.38) !important; color: #ff4455; }
+
+#notes-toggle { font-size: 1rem; }
+#notes-toggle.active {
+  background: rgba(255,0,170,0.18);
+  border-color: rgba(255,0,170,0.5);
+  color: #ff00aa;
+  box-shadow: 0 0 12px rgba(255,0,170,0.25);
+}
+
+.num-btn.num-selected {
+  background: rgba(0,230,118,0.45);
+  border-color: #00e676;
+  color: #00e676;
+  box-shadow: 0 0 18px rgba(0,230,118,0.55);
+}
+.num-btn.completed {
+  opacity: 0.28;
+  pointer-events: none;
+  text-decoration: line-through;
+  cursor: default;
+}
+
+/* ── THEME TOGGLE ── */
+.icon-btn {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  font-size: 1rem;
+  padding: 7px 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.icon-btn:hover { background: rgba(255,255,255,0.13); }
+#home-btn { padding: 3px 11px; border-radius: 20px; font-size: 0.85rem; line-height: 1.4; }
+
+/* ── LANGUAGE TOGGLE (EN | FR) ── */
+.lang-toggle {
+  display: flex;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  padding: 2px;
+}
+.lang-toggle button {
+  background: none;
+  border: none;
+  border-radius: 8px;
+  color: rgba(255,255,255,0.5);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 6px 9px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.lang-toggle button.active {
+  background: linear-gradient(135deg, #7700ff, #ff00aa);
+  color: #fff;
+}
+
+/* ── DAY MODE ── */
+body.day {
+  background: #e8e0d4;
+  color: #2c1f0e;
+}
+body.day::before { display: none; }
+body.day #board  { background: #f5efe4; box-shadow: 0 4px 24px rgba(80,50,20,0.15); }
+body.day .sbox   { background: #ddd5c8; border-color: rgba(80,50,20,0.1); }
+body.day .slabel, body.day #hearts-label { color: rgba(44,31,14,0.45); }
+body.day .diff-btn { background: rgba(80,50,20,0.07); border-color: rgba(80,50,20,0.14); color: rgba(44,31,14,0.55); }
+body.day .diff-btn:hover { color: rgba(44,31,14,0.85); }
+body.day .diff-btn.active { background: linear-gradient(135deg, #7700ff, #ff00aa); border-color: transparent; color: #fff; }
+body.day .num-btn { background: #ddd5c8; border-color: rgba(80,50,20,0.12); color: #2c1f0e; }
+body.day .num-btn:hover { background: rgba(0,180,90,0.15); border-color: rgba(0,180,90,0.35); }
+body.day .sd-cell { border-right-color: rgba(80,50,20,0.10); border-bottom-color: rgba(80,50,20,0.10); }
+body.day .sd-cell[data-c="2"], body.day .sd-cell[data-c="5"] { border-right-color: rgba(80,50,20,0.28); }
+body.day .sd-cell[data-r="2"], body.day .sd-cell[data-r="5"] { border-bottom-color: rgba(80,50,20,0.28); }
+body.day .sd-cell.given { background: rgba(80,50,20,0.06); }
+body.day .note.vis { color: rgba(44,31,14,0.40); }
+body.day #hint { color: rgba(44,31,14,0.30); }
+body.day #overlay { background: rgba(232,224,212,0.93); }
+body.day #ov-msg { color: rgba(44,31,14,0.55); }
+body.day .icon-btn { background: rgba(80,50,20,0.07); border-color: rgba(80,50,20,0.14); }
+body.day .cell-num { color: #0a0a0a !important; text-shadow: none !important; }
+body.day .sd-cell.highlight { background: rgba(0,230,118,0.30); }
+body.day .num-btn.num-selected { background: rgba(0,230,118,0.45); border-color: #00e676; color: #007a3d; box-shadow: 0 0 18px rgba(0,230,118,0.45); }
+
+/* ── HINT ── */
+#hint {
+  margin-top: 12px;
+  max-width: 480px;
+  text-align: center;
+  line-height: 1.5;
+  color: rgba(255,255,255,0.13);
+  font-size: 0.67rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ── DAILY CHALLENGE ── */
+.diff-btn.daily-btn {
+  background: rgba(255,204,0,0.08);
+  border-color: rgba(255,204,0,0.22);
+  color: rgba(255,220,0,0.55);
+}
+.diff-btn.daily-btn:hover { color: rgba(255,220,0,0.9); border-color: rgba(255,204,0,0.42); }
+.diff-btn.daily-btn.active {
+  background: linear-gradient(135deg, #ff9900, #ffcc00);
+  border-color: transparent;
+  color: #180e00;
+}
+.diff-btn.daily-btn.done::after { content: ' ✓'; }
+body.day .diff-btn.daily-btn { color: rgba(160,90,0,0.65); border-color: rgba(160,90,0,0.22); }
+body.day .diff-btn.daily-btn:hover { color: rgba(140,70,0,0.9); }
+
+/* ── SCOREBOARD ── */
+#scoreboard {
+  width: 270px;
+  background: #12122a;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 18px;
+  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 50px rgba(0,0,0,0.5), 0 0 60px rgba(119,0,255,0.08);
+}
+#sb-title {
+  font-size: 1.3rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  text-align: center;
+  background: linear-gradient(90deg, #ffcc00, #ff00aa, #7700ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+#sb-mode {
+  margin: 2px 0 14px;
+  text-align: center;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: rgba(255,255,255,0.35);
+}
+.sb-row, #sb-head {
+  display: grid;
+  grid-template-columns: 22px 1fr 42px 40px;
+  align-items: center;
+  gap: 6px;
+}
+#sb-head {
+  padding: 0 8px 6px;
+  font-size: 0.55rem;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: rgba(255,255,255,0.28);
+}
+#sb-head span:nth-child(3), .sb-time { text-align: right; }
+#sb-head span:nth-child(4), .sb-hearts { text-align: right; white-space: nowrap; }
+#sb-list, #ol-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.sb-row {
+  padding: 7px 8px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.03);
+  font-size: 0.82rem;
+}
+.sb-row.me {
+  background: rgba(0,230,118,0.16);
+  box-shadow: inset 0 0 0 1px rgba(0,230,118,0.55);
+}
+.sb-rank { font-weight: 900; color: rgba(255,255,255,0.4); }
+.sb-row:nth-child(1) .sb-rank { color: #ffcc00; }
+.sb-row:nth-child(2) .sb-rank { color: #c8d0d8; }
+.sb-row:nth-child(3) .sb-rank { color: #e08a4a; }
+.sb-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-time { font-weight: 800; font-variant-numeric: tabular-nums; }
+.sb-heart { font-size: 0.8rem; color: #ff2244; }
+.sb-heart.lost { color: rgba(255,255,255,0.14); }
+#sb-empty {
+  margin-top: 18px;
+  padding: 0 8px;
+  text-align: center;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: rgba(255,255,255,0.3);
+}
+
+/* ── NAME ENTRY (win overlay) ── */
+#ov-form { display: none; gap: 8px; }
+#ov-form.on { display: flex; }
+#ov-name {
+  width: 170px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 12px;
+  color: #fff;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 0 14px;
+  outline: none;
+  user-select: text;
+  -webkit-user-select: text;
+}
+#ov-name:focus { border-color: #00e676; box-shadow: 0 0 12px rgba(0,230,118,0.35); }
+#ov-saved { display: none; color: #00e676; font-weight: 800; font-size: 0.95rem; }
+#ov-saved.on { display: block; }
+
+body.day #scoreboard { background: #ddd5c8; border-color: rgba(80,50,20,0.12); box-shadow: 0 4px 24px rgba(80,50,20,0.15); }
+body.day #sb-mode, body.day #sb-head { color: rgba(44,31,14,0.5); }
+body.day .sb-row { background: rgba(80,50,20,0.06); }
+body.day .sb-row.me { background: rgba(0,180,90,0.18); box-shadow: inset 0 0 0 1px rgba(0,150,75,0.6); }
+body.day .sb-rank { color: rgba(44,31,14,0.45); }
+body.day .sb-row:nth-child(1) .sb-rank { color: #b8860b; }
+body.day .sb-row:nth-child(2) .sb-rank { color: #7a828a; }
+body.day .sb-row:nth-child(3) .sb-rank { color: #b0642a; }
+body.day .sb-heart.lost { color: rgba(44,31,14,0.18); }
+body.day #sb-empty { color: rgba(44,31,14,0.5); }
+body.day #ov-name { background: #fff; border-color: rgba(80,50,20,0.3); color: #2c1f0e; }
+body.day #ov-saved { color: #007a3d; }
+
+body.day .lang-toggle { background: rgba(80,50,20,0.07); border-color: rgba(80,50,20,0.14); }
+body.day .lang-toggle button { color: rgba(44,31,14,0.55); }
+body.day .lang-toggle button.active { color: #fff; }
+
+/* Secondary overlay button (phone layout only: jumps down to the scoreboard) */
+.ov-btn.ghost { background: rgba(255,255,255,0.12); }
+body.day .ov-btn.ghost { background: rgba(80,50,20,0.14); color: #2c1f0e; }
+#ov-scores { display: none; }
+body.stack #overlay.win #ov-scores { display: inline-block; }
+
+/* ── PHONE / NARROW WINDOW: scoreboard stacked under the game, page scrolls ── */
+body.stack {
+  justify-content: flex-start;
+  overflow-x: hidden;
+  overflow-y: auto;
+  touch-action: pan-y;
+  padding-top: calc(8px + env(safe-area-inset-top));
+  padding-bottom: calc(24px + env(safe-area-inset-bottom));
+}
+body.stack #layout {
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin: auto 0;
+}
+body.stack #scoreboard { width: 480px; }
+/* Bigger touch targets: digits on two rows (1-6, then 7-9 + erase + notes) */
+body.stack #numpad { flex-wrap: wrap; gap: 8px 6px; }
+body.stack .num-btn { flex: 1 0 15%; height: 58px; font-size: 1.35rem; }
+
+/* ── HOME: daily-challenge calendar (first screen; scaled by fitScreen() like #layout) ── */
+body.home-open #layout { display: none; }
+body:not(.home-open) #home { display: none; }
+#home {
+  width: 480px;
+  flex-shrink: 0;
+  transform-origin: center center;
+  --hm-dim-a: #2a2a52;
+  --hm-dim-b: #34345f;
+  --hm-rim: rgba(255,255,255,0.22);
+}
+body.day #home { --hm-dim-a: #cdc3b1; --hm-dim-b: #c0b6a3; --hm-rim: rgba(80,50,20,0.3); }
+body.stack #home { margin: auto 0; }
+#home :focus-visible { outline: 2px solid #00ccff; outline-offset: 3px; }
+body.day #home :focus-visible { outline-color: #0077aa; }
+
+#home-top { display: flex; align-items: center; gap: 10px; }
+.home-chip {
+  display: flex; align-items: center; gap: 8px;
+  margin-right: auto;
+  height: 34px; padding: 0 14px 0 10px;
+  background: #12122a;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  font-size: 0.95rem; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+.home-chip svg { width: 18px; height: 18px; color: #ffcc00; filter: drop-shadow(0 0 5px rgba(255,204,0,0.45)); }
+body.day .home-chip { background: #ddd5c8; border-color: rgba(80,50,20,0.1); }
+body.day .home-chip svg { color: #c98a00; filter: none; }
+
+#home-hero {
+  display: grid; grid-template-columns: 1fr 1fr; align-items: center;
+  gap: 8px; padding: 14px 4px 10px;
+}
+.home-date { text-align: center; }
+#home-title { font: inherit; }
+#home-year {
+  display: block;
+  font-size: 3.6rem; font-weight: 900; line-height: 1.05; letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+#home-month {
+  display: block;
+  font-size: 2.1rem; font-weight: 800; line-height: 1.15; letter-spacing: -0.02em;
+  color: rgba(255,255,255,0.85);
+  overflow-wrap: anywhere;
+}
+.home-tag {
+  margin-top: 10px;
+  font-size: 0.62rem; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase;
+  color: rgba(255,255,255,0.5);
+}
+body.day #home-month { color: rgba(44,31,14,0.8); }
+body.day .home-tag { color: rgba(44,31,14,0.55); }
+
+#home-trophy-wrap { position: relative; justify-self: center; width: 170px; height: 170px; --p: 0; }
+.home-halo {
+  position: absolute; inset: -38%; border-radius: 50%; pointer-events: none;
+  background:
+    radial-gradient(circle, rgba(255,0,170,0.22) 0%, rgba(119,0,255,0.14) 35%, transparent 62%),
+    repeating-conic-gradient(rgba(119,0,255,0.3) 0 5deg, transparent 5deg 14deg);
+  -webkit-mask-image: radial-gradient(circle, #000 0 18%, transparent 66%);
+  mask-image: radial-gradient(circle, #000 0 18%, transparent 66%);
+  animation: homeSpin 90s linear infinite;
+}
+body.day .home-halo { opacity: 0.5; }
+@keyframes homeSpin { to { transform: rotate(360deg); } }
+#home-trophy {
+  position: relative; display: block; width: 100%; height: 100%;
+  filter: drop-shadow(0 0 calc(4px + var(--p) * 22px) rgba(255,204,0,calc(var(--p) * 0.55)));
+}
+#home-count {
+  position: absolute; left: 50%; bottom: 4px; transform: translateX(-50%);
+  min-width: 120px; padding: 5px 12px; text-align: center;
+  background: rgba(13,13,26,0.92);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  color: #fff; font-size: 1.1rem; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+
+#home-cal-wrap { position: relative; margin: 0 48px; }
+#home-cal {
+  background: #12122a;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 12px 50px rgba(0,0,0,0.5), 0 0 60px rgba(119,0,255,0.08);
+}
+body.day #home-cal { background: #ddd5c8; border-color: rgba(80,50,20,0.12); box-shadow: 0 4px 24px rgba(80,50,20,0.15); }
+#home-weekdays {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  list-style: none; text-align: center;
+  padding: 13px 8px;
+  background: rgba(119,0,255,0.14);
+  border-bottom: 1px solid rgba(119,0,255,0.25);
+  font-size: 0.68rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  color: rgba(255,255,255,0.7);
+}
+body.day #home-weekdays { color: rgba(44,31,14,0.65); background: rgba(119,0,255,0.09); }
+#home-days {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  gap: 8px 4px; padding: 16px 8px 18px;
+  list-style: none;
+}
+#home-days li { display: grid; place-items: center; }
+
+.hm-day {
+  display: grid; place-items: center;
+  width: 100%; max-width: 44px; aspect-ratio: 1;
+  padding: 0; border: 0; border-radius: 50%; background: none;
+  font: inherit; font-size: 1rem; font-weight: 700; font-variant-numeric: tabular-nums;
+  color: rgba(255,255,255,0.55);
+}
+#home-days.enter .hm-day { animation: tpop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both; animation-delay: calc(var(--i) * 14ms); }
+.hm-day.future { color: rgba(255,255,255,0.28); }
+.hm-day.done {
+  background: rgba(255,204,0,0.12);
+  border: 1.5px solid rgba(255,204,0,0.7);
+  box-shadow: 0 0 16px rgba(255,204,0,0.25);
+}
+.hm-day.done svg { width: 58%; height: 58%; fill: #ffcc00; filter: drop-shadow(0 0 4px rgba(255,204,0,0.6)); }
+.hm-day.today {
+  color: #fff; font-weight: 900;
+  background: rgba(0,204,255,0.1);
+  box-shadow: 0 0 0 2px #00ccff, 0 0 16px rgba(0,204,255,0.4);
+}
+button.hm-day.today { cursor: pointer; transition: box-shadow 0.2s, transform 0.15s; }
+button.hm-day.today:hover  { box-shadow: 0 0 0 2px #00ccff, 0 0 26px rgba(0,204,255,0.65); transform: scale(1.06); }
+button.hm-day.today:active { transform: scale(0.94); }
+body.day .hm-day { color: rgba(44,31,14,0.62); }
+body.day .hm-day.future { color: rgba(44,31,14,0.3); }
+body.day .hm-day.done { background: rgba(224,160,0,0.16); border-color: #c98a00; box-shadow: none; }
+body.day .hm-day.done svg { fill: #d99500; filter: none; }
+body.day .hm-day.today { color: #2c1f0e; background: rgba(0,144,184,0.12); box-shadow: 0 0 0 2px #0090b8; }
+body.day button.hm-day.today:hover { box-shadow: 0 0 0 2px #0090b8, 0 0 14px rgba(0,144,184,0.5); }
+
+.home-arrow {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 48px; height: 72px;
+  display: grid; place-items: center;
+  background: none; border: 0; cursor: pointer; color: #fff;
+  transition: filter 0.2s, transform 0.15s, opacity 0.2s;
+}
+.home-arrow svg { width: 26px; height: 26px; }
+.home-arrow.prev { left: -48px; }
+.home-arrow.next { right: -48px; }
+.home-arrow:hover:not(:disabled)  { filter: drop-shadow(0 0 8px rgba(119,0,255,0.9)) drop-shadow(0 0 16px rgba(255,0,170,0.5)); }
+.home-arrow:active:not(:disabled) { transform: translateY(-50%) scale(0.9); }
+.home-arrow:disabled { opacity: 0.2; cursor: default; }
+.home-arrow.next:disabled { visibility: hidden; }
+body.day .home-arrow { color: #2c1f0e; }
+
+#home-actions { padding: 0 8px 12px; }
+#home-play {
+  display: block; width: 100%; height: 50px;
+  background: linear-gradient(135deg, #7700ff, #ff00aa);
+  border: none; border-radius: 12px; color: #fff;
+  font: inherit; font-size: 0.9rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 0 20px rgba(119,0,255,0.3);
+  transition: filter 0.15s, transform 0.1s, box-shadow 0.2s;
+}
+#home-play:hover  { filter: brightness(1.2); box-shadow: 0 0 35px rgba(119,0,255,0.5), 0 0 60px rgba(255,0,170,0.2); }
+#home-play:active { transform: scale(0.96); }
+
+#home-all {
+  display: block; width: fit-content; margin: 18px auto 0; padding: 6px 12px;
+  color: rgba(255,255,255,0.5); text-decoration: none;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase;
+  transition: color 0.15s;
+}
+#home-all:hover { color: rgba(255,255,255,0.9); }
+body.day #home-all { color: rgba(44,31,14,0.55); }
+body.day #home-all:hover { color: #2c1f0e; }
+
+@media (prefers-reduced-motion: reduce) {
+  #home *, #home *::before { animation: none !important; transition: none !important; }
+}
+
+/* ── WORLDWIDE LEADERBOARD (tabs, online list, nickname dialog) ── */
+[hidden] { display: none !important; }
+
+#sb-tabs {
+  display: flex; gap: 4px;
+  margin: 10px 0 2px; padding: 2px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 10px;
+}
+#sb-tabs button {
+  flex: 1;
+  background: none; border: none; border-radius: 8px;
+  color: rgba(255,255,255,0.5);
+  font: inherit; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase;
+  padding: 6px 8px; cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+#sb-tabs button:hover { color: rgba(255,255,255,0.85); }
+#sb-tabs button.active { background: linear-gradient(135deg, #7700ff, #ff00aa); color: #fff; }
+
+#ol-status {
+  margin: 14px 0 4px; padding: 0 8px;
+  text-align: center; font-size: 0.78rem; line-height: 1.6;
+  color: rgba(255,255,255,0.45);
+}
+#ol-status:empty { display: none; }
+#ol-status.warn { color: #ffb347; }
+.ol-spin {
+  display: inline-block; width: 12px; height: 12px; margin-right: 8px; vertical-align: -1px;
+  border: 2px solid rgba(255,255,255,0.22); border-top-color: #00e676; border-radius: 50%;
+  animation: olSpin 0.8s linear infinite;
+}
+@keyframes olSpin { to { transform: rotate(360deg); } }
+.ol-gap { text-align: center; color: rgba(255,255,255,0.3); font-size: 0.8rem; line-height: 1; }
+#ol-note:empty { display: none; }
+#ol-note { margin-top: 12px; padding: 0 8px; text-align: center; font-size: 0.66rem; line-height: 1.5; color: rgba(255,255,255,0.38); }
+body.day #ol-note { color: rgba(44,31,14,0.5); }
+/* worldwide ranks can have 3 digits */
+#scoreboard.world .sb-row, #scoreboard.world #sb-head { grid-template-columns: 30px 1fr 42px 40px; }
+
+#ol-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 14px; padding: 0 4px; }
+.ol-link {
+  background: none; border: none; padding: 4px 2px; cursor: pointer;
+  color: rgba(255,255,255,0.55); font: inherit; font-size: 0.7rem; font-weight: 700;
+  max-width: 70%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  transition: color 0.15s;
+}
+.ol-link:hover { color: #fff; }
+
+#ov-online {
+  max-width: 400px; padding: 0 12px;
+  text-align: center; font-size: 0.85rem; line-height: 1.5; font-weight: 700;
+  color: rgba(255,255,255,0.65);
+}
+#ov-online:empty { display: none; }
+
+.modal {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+  background: rgba(8,8,22,0.78);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+.modal-card {
+  width: min(360px, 100%);
+  display: flex; flex-direction: column; gap: 12px;
+  background: #12122a;
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 12px 50px rgba(0,0,0,0.6), 0 0 60px rgba(119,0,255,0.12);
+}
+.modal-card h3 { font-size: 1.2rem; font-weight: 900; letter-spacing: -0.02em; }
+#nick-input {
+  width: 100%; height: 44px; padding: 0 14px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.2); border-radius: 12px;
+  color: #fff; font: inherit; font-size: 1rem; font-weight: 700;
+  outline: none; user-select: text; -webkit-user-select: text;
+}
+#nick-input:focus { border-color: #00e676; box-shadow: 0 0 12px rgba(0,230,118,0.35); }
+#nick-help { font-size: 0.74rem; line-height: 1.55; color: rgba(255,255,255,0.6); }
+#nick-id { font-size: 0.68rem; color: rgba(255,255,255,0.38); font-variant-numeric: tabular-nums; }
+#nick-id:empty { display: none; }
+.modal-btns { display: flex; gap: 10px; justify-content: flex-end; }
+
+body.day #sb-tabs { background: rgba(80,50,20,0.07); border-color: rgba(80,50,20,0.14); }
+body.day #sb-tabs button { color: rgba(44,31,14,0.55); }
+body.day #sb-tabs button.active { color: #fff; }
+body.day #ol-status { color: rgba(44,31,14,0.55); }
+body.day #ol-status.warn { color: #9a5b00; }
+body.day .ol-gap { color: rgba(44,31,14,0.35); }
+body.day .ol-link { color: rgba(44,31,14,0.6); }
+body.day .ol-link:hover { color: #2c1f0e; }
+body.day #ov-online { color: rgba(44,31,14,0.7); }
+body.day .modal { background: rgba(232,224,212,0.82); }
+body.day .modal-card { background: #ddd5c8; border-color: rgba(80,50,20,0.12); box-shadow: 0 4px 24px rgba(80,50,20,0.2); color: #2c1f0e; }
+body.day #nick-input { background: #fff; border-color: rgba(80,50,20,0.3); color: #2c1f0e; }
+body.day #nick-help { color: rgba(44,31,14,0.65); }
+body.day #nick-id { color: rgba(44,31,14,0.5); }
+
+@media (prefers-reduced-motion: reduce) { .ol-spin { animation-duration: 3s; } }
+</style>
+</head>
+<body class="home-open">
+
+<!-- HOME: calendar of daily challenges, first screen (Play → today's Daily Challenge) -->
+<div id="home">
+  <div id="home-top">
+    <div class="home-chip" data-i18n-title="totalTip">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M8 21h8M12 17v4M7 4h10v6a5 5 0 0 1-10 0V4Z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>
+      </svg>
+      <span id="home-total">0</span>
+    </div>
+    <div class="lang-toggle" role="group" aria-label="Language">
+      <button type="button" data-lang="en">EN</button>
+      <button type="button" data-lang="fr">FR</button>
+    </div>
+    <button type="button" class="icon-btn" id="home-nick" data-i18n-title="nickTitle" title="Your nickname" hidden>👤</button>
+    <button class="icon-btn theme-toggle" data-i18n-title="theme" title="Toggle theme">☀️</button>
+  </div>
+
+  <div id="home-hero">
+    <div class="home-date">
+      <h2 id="home-title"><span id="home-year"></span><span id="home-month"></span></h2>
+      <p class="home-tag" data-i18n="homeTag">Sudoku · Daily challenge</p>
+    </div>
+    <div id="home-trophy-wrap">
+      <div class="home-halo"></div>
+      <svg id="home-trophy" viewBox="0 0 160 160" aria-hidden="true">
+        <defs>
+          <linearGradient id="hm-fill" gradientUnits="userSpaceOnUse" x1="0" y1="150" x2="0" y2="8">
+            <stop id="hm-f0" offset="0" stop-color="#ff9a00"/>
+            <stop id="hm-f1" offset="0" stop-color="#ffcc00"/>
+            <stop id="hm-f2" offset="0" style="stop-color:var(--hm-dim-a)"/>
+            <stop id="hm-f3" offset="1" style="stop-color:var(--hm-dim-b)"/>
+          </linearGradient>
+        </defs>
+        <g stroke-linejoin="round" stroke-linecap="round">
+          <path d="M44 18h72v20q0 62-36 74q-36-12-36-74V18Z" fill="url(#hm-fill)" style="stroke:var(--hm-rim)" stroke-width="2"/>
+          <path d="M45 30H30c-8 0-12 6-12 12 0 16 12 26 28 28M115 30h15c8 0 12 6 12 12 0 16-12 26-28 28" fill="none" stroke="url(#hm-fill)" stroke-width="9"/>
+          <path d="M72 112h16v30H72z" fill="url(#hm-fill)" style="stroke:var(--hm-rim)" stroke-width="2"/>
+        </g>
+      </svg>
+      <div id="home-count"></div>
+    </div>
+  </div>
+
+  <div id="home-cal-wrap">
+    <button type="button" class="home-arrow prev" id="home-prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15,4 7,12 15,20"/></svg></button>
+    <button type="button" class="home-arrow next" id="home-next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9,4 17,12 9,20"/></svg></button>
+    <div id="home-cal">
+      <ul id="home-weekdays" aria-hidden="true"></ul>
+      <ol id="home-days"></ol>
+      <div id="home-actions"><button type="button" id="home-play"></button></div>
+    </div>
+  </div>
+
+  <a id="home-all" href="landing.html" data-i18n="allGames">All games</a>
+</div>
+
+<div id="layout">
+<div id="container">
+
+  <!-- Header: row 1 = title + buttons, row 2 = difficulty -->
+  <div id="header">
+    <h1>SUDOKU</h1>
+    <button id="newbtn" data-i18n="newGame">New Game</button>
+    <div class="lang-toggle" role="group" aria-label="Language">
+      <button type="button" data-lang="en">EN</button>
+      <button type="button" data-lang="fr">FR</button>
+    </div>
+    <button class="icon-btn theme-toggle" data-i18n-title="theme" title="Toggle theme">☀️</button>
+    <div id="diff-btns">
+      <button class="icon-btn" id="home-btn" data-i18n-title="calendar" title="Calendar">📅</button>
+      <button class="diff-btn active" data-diff="easy" data-i18n="easy">Easy</button>
+      <button class="diff-btn" data-diff="medium" data-i18n="medium">Medium</button>
+      <button class="diff-btn" data-diff="hard" data-i18n="hard">Hard</button>
+      <button class="diff-btn daily-btn" id="daily-btn" data-i18n="daily">Daily</button>
+    </div>
+  </div>
+
+  <!-- Stats Row -->
+  <div id="stats">
+    <div class="sbox">
+      <div class="slabel" data-i18n="time">Time</div>
+      <div class="sval" id="timer-el">0:00</div>
+    </div>
+    <div class="sbox">
+      <div class="slabel" data-i18n="best">Best</div>
+      <div class="sval" id="best-el">--:--</div>
+    </div>
+    <div id="hearts-wrap">
+      <div id="hearts-label" data-i18n="mistakes">Mistakes</div>
+      <div id="hearts-row">
+        <span class="heart" id="h0">&#9829;</span>
+        <span class="heart" id="h1">&#9829;</span>
+        <span class="heart" id="h2">&#9829;</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Board -->
+  <div id="board-wrap">
+    <div id="board"></div>
+    <canvas id="splat" width="480" height="480"></canvas>
+    <div id="overlay">
+      <div id="ov-title">Game Over</div>
+      <div id="ov-msg"></div>
+      <form id="ov-form" autocomplete="off">
+        <input id="ov-name" type="text" maxlength="14" placeholder="Your name" aria-label="Your name" autocapitalize="words" enterkeyhint="done">
+        <button type="submit" class="ov-btn" data-i18n="save">Save score</button>
+      </form>
+      <div id="ov-saved"></div>
+      <div id="ov-online" role="status" aria-live="polite"></div>
+      <div class="ov-btns">
+        <button class="ov-btn ghost" id="ov-scores" data-i18n="sbTitle">Scoreboard</button>
+        <button class="ov-btn" id="ov-newgame" data-i18n="newGame">New Game</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Number Pad -->
+  <div id="numpad">
+    <button class="num-btn" data-v="1">1</button>
+    <button class="num-btn" data-v="2">2</button>
+    <button class="num-btn" data-v="3">3</button>
+    <button class="num-btn" data-v="4">4</button>
+    <button class="num-btn" data-v="5">5</button>
+    <button class="num-btn" data-v="6">6</button>
+    <button class="num-btn" data-v="7">7</button>
+    <button class="num-btn" data-v="8">8</button>
+    <button class="num-btn" data-v="9">9</button>
+    <button class="num-btn erase-btn" data-v="0">&#10005;</button>
+    <button class="num-btn" id="notes-toggle" data-i18n-title="notes" title="Notes mode (N)">&#9998;</button>
+  </div>
+
+  <div id="hint"></div>
+</div>
+
+<!-- Scoreboard -->
+<aside id="scoreboard">
+  <div id="sb-title" data-i18n="sbTitle">Scoreboard</div>
+  <!-- Local | Worldwide tabs: shown only when the online leaderboard is configured (online.js) -->
+  <div id="sb-tabs" role="tablist" hidden>
+    <button type="button" role="tab" id="sb-tab-local" data-tab="local" data-i18n="tabLocal">This device</button>
+    <button type="button" role="tab" id="sb-tab-world" data-tab="world" data-i18n="tabWorld">Worldwide</button>
+  </div>
+  <div id="sb-mode"></div>
+  <div id="sb-head"><span>#</span><span data-i18n="sbPlayer">Player</span><span data-i18n="sbTime">Time</span><span>&#9829;</span></div>
+  <ol id="sb-list"></ol>
+  <div id="sb-empty" data-i18n-html="sbEmpty">No scores yet.<br>Finish a puzzle to get on the board!</div>
+
+  <div id="ol" hidden>
+    <div id="ol-status" role="status" aria-live="polite"></div>
+    <ol id="ol-list"></ol>
+    <p id="ol-note"></p>
+    <div id="ol-foot">
+      <button type="button" id="ol-nick" class="ol-link"></button>
+      <button type="button" id="ol-refresh" class="ol-link" data-i18n="refresh">Refresh</button>
+    </div>
+  </div>
+</aside>
+</div>
+
+<!-- Nickname settings (worldwide leaderboard) -->
+<div id="nick-modal" class="modal" hidden>
+  <form id="nick-form" class="modal-card" role="dialog" aria-modal="true" aria-labelledby="nick-title" autocomplete="off">
+    <h3 id="nick-title" data-i18n="nickTitle">Your nickname</h3>
+    <input id="nick-input" type="text" maxlength="14" autocapitalize="words" enterkeyhint="done" data-i18n-aria="nickTitle">
+    <p id="nick-help" data-i18n="nickHelp"></p>
+    <p id="nick-id"></p>
+    <div class="modal-btns">
+      <button type="button" class="ov-btn ghost" id="nick-cancel" data-i18n="cancel">Cancel</button>
+      <button type="submit" class="ov-btn" data-i18n="saveNick">Save</button>
+    </div>
+  </form>
+</div>
+
+<script>
+'use strict';
+
+// ══════════════════════════════════════════════════════════════
+// CONSTANTS
+// ══════════════════════════════════════════════════════════════
+const DIGIT_COLOR = {
+  1:'#ff2244', 2:'#ff6600', 3:'#ffdd00',
+  4:'#aaff00', 5:'#00ff66', 6:'#00ffcc',
+  7:'#00ccff', 8:'#3366ff', 9:'#7700ff'
+};
+// [lighter, base, glow] for splat
+const DIGIT_SPLAT = {
+  1:['#ff4466','#ff2244','#ff2244'],
+  2:['#ff8833','#ff6600','#ff6600'],
+  3:['#ffee55','#ffdd00','#ffdd00'],
+  4:['#ccff33','#aaff00','#aaff00'],
+  5:['#44ff99','#00ff66','#00ff66'],
+  6:['#44ffee','#00ffcc','#00ffcc'],
+  7:['#44ddff','#00ccff','#00ccff'],
+  8:['#5588ff','#3366ff','#3366ff'],
+  9:['#aa44ff','#7700ff','#7700ff'],
+};
+const TARGET_CLUES = { easy:37, medium:29, hard:23 };
+
+// ══════════════════════════════════════════════════════════════
+// LANGUAGE  (EN / FR — saved in localStorage, defaults to the browser language)
+// Static text is tagged data-i18n / data-i18n-html / data-i18n-title in the HTML;
+// dynamic text (overlay, scoreboard) goes through t() directly.
+// ══════════════════════════════════════════════════════════════
+const NBSP = ' ';
+const HINT_SEP = ' ' + NBSP + '·' + NBSP + ' ';
+const I18N = {
+  en: {
+    easy: 'Easy', medium: 'Medium', hard: 'Hard', daily: 'Daily',
+    newGame: 'New Game', theme: 'Toggle theme', notes: 'Notes mode (N)',
+    time: 'Time', best: 'Best', mistakes: 'Mistakes',
+    hint:      ['Click a cell', 'Or pick a number first to sticky-place', '✎ for notes', 'Arrows navigate'].join(HINT_SEP),
+    hintTouch: ['Tap a cell', 'Or pick a number first to place it repeatedly', '✎ for notes'].join(HINT_SEP),
+    sbTitle: 'Scoreboard', sbPlayer: 'Player', sbTime: 'Time',
+    sbEmpty: 'No scores yet.<br>Finish a puzzle to get on the board!',
+    won: 'You Won!', lost: 'Game Over',
+    winMsg: (time, m) => 'Time: ' + time + '  ·  Mistakes: ' + m,
+    newBest: 'New best time!',
+    loseMsg: '3 mistakes — better luck next time!',
+    yourName: 'Your name', save: 'Save score', anonymous: 'Anonymous',
+    savedTop:  n => '✓ Saved — you are #' + n + '!',
+    savedRank: n => '✓ Saved — rank #' + n,
+    // home (calendar)
+    homeTag: 'Sudoku · Daily challenge', play: 'Play', resume: 'Resume', replay: 'Play again',
+    allGames: 'All games', calendar: 'Calendar', prevMonth: 'Previous month', nextMonth: 'Next month',
+    totalTip: 'Daily challenges completed',
+    weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    dayDone:    (label, today) => label + ', completed' + (today ? ' (today)' : ''),
+    dayToday:   label => label + ', today: play the daily challenge',
+    monthCount: (n, total) => n + ' of ' + total + ' this month',
+    totalCount: n => n + (n === 1 ? ' challenge' : ' challenges') + ' completed in total',
+    // worldwide leaderboard
+    tabLocal: 'This device', tabWorld: 'Worldwide', refresh: 'Refresh',
+    olLoading: 'Loading the worldwide ranking…',
+    olEmpty: 'No online scores yet.<br>Be the first!',
+    olOffline: 'You are offline — the worldwide ranking is unavailable. The game itself still works.',
+    olError: 'The online ranking is unavailable right now. Try again in a moment.',
+    olSlow: 'Can’t reach the online ranking. Check your connection.',
+    olRandomNote: 'Different puzzles of the same difficulty — compare with care.',
+    olPlaying: n => 'Playing as ' + n + '  ✎', olNoNick: 'Choose a nickname  ✎',
+    olYourRank: r => 'Your best · #' + r,
+    nickTitle: 'Your nickname', cancel: 'Cancel', saveNick: 'Save',
+    nickHelp: 'Shown on the worldwide leaderboard (14 characters max). You are identified by an anonymous ID kept in this browser: clearing your browser data may reset it, and your old scores would stay under the old identity.',
+    nickId: id => 'Anonymous ID: …' + id,
+    ovSending: 'Sending to the worldwide ranking…',
+    ovRank: r => '🌍 Worldwide: #' + r,
+    ovSent: '🌍 Sent to the worldwide ranking ✓',
+    ovKept: t => '🌍 Not an online personal best (yours: ' + t + ')',
+    ovQueued: '🌍 Couldn’t reach the worldwide ranking — your score will be sent automatically later.',
+    ovDenied: '🌍 The worldwide ranking refused this result.',
+  },
+  fr: {
+    easy: 'Facile', medium: 'Moyen', hard: 'Difficile', daily: 'Défi du jour',
+    newGame: 'Nouvelle partie', theme: 'Changer de thème', notes: 'Mode notes (N)',
+    time: 'Temps', best: 'Record', mistakes: 'Erreurs',
+    hint:      ['Cliquez une case', 'Ou choisissez d’abord un chiffre pour le placer en série', '✎ pour les notes', 'Flèches pour naviguer'].join(HINT_SEP),
+    hintTouch: ['Touchez une case', 'Ou choisissez d’abord un chiffre pour le placer en série', '✎ pour les notes'].join(HINT_SEP),
+    sbTitle: 'Classement', sbPlayer: 'Joueur', sbTime: 'Temps',
+    sbEmpty: 'Aucun score pour l’instant.<br>Terminez une grille pour entrer au classement' + NBSP + '!',
+    won: 'Victoire' + NBSP + '!', lost: 'Perdu' + NBSP + '!',
+    winMsg: (time, m) => 'Temps' + NBSP + ': ' + time + '  ·  Erreurs' + NBSP + ': ' + m,
+    newBest: 'Nouveau record' + NBSP + '!',
+    loseMsg: '3 erreurs — ce sera mieux la prochaine fois' + NBSP + '!',
+    yourName: 'Votre nom', save: 'Enregistrer', anonymous: 'Anonyme',
+    savedTop:  n => '✓ Enregistré — vous êtes n°' + n + NBSP + '!',
+    savedRank: n => '✓ Enregistré — rang n°' + n,
+    // home (calendar)
+    homeTag: 'Sudoku · Défi du jour', play: 'Jouer', resume: 'Continuer', replay: 'Rejouer',
+    allGames: 'Tous les jeux', calendar: 'Calendrier', prevMonth: 'Mois précédent', nextMonth: 'Mois suivant',
+    totalTip: 'Défis du jour terminés',
+    weekdays: ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'],
+    dayDone:    (label, today) => label + ', terminé' + (today ? ' (aujourd’hui)' : ''),
+    dayToday:   label => label + ', aujourd’hui' + NBSP + ': jouer le défi',
+    monthCount: (n, total) => n + ' sur ' + total + ' ce mois-ci',
+    totalCount: n => n + (n > 1 ? ' défis terminés' : ' défi terminé') + ' au total',
+    // worldwide leaderboard
+    tabLocal: 'Cet appareil', tabWorld: 'Monde', refresh: 'Actualiser',
+    olLoading: 'Chargement du classement mondial…',
+    olEmpty: 'Aucun score en ligne pour l’instant.<br>Soyez le premier' + NBSP + '!',
+    olOffline: 'Vous êtes hors ligne — le classement mondial est indisponible. Le jeu reste jouable.',
+    olError: 'Le classement en ligne est indisponible pour le moment. Réessayez dans un instant.',
+    olSlow: 'Impossible de joindre le classement en ligne. Vérifiez votre connexion.',
+    olRandomNote: 'Grilles différentes pour une même difficulté — comparez avec prudence.',
+    olPlaying: n => 'Pseudo' + NBSP + ': ' + n + '  ✎', olNoNick: 'Choisir un pseudo  ✎',
+    olYourRank: r => 'Votre meilleur · n°' + r,
+    nickTitle: 'Votre pseudo', cancel: 'Annuler', saveNick: 'Enregistrer',
+    nickHelp: 'Affiché dans le classement mondial (14 caractères max). Vous êtes identifié par un ID anonyme conservé dans ce navigateur' + NBSP + ': effacer les données du navigateur peut le réinitialiser, et vos anciens scores resteraient associés à l’ancienne identité.',
+    nickId: id => 'ID anonyme' + NBSP + ': …' + id,
+    ovSending: 'Envoi au classement mondial…',
+    ovRank: r => '🌍 Monde' + NBSP + ': n°' + r,
+    ovSent: '🌍 Envoyé au classement mondial ✓',
+    ovKept: t => '🌍 Pas un record personnel en ligne (le vôtre' + NBSP + ': ' + t + ')',
+    ovQueued: '🌍 Classement mondial injoignable — votre score sera envoyé automatiquement plus tard.',
+    ovDenied: '🌍 Le classement mondial a refusé ce résultat.',
+  },
+};
+
+let lang = localStorage.getItem('sudoku-lang');
+if (lang !== 'en' && lang !== 'fr') lang = /^fr/i.test(navigator.language || '') ? 'fr' : 'en';
+function t(key) { return I18N[lang][key]; }
+
+// Touch-only device (phone/tablet): different hint text, no text pre-selection on the name field
+const isTouch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+
+// Short haptic feedback on Android (ignored where unsupported)
+function buzz(pattern) { try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (_) {} }
+
+// ══════════════════════════════════════════════════════════════
+// SEEDED RNG  (mulberry32 — deterministic by date)
+// ══════════════════════════════════════════════════════════════
+function mulberry32(seed) {
+  return function() {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function strToSeed(s) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return h;
+}
+
+// The Daily Challenge follows the UTC date, so every player in the world gets the same puzzle
+// (and the same leaderboard) on the same date, whatever their time zone.
+function getDailyDateStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+const BSIZ = 480;
+const BPAD = 8;
+const CELL_SZ = (BSIZ - 2 * BPAD) / 9; // ≈51.6px
+
+// ══════════════════════════════════════════════════════════════
+// DOM REFS
+// ══════════════════════════════════════════════════════════════
+const boardEl    = document.getElementById('board');
+const canvas     = document.getElementById('splat');
+const ctx        = canvas.getContext('2d');
+const overlay    = document.getElementById('overlay');
+const ovTitle    = document.getElementById('ov-title');
+const ovMsg      = document.getElementById('ov-msg');
+const timerEl    = document.getElementById('timer-el');
+const bestEl     = document.getElementById('best-el');
+const heartEls   = [0,1,2].map(i => document.getElementById('h'+i));
+const notesBtn   = document.getElementById('notes-toggle');
+const ovForm     = document.getElementById('ov-form');
+const ovName     = document.getElementById('ov-name');
+const ovSaved    = document.getElementById('ov-saved');
+const ovOnlineEl = document.getElementById('ov-online');
+const sbMode     = document.getElementById('sb-mode');
+const sbList     = document.getElementById('sb-list');
+const sbEmpty    = document.getElementById('sb-empty');
+const hintEl     = document.getElementById('hint');
+const scoreboardEl = document.getElementById('scoreboard');
+
+// ══════════════════════════════════════════════════════════════
+// BUILD BOARD DOM  (81 cells, created once)
+// ══════════════════════════════════════════════════════════════
+const cellEls = [];
+for (let r = 0; r < 9; r++) {
+  const row = [];
+  for (let c = 0; c < 9; c++) {
+    const el = document.createElement('div');
+    el.className = 'sd-cell';
+    el.dataset.r = String(r);
+    el.dataset.c = String(c);
+    el.addEventListener('click', () => onCellClick(r, c));
+    boardEl.appendChild(el);
+    row.push(el);
+  }
+  cellEls.push(row);
+}
+
+// ══════════════════════════════════════════════════════════════
+// GAME STATE
+// ══════════════════════════════════════════════════════════════
+let puzzle, solution, board, notes;
+let selected    = null;   // {r,c} or null
+let selectedNum = null;   // pre-selected numpad digit
+let notesMode   = false;
+let completedDigits = new Set();
+let mistakes    = 0;
+let timerSecs   = 0;
+let timerIv     = null;
+let timerStarted= false;
+let difficulty  = 'easy';
+let gameOver    = false;
+let won         = false;
+let dailyMode   = false;
+let dailyDate   = null;   // UTC date of the Daily puzzle being played
+let completedRows, completedCols, completedBoxes;
+let pendingScore = null;  // set on a win until the player saves (or skips) it
+let ovInfo       = null;  // what the overlay shows: {kind:'win', time, mistakes, newBest, rank} | {kind:'lose'}
+let sbHighlight  = null;  // id of the scoreboard row to highlight (the score just saved)
+
+// Best times from localStorage (0 = never completed)
+const bestTimes = {
+  easy:   +localStorage.getItem('sudoku-best-easy')   || 0,
+  medium: +localStorage.getItem('sudoku-best-medium') || 0,
+  hard:   +localStorage.getItem('sudoku-best-hard')   || 0,
+};
+
+// ══════════════════════════════════════════════════════════════
+// PUZZLE GENERATION
+// ══════════════════════════════════════════════════════════════
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function isValid(g, r, c, v) {
+  for (let i = 0; i < 9; i++) {
+    if (g[r][i] === v || g[i][c] === v) return false;
+  }
+  const br = Math.floor(r/3)*3, bc = Math.floor(c/3)*3;
+  for (let i = 0; i < 3; i++)
+    for (let j = 0; j < 3; j++)
+      if (g[br+i][bc+j] === v) return false;
+  return true;
+}
+
+function generateSolution() {
+  const g = Array.from({length:9}, () => Array(9).fill(0));
+  function fill(pos) {
+    if (pos === 81) return true;
+    const r = Math.floor(pos/9), c = pos%9;
+    for (const v of shuffle([1,2,3,4,5,6,7,8,9])) {
+      if (isValid(g, r, c, v)) {
+        g[r][c] = v;
+        if (fill(pos+1)) return true;
+        g[r][c] = 0;
+      }
+    }
+    return false;
+  }
+  fill(0);
+  return g;
+}
+
+// Count solutions, stops at `limit` for speed
+function countSolutions(g, limit) {
+  let count = 0;
+  function solve(pos) {
+    if (count >= limit) return;
+    if (pos === 81) { count++; return; }
+    const r = Math.floor(pos/9), c = pos%9;
+    if (g[r][c] !== 0) { solve(pos+1); return; }
+    for (let v = 1; v <= 9 && count < limit; v++) {
+      if (isValid(g, r, c, v)) {
+        g[r][c] = v;
+        solve(pos+1);
+        g[r][c] = 0;
+      }
+    }
+  }
+  solve(0);
+  return count;
+}
+
+function generatePuzzle(diff) {
+  const sol = generateSolution();
+  const puz = sol.map(r => [...r]);
+  const target = TARGET_CLUES[diff];
+  const positions = shuffle(Array.from({length:81}, (_,i) => i));
+  let clues = 81;
+
+  for (const pos of positions) {
+    if (clues <= target) break;
+    const r = Math.floor(pos/9), c = pos%9;
+    const saved = puz[r][c];
+    puz[r][c] = 0;
+    const test = puz.map(row => [...row]);
+    if (countSolutions(test, 2) === 1) {
+      clues--;
+    } else {
+      puz[r][c] = saved; // not unique without this cell — restore
+    }
+  }
+  return { puzzle: puz, solution: sol };
+}
+
+// ── SEEDED VERSIONS (used for Daily Challenge) ──
+function generateSolutionSeeded(rng) {
+  const g = Array.from({length:9}, () => Array(9).fill(0));
+  function fill(pos) {
+    if (pos === 81) return true;
+    const r = Math.floor(pos/9), c = pos%9;
+    const d = [1,2,3,4,5,6,7,8,9];
+    for (let i = d.length-1; i > 0; i--) { const j=Math.floor(rng()*(i+1)); [d[i],d[j]]=[d[j],d[i]]; }
+    for (const v of d) {
+      if (isValid(g,r,c,v)) { g[r][c]=v; if (fill(pos+1)) return true; g[r][c]=0; }
+    }
+    return false;
+  }
+  fill(0);
+  return g;
+}
+
+function generatePuzzleSeeded(diff, rng) {
+  const sol = generateSolutionSeeded(rng);
+  const puz = sol.map(r => [...r]);
+  const positions = Array.from({length:81},(_,i)=>i);
+  for (let i=positions.length-1; i>0; i--) { const j=Math.floor(rng()*(i+1)); [positions[i],positions[j]]=[positions[j],positions[i]]; }
+  let clues = 81;
+  for (const pos of positions) {
+    if (clues <= TARGET_CLUES[diff]) break;
+    const r=Math.floor(pos/9), c=pos%9;
+    const saved=puz[r][c]; puz[r][c]=0;
+    if (countSolutions(puz.map(row=>[...row]),2)===1) { clues--; }
+    else { puz[r][c]=saved; }
+  }
+  return { puzzle:puz, solution:sol };
+}
+
+// ══════════════════════════════════════════════════════════════
+// GAME INIT
+// ══════════════════════════════════════════════════════════════
+function newGame() {
+  dailyMode = false;
+  document.querySelectorAll('.diff-btn:not(.daily-btn)').forEach(b => b.classList.toggle('active', b.dataset.diff === difficulty));
+  updateDailyBtn();
+  stopTimer();
+  ctx.clearRect(0, 0, BSIZ, BSIZ);
+  canvas.style.cssText = '';
+  clearSplatTimers();
+  overlay.classList.remove('on', 'win');
+  scrollToTopIfStacked();
+
+  const gen = generatePuzzle(difficulty);
+  puzzle   = gen.puzzle;
+  solution = gen.solution;
+  board    = Array.from({length:9}, () => Array(9).fill(0));
+  notes    = Array.from({length:9}, () => Array.from({length:9}, () => new Set()));
+
+  selected     = null;
+  notesMode    = false;
+  mistakes     = 0;
+  timerSecs    = 0;
+  timerStarted = false;
+  gameOver     = false;
+  won          = false;
+  pendingScore = null;
+  ovInfo       = null;
+
+  completedRows   = new Set();
+  completedCols   = new Set();
+  completedBoxes  = new Set();
+  completedDigits = new Set();
+  document.querySelectorAll('.num-btn.completed').forEach(b => b.classList.remove('completed'));
+
+  notesBtn.classList.remove('active');
+  selectedNum = null;
+  updateNumpadHighlight();
+  updateHearts();
+  updateTimer();
+  updateBest();
+  renderScores();
+  renderAll();
+}
+
+// ══════════════════════════════════════════════════════════════
+// RENDERING
+// ══════════════════════════════════════════════════════════════
+function getSelVal() {
+  if (!selected) return 0;
+  return puzzle[selected.r][selected.c] || board[selected.r][selected.c];
+}
+
+// Rebuild classes only (called on selection/highlight changes)
+function updateAllClasses() {
+  const selV = selectedNum || getSelVal();
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      const el  = cellEls[r][c];
+      const val = puzzle[r][c] || board[r][c];
+      const isSel = selected && selected.r === r && selected.c === c;
+
+      // Reset to base class (preserves data-* attrs and inline styles)
+      el.className = 'sd-cell';
+      if (puzzle[r][c] !== 0) el.classList.add('given');
+      if (isSel)                         el.classList.add('selected');
+      else if (selV > 0 && val === selV) el.classList.add('highlight');
+    }
+  }
+}
+
+// Rebuild cell content (called on value/notes change)
+function renderCellContent(r, c, animate) {
+  const el    = cellEls[r][c];
+  const given = puzzle[r][c] !== 0;
+  const val   = given ? puzzle[r][c] : board[r][c];
+
+  if (val !== 0) {
+    const span = document.createElement('span');
+    span.className = 'cell-num' + (animate ? ' is-new' : '');
+    span.textContent = val;
+    if (given) {
+      span.style.color = 'rgba(255,255,255,0.92)';
+    } else {
+      span.style.color = DIGIT_COLOR[val];
+      span.style.textShadow = '0 0 14px ' + DIGIT_COLOR[val] + '99';
+    }
+    if (animate) {
+      span.addEventListener('animationend', () => span.classList.remove('is-new'), {once:true});
+    }
+    el.innerHTML = '';
+    el.appendChild(span);
+  } else {
+    const ns = notes[r][c];
+    if (ns.size > 0) {
+      let html = '<div class="notes-grid">';
+      for (let n = 1; n <= 9; n++) {
+        html += '<span class="note' + (ns.has(n) ? ' vis' : '') + '">' + n + '</span>';
+      }
+      html += '</div>';
+      el.innerHTML = html;
+    } else {
+      el.innerHTML = '';
+    }
+  }
+}
+
+// Full re-render (called on newGame)
+function renderAll() {
+  const selV = getSelVal();
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      renderCellContent(r, c, false);
+      // Set classes inline to avoid double-loop
+      const el  = cellEls[r][c];
+      const val = puzzle[r][c] || board[r][c];
+      const isSel = selected && selected.r === r && selected.c === c;
+      el.className = 'sd-cell';
+      if (puzzle[r][c] !== 0) el.classList.add('given');
+      if (isSel)                         el.classList.add('selected');
+      else if (selV > 0 && val === selV) el.classList.add('highlight');
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// INPUT — CELL CLICK
+// ══════════════════════════════════════════════════════════════
+function onCellClick(r, c) {
+  if (gameOver || won) return;
+  startTimerIfNeeded();
+  selected = (selected && selected.r === r && selected.c === c) ? null : {r, c};
+  updateAllClasses();
+  if (selected && selectedNum !== null) onNumInput(selectedNum);
+}
+
+// ══════════════════════════════════════════════════════════════
+// INPUT — NUMBER ENTRY
+// ══════════════════════════════════════════════════════════════
+function onNumInput(v) {
+  if (gameOver || won || !selected) return;
+  startTimerIfNeeded();
+
+  const {r, c} = selected;
+  if (puzzle[r][c] !== 0) return; // given cell — ignore
+
+  // Erase
+  if (v === 0) {
+    board[r][c] = 0;
+    notes[r][c].clear();
+    renderCellContent(r, c, false);
+    updateAllClasses();
+    return;
+  }
+
+  // Notes mode — toggle candidate
+  if (notesMode) {
+    if (notes[r][c].has(v)) notes[r][c].delete(v);
+    else                    notes[r][c].add(v);
+    renderCellContent(r, c, false);
+    return;
+  }
+
+  // Normal mode — place number
+  if (board[r][c] === v) return; // already placed same digit
+
+  if (v === solution[r][c]) {
+    // ✓ Correct
+    board[r][c] = v;
+    notes[r][c].clear();
+    removeNoteFromPeers(r, c, v);
+    renderCellContent(r, c, true);
+    updateAllClasses();
+    playPlace();
+    checkCompletion(r, c, v);
+    checkDigitComplete(v);
+    if (checkWin()) doWin();
+  } else {
+    // ✗ Wrong
+    doError(r, c);
+  }
+}
+
+// Auto-remove note v from peers (same row/col/box) and re-render them
+function removeNoteFromPeers(r, c, v) {
+  const br = Math.floor(r/3)*3, bc = Math.floor(c/3)*3;
+  const changed = new Set();
+  for (let i = 0; i < 9; i++) {
+    if (i !== c && notes[r][i].has(v)) { notes[r][i].delete(v); changed.add(r*9+i); }
+    if (i !== r && notes[i][c].has(v)) { notes[i][c].delete(v); changed.add(i*9+c); }
+  }
+  for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 3; j++) {
+      const rr = br+i, cc = bc+j;
+      if ((rr!==r||cc!==c) && notes[rr][cc].has(v)) {
+        notes[rr][cc].delete(v);
+        changed.add(rr*9+cc);
+      }
+    }
+  }
+  for (const key of changed) renderCellContent(Math.floor(key/9), key%9, false);
+}
+
+// ══════════════════════════════════════════════════════════════
+// ERROR
+// ══════════════════════════════════════════════════════════════
+function doError(r, c) {
+  mistakes++;
+  updateHearts();
+  playError();
+  buzz(70);
+
+  const el = cellEls[r][c];
+  // Use inline style animation so className resets don't interfere
+  el.style.animation = 'none';
+  void el.offsetWidth; // force reflow
+  el.style.animation = 'errflash 0.55s ease-out forwards, shake 0.38s ease-out';
+  setTimeout(() => { el.style.animation = ''; }, 620);
+
+  if (mistakes >= 3) setTimeout(doGameOver, 450);
+}
+
+// ══════════════════════════════════════════════════════════════
+// WIN / LOSE
+// ══════════════════════════════════════════════════════════════
+function checkWin() {
+  for (let r = 0; r < 9; r++)
+    for (let c = 0; c < 9; c++)
+      if (!(puzzle[r][c] || board[r][c])) return false;
+  return true;
+}
+
+function doWin() {
+  won = true;
+  stopTimer();
+  // Only a completed grid reaches here, so this is the only place a score can be created
+  pendingScore = {
+    key: scoreKey(), time: timerSecs, hearts: 3 - mistakes,
+    // for the worldwide leaderboard (see online.js)
+    board: dailyMode ? 'daily-' + dailyDate : difficulty,
+    mistakes, clues: puzzle.flat().filter(Boolean).length,
+  };
+  let newBest = false;
+  if (dailyMode) {
+    const pb = +localStorage.getItem(getDailyKey('best')) || 0;
+    newBest = !pb || timerSecs < pb;
+    if (newBest) localStorage.setItem(getDailyKey('best'), timerSecs);
+    localStorage.setItem(getDailyKey('done'), '1');
+    updateDailyBtn();
+    updateBest();
+  } else {
+    const prev = bestTimes[difficulty];
+    newBest = !prev || timerSecs < prev;
+    if (newBest) {
+      bestTimes[difficulty] = timerSecs;
+      localStorage.setItem('sudoku-best-' + difficulty, timerSecs);
+      updateBest();
+    }
+  }
+  ovInfo = { kind: 'win', time: timerSecs, mistakes, newBest, rank: null };
+  setTimeout(() => {
+    if (!won) return;   // a new game was started during the delay
+    overlay.classList.add('on', 'win');
+    renderOverlay();
+    if (pendingScore) {
+      ovName.value = localStorage.getItem('sudoku-player-name') || '';
+      ovName.focus();
+      if (!isTouch) ovName.select();
+    }
+    playWin();
+    buzz([40, 60, 40, 60, 160]);
+  }, 350);
+}
+
+function doGameOver() {
+  gameOver = true;
+  stopTimer();
+  ovInfo = { kind: 'lose' };
+  overlay.classList.add('on');
+  overlay.classList.remove('win');
+  renderOverlay();
+  playLose();
+  buzz(250);
+}
+
+// Fills the overlay text from ovInfo in the current language (also called when the language changes)
+function renderOverlay() {
+  if (!ovInfo) return;
+  const win = ovInfo.kind === 'win';
+  ovTitle.textContent = t(win ? 'won' : 'lost');
+  if (win) {
+    let html = t('winMsg')(fmtTime(ovInfo.time), ovInfo.mistakes);
+    if (ovInfo.newBest) html += '<br><span style="color:#ffdd00;font-weight:800">\u2605 ' + t('newBest') + '</span>';
+    ovMsg.innerHTML = html;   // only numbers and fixed strings \u2014 no user input
+  } else {
+    ovMsg.textContent = t('loseMsg');
+  }
+  ovForm.classList.toggle('on', win && !!pendingScore);
+  const saved = win && ovInfo.rank !== null;
+  ovSaved.classList.toggle('on', saved);
+  if (saved) ovSaved.textContent = t(ovInfo.rank <= SCORE_SHOW ? 'savedTop' : 'savedRank')(ovInfo.rank);
+  ovOnlineEl.textContent = win ? onlineResultText(ovInfo.online) : '';
+}
+
+// Status line under the win message: what happened to the worldwide submission
+function onlineResultText(o) {
+  if (!o) return '';
+  if (o.status === 'sending') return t('ovSending');
+  if (o.status === 'saved')   return o.mine ? t('ovRank')(o.mine.rank) : t('ovSent');
+  if (o.status === 'kept')    return t('ovKept')(fmtTime(o.best.time));
+  if (o.status === 'queued')  return t('ovQueued');
+  return t('ovDenied');   // denied / invalid
+}
+
+// ══════════════════════════════════════════════════════════════
+// COMPLETION CHECK — row / col / 3×3 box
+// ══════════════════════════════════════════════════════════════
+function getCellVal(r, c) { return puzzle[r][c] || board[r][c]; }
+function cellCX(c) { return BPAD + (c + 0.5) * CELL_SZ; }
+function cellCY(r) { return BPAD + (r + 0.5) * CELL_SZ; }
+
+function checkCompletion(r, c, v) {
+  const splats = [];
+
+  if (!completedRows.has(r)) {
+    let ok = true;
+    for (let i = 0; i < 9 && ok; i++) ok = !!getCellVal(r, i);
+    if (ok) { completedRows.add(r); splats.push({cx:240, cy:cellCY(r)}); }
+  }
+  if (!completedCols.has(c)) {
+    let ok = true;
+    for (let i = 0; i < 9 && ok; i++) ok = !!getCellVal(i, c);
+    if (ok) { completedCols.add(c); splats.push({cx:cellCX(c), cy:240}); }
+  }
+  const boxIdx = Math.floor(r/3)*3 + Math.floor(c/3);
+  if (!completedBoxes.has(boxIdx)) {
+    const br = Math.floor(r/3)*3, bc = Math.floor(c/3)*3;
+    let ok = true;
+    outer: for (let i = 0; i < 3; i++)
+      for (let j = 0; j < 3; j++)
+        if (!getCellVal(br+i, bc+j)) { ok = false; break outer; }
+    if (ok) {
+      completedBoxes.add(boxIdx);
+      splats.push({cx: cellCX(bc+1), cy: cellCY(br+1)});
+    }
+  }
+
+  if (splats.length) {
+    startSplat();
+    const col = DIGIT_SPLAT[v];
+    for (const {cx, cy} of splats) drawSplat(cx, cy, col);
+    endSplat();
+    playComplete(v);
+  }
+}
+
+// ── DIGIT COMPLETION ──
+function checkDigitComplete(v) {
+  if (completedDigits.has(v)) return;
+  for (let r = 0; r < 9; r++)
+    for (let c = 0; c < 9; c++)
+      if (solution[r][c] === v && !puzzle[r][c] && board[r][c] !== v) return;
+  completedDigits.add(v);
+  // Dim the numpad button
+  const btn = document.querySelector(`.num-btn[data-v="${v}"]`);
+  if (btn) btn.classList.add('completed');
+  if (selectedNum === v) { selectedNum = null; updateNumpadHighlight(); updateAllClasses(); }
+  // Big splat everywhere
+  drawBigSplat(v);
+  playComplete(v);
+}
+
+function drawBigSplat(v) {
+  startSplat();
+  const col = DIGIT_SPLAT[v];
+  const pts = [
+    {cx:BSIZ*0.50, cy:BSIZ*0.50},
+    {cx:BSIZ*0.18, cy:BSIZ*0.18}, {cx:BSIZ*0.82, cy:BSIZ*0.18},
+    {cx:BSIZ*0.18, cy:BSIZ*0.82}, {cx:BSIZ*0.82, cy:BSIZ*0.82},
+    {cx:BSIZ*0.50, cy:BSIZ*0.16}, {cx:BSIZ*0.50, cy:BSIZ*0.84},
+    {cx:BSIZ*0.16, cy:BSIZ*0.50}, {cx:BSIZ*0.84, cy:BSIZ*0.50},
+    {cx:BSIZ*0.33, cy:BSIZ*0.33}, {cx:BSIZ*0.67, cy:BSIZ*0.33},
+    {cx:BSIZ*0.33, cy:BSIZ*0.67}, {cx:BSIZ*0.67, cy:BSIZ*0.67},
+  ];
+  for (const {cx, cy} of pts) drawSplat(cx, cy, col);
+  endSplat();
+}
+
+// ══════════════════════════════════════════════════════════════
+// SCOREBOARD  (localStorage — one list per difficulty, and per day for Daily)
+// ══════════════════════════════════════════════════════════════
+const SCORE_SHOW = 10;
+const SCORE_KEEP = 100;
+
+function scoreKey() {
+  return dailyMode ? 'sudoku-scores-daily-' + getDailyDateStr() : 'sudoku-scores-' + difficulty;
+}
+
+function loadScores(key) {
+  try {
+    const list = JSON.parse(localStorage.getItem(key));
+    return Array.isArray(list) ? list.filter(s => s && typeof s.time === 'number' && typeof s.hearts === 'number') : [];
+  } catch (_) { return []; }
+}
+
+// Fastest time first; on equal time, more hearts left wins; then earliest
+function cmpScore(a, b) { return a.time - b.time || b.hearts - a.hearts || a.id - b.id; }
+
+// One scoreboard row (local and worldwide lists look the same)
+function scoreRowEl(rankText, nameText, seconds, heartsLeft, isMe) {
+  const li = document.createElement('li');
+  li.className = 'sb-row' + (isMe ? ' me' : '');
+
+  const rank = document.createElement('span');
+  rank.className = 'sb-rank';
+  rank.textContent = rankText;
+
+  const name = document.createElement('span');
+  name.className = 'sb-name';
+  name.textContent = nameText;   // textContent: names are user input
+  name.title = nameText;
+
+  const time = document.createElement('span');
+  time.className = 'sb-time';
+  time.textContent = fmtTime(seconds);
+
+  const hearts = document.createElement('span');
+  hearts.className = 'sb-hearts';
+  for (let h = 0; h < 3; h++) {
+    const heart = document.createElement('span');
+    heart.className = 'sb-heart' + (h >= heartsLeft ? ' lost' : '');
+    heart.textContent = '♥';
+    hearts.appendChild(heart);
+  }
+
+  li.append(rank, name, time, hearts);
+  return li;
+}
+
+function renderScores(highlightId) {
+  sbHighlight = highlightId === undefined ? null : highlightId;
+  const list = loadScores(scoreKey()).sort(cmpScore).slice(0, SCORE_SHOW);
+  sbMode.textContent = dailyMode
+    ? t('daily') + ' · ' + (dailyDate || getDailyDateStr()) + ' (UTC)'
+    : t(difficulty);
+  sbEmpty.style.display = list.length ? 'none' : 'block';
+  sbList.textContent = '';
+  list.forEach((s, i) => sbList.appendChild(scoreRowEl(i + 1, s.name, s.time, s.hearts, s.id === highlightId)));
+  syncOnline();   // the worldwide tab follows the current difficulty / daily date
+}
+
+ovForm.addEventListener('submit', e => {
+  e.preventDefault();
+  if (!pendingScore) return;
+  const ps = pendingScore;
+  const name = ovName.value.trim().slice(0, 14) || t('anonymous');
+  localStorage.setItem('sudoku-player-name', name);
+
+  const entry = { id: Date.now(), name, time: ps.time, hearts: ps.hearts, date: getDailyDateStr() };
+  const list = loadScores(ps.key);
+  list.push(entry);
+  list.sort(cmpScore);
+  localStorage.setItem(ps.key, JSON.stringify(list.slice(0, SCORE_KEEP)));
+  const rank = list.indexOf(entry) + 1;
+  pendingScore = null;
+
+  ovInfo.rank = rank;
+  renderOverlay();
+  renderScores(entry.id);
+  if (onlineApi()) submitOnline(ps, name);   // also post it to the worldwide leaderboard
+});
+
+// ══════════════════════════════════════════════════════════════
+// TIMER
+// ══════════════════════════════════════════════════════════════
+function runTimer() { timerIv = setInterval(() => { timerSecs++; updateTimer(); }, 1000); }
+function startTimerIfNeeded() {
+  if (timerStarted) return;
+  timerStarted = true;
+  runTimer();
+}
+function stopTimer() { clearInterval(timerIv); timerIv = null; }
+
+function fmtTime(s) {
+  const m   = Math.floor(s / 60);
+  const sec = s % 60;
+  return m + ':' + String(sec).padStart(2, '0');
+}
+function updateTimer() { timerEl.textContent = fmtTime(timerSecs); }
+function updateBest() {
+  if (dailyMode) {
+    const db = +localStorage.getItem(getDailyKey('best')) || 0;
+    bestEl.textContent = db ? fmtTime(db) : '--:--';
+  } else {
+    bestEl.textContent = bestTimes[difficulty] ? fmtTime(bestTimes[difficulty]) : '--:--';
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// HEARTS
+// ══════════════════════════════════════════════════════════════
+function updateHearts() {
+  // Lose from the right: index 2, 1, 0
+  heartEls.forEach((el, i) => el.classList.toggle('lost', i >= (3 - mistakes)));
+}
+
+// ══════════════════════════════════════════════════════════════
+// AUDIO  (Web Audio API — no external files, same as 2048)
+// ══════════════════════════════════════════════════════════════
+let _ac = null;
+function getAC() {
+  if (!_ac) _ac = new (window.AudioContext || window.webkitAudioContext)();
+  if (_ac.state === 'suspended') _ac.resume();
+  return _ac;
+}
+
+function playPlace() {
+  try {
+    const a = getAC();
+    const n = Math.floor(a.sampleRate * 0.05);
+    const b = a.createBuffer(1, n, a.sampleRate);
+    const d = b.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/n, 1.8);
+    const src = a.createBufferSource(); src.buffer = b;
+    const flt = a.createBiquadFilter(); flt.type = 'bandpass'; flt.frequency.value = 1200; flt.Q.value = 0.6;
+    const g   = a.createGain(); g.gain.value = 0.055;
+    src.connect(flt); flt.connect(g); g.connect(a.destination);
+    src.start();
+  } catch(_){}
+}
+
+function playError() {
+  try {
+    const a   = getAC();
+    const osc = a.createOscillator();
+    const g   = a.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.value = 110;
+    g.gain.setValueAtTime(0.13, a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + 0.28);
+    osc.connect(g); g.connect(a.destination);
+    osc.start(); osc.stop(a.currentTime + 0.3);
+  } catch(_){}
+}
+
+function playComplete(v) {
+  try {
+    const a    = getAC();
+    const freq = Math.min(220 * Math.pow(1.12, v), 1800);
+    const osc  = a.createOscillator();
+    const g    = a.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    g.gain.setValueAtTime(0.10, a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + 0.38);
+    osc.connect(g); g.connect(a.destination);
+    osc.start(); osc.stop(a.currentTime + 0.4);
+  } catch(_){}
+}
+
+function playWin() {
+  try {
+    const a = getAC();
+    [440, 554, 659, 880].forEach((freq, i) => {
+      const osc = a.createOscillator();
+      const g   = a.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const t = a.currentTime + i * 0.15;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.12, t + 0.06);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+      osc.connect(g); g.connect(a.destination);
+      osc.start(t); osc.stop(t + 0.6);
+    });
+  } catch(_){}
+}
+
+function playLose() {
+  try {
+    const a = getAC();
+    [330, 247, 165].forEach((freq, i) => {
+      const osc = a.createOscillator();
+      const g   = a.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const t = a.currentTime + i * 0.22;
+      g.gain.setValueAtTime(0.11, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
+      osc.connect(g); g.connect(a.destination);
+      osc.start(t); osc.stop(t + 0.5);
+    });
+  } catch(_){}
+}
+
+// ══════════════════════════════════════════════════════════════
+// CANVAS SPLAT  (identical to 2048)
+// ══════════════════════════════════════════════════════════════
+let _st1 = null, _st2 = null;
+
+function clearSplatTimers() {
+  clearTimeout(_st1); clearTimeout(_st2);
+  _st1 = _st2 = null;
+}
+
+function startSplat() {
+  clearSplatTimers();
+  ctx.clearRect(0, 0, BSIZ, BSIZ);
+  canvas.style.transition = 'none';
+  canvas.style.opacity    = '1';
+}
+
+function drawSplat(cx, cy, [ca, cb, cg]) {
+  const blobCount = 9 + Math.floor(Math.random() * 8);
+  const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, CELL_SZ * 0.54);
+  grd.addColorStop(0, cg + 'cc');
+  grd.addColorStop(1, cg + '00');
+  ctx.save();
+  ctx.globalAlpha = 0.55;
+  ctx.fillStyle   = grd;
+  ctx.beginPath();
+  ctx.arc(cx, cy, CELL_SZ * 0.54, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  for (let i = 0; i < blobCount; i++) {
+    const baseAngle = (Math.PI * 2 / blobCount) * i;
+    const angle     = baseAngle + (Math.random() - 0.5) * 0.9;
+    const dist      = 16 + Math.random() * 120;
+    const sz        = 6 + Math.random() * 22;
+    const bx        = cx + Math.cos(angle) * dist;
+    const by        = cy + Math.sin(angle) * dist;
+    const col       = dist < 62 ? ca : cb;
+    ctx.save();
+    ctx.globalAlpha = 0.62 + Math.random() * 0.38;
+    ctx.fillStyle   = col;
+    ctx.translate(bx, by);
+    ctx.rotate(angle + Math.PI / 2 + (Math.random() - 0.5) * 0.5);
+    ctx.scale(0.65 + Math.random() * 0.75, 1);
+    ctx.beginPath();
+    ctx.moveTo(0, -sz * 0.65);
+    ctx.bezierCurveTo( sz*0.55, -sz*0.40,  sz*0.62,  sz*0.25, 0,  sz*0.65);
+    ctx.bezierCurveTo(-sz*0.62,  sz*0.25, -sz*0.55, -sz*0.40, 0, -sz*0.65);
+    ctx.fill();
+    if (Math.random() > 0.42) {
+      const sd = sz * (0.85 + Math.random() * 0.9);
+      const sa = angle + (Math.random() - 0.5) * 1.5;
+      ctx.beginPath();
+      ctx.arc(Math.cos(sa)*sd, Math.sin(sa)*sd, sz*0.22, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+function endSplat() {
+  _st1 = setTimeout(() => {
+    canvas.style.transition = 'opacity 760ms ease-out';
+    canvas.style.opacity    = '0';
+    _st2 = setTimeout(() => {
+      ctx.clearRect(0, 0, BSIZ, BSIZ);
+      canvas.style.transition = 'none';
+      canvas.style.opacity    = '1';
+    }, 790);
+  }, 160);
+}
+
+// ══════════════════════════════════════════════════════════════
+// EVENT LISTENERS
+// ══════════════════════════════════════════════════════════════
+
+// Numpad highlight helper
+function updateNumpadHighlight() {
+  document.querySelectorAll('.num-btn[data-v]').forEach(btn => {
+    const v = +btn.dataset.v;
+    btn.classList.toggle('num-selected', v !== 0 && v === selectedNum);
+  });
+}
+
+// Numpad buttons
+document.querySelectorAll('.num-btn[data-v]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const v = +btn.dataset.v;
+    if (v === 0) {
+      selectedNum = null;
+      updateNumpadHighlight();
+      onNumInput(0);
+      return;
+    }
+    selectedNum = (selectedNum === v) ? null : v;
+    if (selectedNum !== null) selected = null;
+    updateNumpadHighlight();
+    updateAllClasses();
+  });
+});
+
+// Notes toggle
+notesBtn.addEventListener('click', () => {
+  notesMode = !notesMode;
+  notesBtn.classList.toggle('active', notesMode);
+});
+
+// Difficulty buttons
+// [data-diff] only: the Daily button has its own handler and must not reset `difficulty` to undefined
+document.querySelectorAll('.diff-btn[data-diff]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    difficulty = btn.dataset.diff;
+    document.querySelectorAll('.diff-btn').forEach(b => b.classList.toggle('active', b === btn));
+    updateBest();
+    newGame();
+  });
+});
+
+// Theme toggle
+let isDayMode = false;
+const themeBtns = document.querySelectorAll('.theme-toggle');   // one in the game header, one on the calendar screen
+themeBtns.forEach(btn => btn.addEventListener('click', () => {
+  isDayMode = !isDayMode;
+  document.body.classList.toggle('day', isDayMode);
+  themeBtns.forEach(b => { b.textContent = isDayMode ? '🌙' : '☀️'; });
+  document.querySelector('meta[name="theme-color"]').content = isDayMode ? '#e8e0d4' : '#0d0d1a';  // Android browser bar
+}));
+
+// Language toggle
+document.querySelectorAll('.lang-toggle button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.dataset.lang === lang) return;
+    lang = btn.dataset.lang;
+    localStorage.setItem('sudoku-lang', lang);
+    applyLang();
+  });
+});
+
+// Phone layout: jump from the win screen down to the scoreboard
+document.getElementById('ov-scores').addEventListener('click', () => {
+  scoreboardEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+// New Game
+document.getElementById('newbtn').addEventListener('click', newGame);
+document.getElementById('ov-newgame').addEventListener('click', newGame);
+
+// Keyboard
+document.addEventListener('keydown', e => {
+  if (e.target instanceof HTMLInputElement) return; // typing a name — don't treat keys as game input
+  if (document.body.classList.contains('home-open')) return;  // calendar screen: the game is hidden
+  if (!nickModal.hidden) return;                                // nickname dialog is open
+  if (e.key >= '1' && e.key <= '9') {
+    e.preventDefault(); onNumInput(+e.key);
+  } else if (e.key === '0' || e.key === 'Delete' || e.key === 'Backspace') {
+    e.preventDefault(); onNumInput(0);
+  } else if (e.key === 'n' || e.key === 'N') {
+    notesMode = !notesMode;
+    notesBtn.classList.toggle('active', notesMode);
+  } else if (e.key === 'Escape') {
+    selected = null; selectedNum = null; updateNumpadHighlight(); updateAllClasses();
+  } else if (e.key === 'ArrowUp')    { e.preventDefault(); moveSelection(-1,  0); }
+  else if   (e.key === 'ArrowDown')  { e.preventDefault(); moveSelection( 1,  0); }
+  else if   (e.key === 'ArrowLeft')  { e.preventDefault(); moveSelection( 0, -1); }
+  else if   (e.key === 'ArrowRight') { e.preventDefault(); moveSelection( 0,  1); }
+});
+
+function moveSelection(dr, dc) {
+  if (gameOver || won) return;
+  if (!selected) { selected = {r:4, c:4}; }
+  else {
+    selected = {
+      r: Math.max(0, Math.min(8, selected.r + dr)),
+      c: Math.max(0, Math.min(8, selected.c + dc))
+    };
+  }
+  startTimerIfNeeded();
+  updateAllClasses();
+}
+
+// ══════════════════════════════════════════════════════════════
+// RESPONSIVE SCALE
+//  · width >= 760px : game and scoreboard side by side, scaled to fit the window
+//  · width <  760px : phone layout — scoreboard stacked under the game, scaled to the
+//                     width only (the page scrolls vertically)
+// The layout is measured at scale 1, then scaled with CSS zoom (it affects layout, so
+// scrolling works); browsers without zoom fall back to transform.
+// The calendar screen (#home) is scaled the same way while it is the visible one.
+// ══════════════════════════════════════════════════════════════
+const layoutEl = document.getElementById('layout');
+const homeEl   = document.getElementById('home');
+const hasZoom  = CSS.supports('zoom', '1');
+
+function fitScreen() {
+  const stacked = window.innerWidth < 760;
+  document.body.classList.toggle('stack', stacked);
+  [layoutEl, homeEl].forEach(e => { e.style.zoom = e.style.transform = ''; });
+  const el = document.body.classList.contains('home-open') ? homeEl : layoutEl;
+  const w = el.offsetWidth, h = el.offsetHeight;
+  const s = stacked
+    ? Math.min(1, (window.innerWidth - 16) / w)
+    : Math.min(1, (window.innerWidth - 16) / w, (window.innerHeight - 32) / h);
+  if (hasZoom) el.style.zoom = s;
+  else         el.style.transform = 'scale(' + s + ')';
+}
+window.addEventListener('resize', fitScreen);
+
+function scrollToTopIfStacked() {
+  if (document.body.classList.contains('stack') && window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Writes every language-dependent string (static text via data-i18n*, hint, overlay, scoreboard)
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = t(el.dataset.i18nHtml); });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = t(el.dataset.i18nTitle); });
+  document.querySelectorAll('[data-i18n-aria]').forEach(el => { el.setAttribute('aria-label', t(el.dataset.i18nAria)); });
+  ovName.placeholder = t('yourName');
+  ovName.setAttribute('aria-label', t('yourName'));
+  hintEl.textContent = t(isTouch ? 'hintTouch' : 'hint');
+  document.querySelectorAll('.lang-toggle button').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+  renderOverlay();
+  renderScores(sbHighlight);
+  renderOnline();
+  renderHome();
+  fitScreen();   // text length can change the layout height
+}
+
+// ══════════════════════════════════════════════════════════════
+// DAILY CHALLENGE
+// ══════════════════════════════════════════════════════════════
+function getDailyKey(suffix) {
+  return 'sudoku-daily-' + getDailyDateStr() + (suffix ? '-'+suffix : '');
+}
+
+function isDailyDone() { return !!localStorage.getItem(getDailyKey('done')); }
+
+function updateDailyBtn() {
+  const btn = document.getElementById('daily-btn');
+  if (!btn) return;
+  btn.classList.toggle('active', dailyMode);
+  btn.classList.toggle('done', isDailyDone() && !dailyMode);
+}
+
+function startDailyChallenge() {
+  dailyMode = true;
+  document.querySelectorAll('.diff-btn:not(.daily-btn)').forEach(b => b.classList.remove('active'));
+  updateDailyBtn();
+  stopTimer();
+  ctx.clearRect(0, 0, BSIZ, BSIZ);
+  canvas.style.cssText = '';
+  clearSplatTimers();
+  overlay.classList.remove('on', 'win');
+  scrollToTopIfStacked();
+
+  dailyDate = getDailyDateStr();   // the puzzle's date (also its online leaderboard), even if midnight UTC passes mid-game
+  const rng = mulberry32(strToSeed('sudoku-daily-' + dailyDate));
+  const gen = generatePuzzleSeeded('medium', rng);
+  puzzle   = gen.puzzle;
+  solution = gen.solution;
+  board    = Array.from({length:9}, () => Array(9).fill(0));
+  notes    = Array.from({length:9}, () => Array.from({length:9}, () => new Set()));
+
+  selected=null; notesMode=false; mistakes=0; timerSecs=0;
+  timerStarted=false; gameOver=false; won=false;
+  completedRows=new Set(); completedCols=new Set(); completedBoxes=new Set(); completedDigits=new Set();
+  document.querySelectorAll('.num-btn.completed').forEach(b => b.classList.remove('completed'));
+  notesBtn.classList.remove('active');
+  pendingScore=null; ovInfo=null;
+  selectedNum=null; updateNumpadHighlight(); updateHearts(); updateTimer(); updateBest(); renderScores(); renderAll();
+}
+
+document.getElementById('daily-btn').addEventListener('click', startDailyChallenge);
+
+// Auto-reset daily challenge at midnight
+let _lastDailyDate = getDailyDateStr();
+setInterval(() => {
+  const today = getDailyDateStr();
+  if (today !== _lastDailyDate) {
+    _lastDailyDate = today;
+    updateDailyBtn();
+    if (dailyMode) startDailyChallenge();
+    renderHome();
+  }
+}, 60000);
+
+// ══════════════════════════════════════════════════════════════
+// HOME  (first screen: calendar of Daily Challenges)
+// A finished day is the 'sudoku-daily-YYYY-MM-DD-done' flag written by doWin().
+// "Play" (or today's cell) starts today's Daily Challenge; 📅 in the game header comes back here.
+// ══════════════════════════════════════════════════════════════
+const DONE_KEY_RE = /^sudoku-daily-(\d{4}-\d{2}-\d{2})-done$/;
+const STAR_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3 6.1 20.6l1.3-6.6L2.5 9.4l6.6-.8L12 2.5z"/></svg>';
+const homeDaysEl = document.getElementById('home-days');
+const homePlayEl = document.getElementById('home-play');
+const homePrevEl = document.getElementById('home-prev');
+const homeNextEl = document.getElementById('home-next');
+
+let homeY, homeM;   // month on display
+function resetHomeMonth() { const n = new Date(); homeY = n.getUTCFullYear(); homeM = n.getUTCMonth(); }   // UTC, like the Daily puzzle
+resetHomeMonth();
+
+function loadDoneDays() {
+  const done = new Set();
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const hit = DONE_KEY_RE.exec(localStorage.key(i));
+      if (hit) done.add(hit[1]);
+    }
+  } catch (_) { /* storage blocked: empty calendar */ }
+  return done;
+}
+
+function isDailyInProgress() { return dailyMode && timerStarted && !gameOver && !won; }
+
+function renderHome(animate) {
+  const now = new Date();
+  const todayD = now.getUTCDate();
+  const todayIdx = now.getUTCFullYear() * 12 + now.getUTCMonth();
+  const done = loadDoneDays();
+
+  let earliestIdx = todayIdx;
+  done.forEach(s => { earliestIdx = Math.min(earliestIdx, +s.slice(0, 4) * 12 + (+s.slice(5, 7) - 1)); });
+  const viewIdx = Math.min(Math.max(homeY * 12 + homeM, earliestIdx), todayIdx);
+  homeY = Math.floor(viewIdx / 12);
+  homeM = viewIdx % 12;
+
+  const daysInMonth = new Date(Date.UTC(homeY, homeM + 1, 0)).getUTCDate();
+  const lead = new Date(Date.UTC(homeY, homeM, 1)).getUTCDay();   // Sunday first, like the weekday header
+  const dateFmt = new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'long', timeZone: 'UTC' });
+  const mm = String(homeM + 1).padStart(2, '0');
+
+  homeDaysEl.textContent = '';
+  homeDaysEl.classList.toggle('enter', !!animate);
+  for (let i = 0; i < lead; i++) homeDaysEl.appendChild(document.createElement('li'));
+
+  let doneThisMonth = 0, todayDone = false;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const isDone   = done.has(homeY + '-' + mm + '-' + String(d).padStart(2, '0'));
+    const isToday  = viewIdx === todayIdx && d === todayD;
+    const isFuture = viewIdx === todayIdx && d > todayD;
+    if (isDone) doneThisMonth++;
+    if (isDone && isToday) todayDone = true;
+
+    const label = dateFmt.format(new Date(Date.UTC(homeY, homeM, d)));
+    const cell = document.createElement(isToday ? 'button' : 'span');
+    cell.className = 'hm-day' + (isDone ? ' done' : '') + (isToday ? ' today' : '') + (isFuture ? ' future' : '');
+    cell.style.setProperty('--i', lead + d);
+    if (isDone) {
+      cell.innerHTML = STAR_SVG;
+      if (!isToday) {
+        cell.setAttribute('role', 'img');
+        cell.setAttribute('aria-label', t('dayDone')(label, false));
+      }
+    } else {
+      cell.textContent = d;
+    }
+    if (isToday) {
+      cell.type = 'button';
+      cell.setAttribute('aria-current', 'date');
+      cell.setAttribute('aria-label', isDone ? t('dayDone')(label, true) : t('dayToday')(label));
+      cell.addEventListener('click', playFromHome);
+    }
+    const li = document.createElement('li');
+    li.appendChild(cell);
+    homeDaysEl.appendChild(li);
+  }
+
+  const monthName = new Intl.DateTimeFormat(lang, { month: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(homeY, homeM, 1)));
+  document.getElementById('home-year').textContent  = homeY;
+  document.getElementById('home-month').textContent = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+  document.getElementById('home-weekdays').innerHTML = t('weekdays').map(w => '<li>' + w + '</li>').join('');
+
+  // Trophy fills with gold as the month fills with stars
+  const p = doneThisMonth / daysInMonth;
+  document.getElementById('home-trophy-wrap').style.setProperty('--p', p);
+  document.getElementById('hm-f1').setAttribute('offset', p);
+  document.getElementById('hm-f2').setAttribute('offset', p);
+  const countEl = document.getElementById('home-count');
+  countEl.textContent = doneThisMonth + ' / ' + daysInMonth;
+  countEl.setAttribute('aria-label', t('monthCount')(doneThisMonth, daysInMonth));
+  const totalEl = document.getElementById('home-total');
+  totalEl.textContent = done.size;
+  totalEl.setAttribute('aria-label', t('totalCount')(done.size));
+
+  homePlayEl.textContent = t(isDailyInProgress() ? 'resume' : todayDone ? 'replay' : 'play');
+  homePrevEl.setAttribute('aria-label', t('prevMonth'));
+  homeNextEl.setAttribute('aria-label', t('nextMonth'));
+  homePrevEl.disabled = viewIdx <= earliestIdx;
+  homeNextEl.disabled = viewIdx >= todayIdx;
+}
+
+function shiftHomeMonth(delta) {
+  const idx = homeY * 12 + homeM + delta;
+  homeY = Math.floor(idx / 12);
+  homeM = idx % 12;
+  renderHome(true);
+}
+
+function showHome() {
+  stopTimer();   // pause: timerStarted stays true so showGame() can resume
+  resetHomeMonth();
+  document.body.classList.add('home-open');
+  renderHome(true);
+  fitScreen();
+  window.scrollTo(0, 0);
+  syncOnline();   // the scoreboard is hidden: stop listening
+}
+
+function showGame() {
+  document.body.classList.remove('home-open');
+  fitScreen();
+  if (timerStarted && !gameOver && !won && !timerIv) runTimer();   // resume a paused game
+  syncOnline();
+}
+
+function playFromHome() {
+  const resume = isDailyInProgress();
+  showGame();
+  if (!resume) startDailyChallenge();
+}
+
+homePlayEl.addEventListener('click', playFromHome);
+homePrevEl.addEventListener('click', () => shiftHomeMonth(-1));
+homeNextEl.addEventListener('click', () => shiftHomeMonth(1));
+document.getElementById('home-btn').addEventListener('click', showHome);
+
+// ══════════════════════════════════════════════════════════════
+// WORLDWIDE LEADERBOARD — interface
+// Data, Firebase and security live in online.js (a separate module, loaded after this script).
+// If it is missing, not configured or offline, none of this shows and the game is unchanged.
+// ══════════════════════════════════════════════════════════════
+const sbTabsEl    = document.getElementById('sb-tabs');
+const olEl        = document.getElementById('ol');
+const olStatusEl  = document.getElementById('ol-status');
+const olListEl    = document.getElementById('ol-list');
+const olNoteEl    = document.getElementById('ol-note');
+const olNickBtn   = document.getElementById('ol-nick');
+const nickModal   = document.getElementById('nick-modal');
+const nickInput   = document.getElementById('nick-input');
+const nickIdEl    = document.getElementById('nick-id');
+const homeNickBtn = document.getElementById('home-nick');
+
+let sbTab = localStorage.getItem('sudoku-sb-tab') === 'local' ? 'local' : 'world';
+let olUnsub = null;       // stops the live listener
+let olBoard = null;       // board currently listened to
+let olLast = null;        // last snapshot info from online.js
+let olMine = null;        // the player's own entry when it is outside the top 20
+let olMineTried = false;
+let olSlowTimer = null;
+
+function onlineApi() { const o = window.SudokuOnline; return o && o.available ? o : null; }
+function onlineBoard() { return dailyMode ? 'daily-' + dailyDate : difficulty; }
+// Listen only while the worldwide list is actually on screen (saves Firestore reads)
+function onlineWanted() {
+  return !!onlineApi() && sbTab === 'world' && !document.hidden && !document.body.classList.contains('home-open');
+}
+
+function applyTab() {
+  const on = !!onlineApi();
+  const world = on && sbTab === 'world';
+  sbTabsEl.hidden = !on;
+  homeNickBtn.hidden = !on;
+  olEl.hidden = !world;
+  sbList.hidden = sbEmpty.hidden = world;
+  scoreboardEl.classList.toggle('world', world);
+  document.querySelectorAll('#sb-tabs button').forEach(b => {
+    const active = b.dataset.tab === (world ? 'world' : 'local');
+    b.classList.toggle('active', active);
+    b.setAttribute('aria-selected', active);
+  });
+}
+
+// (Re)attach the live listener when the board or visibility changed
+function syncOnline(force) {
+  const want = onlineWanted() ? onlineBoard() : null;
+  if (!force && want === olBoard) return;
+  if (olUnsub) { olUnsub(); olUnsub = null; }
+  clearTimeout(olSlowTimer);
+  olBoard = want;
+  olLast = null; olMine = null; olMineTried = false;
+  if (!want) return;
+  renderOnline();
+  olUnsub = onlineApi().subscribe(want, info => {
+    clearTimeout(olSlowTimer);
+    olLast = info;
+    if (info.state === 'ok' && !info.fromCache) {
+      if (info.entries.some(e => e.me)) olMine = null;
+      else if (!olMineTried) { olMineTried = true; loadMine(); }
+    }
+    if (info.state === 'ok' && info.fromCache && !info.entries.length && navigator.onLine) {
+      olSlowTimer = setTimeout(() => { if (olLast === info) { olLast = { ...info, slow: true }; renderOnline(); } }, 8000);
+    }
+    renderOnline();
+  });
+}
+
+function loadMine() {
+  const board = olBoard;
+  if (!board) return;
+  onlineApi().getMine(board).then(m => {
+    if (board !== olBoard) return;
+    olMine = m;
+    renderOnline();
+  }).catch(() => {});
+}
+
+function renderOnline() {
+  const api = onlineApi();
+  if (!api) return;
+  const nick = api.getNickname();
+  olNickBtn.textContent = nick ? t('olPlaying')(nick) : t('olNoNick');
+  olNickBtn.title = t('nickTitle');
+  if (olEl.hidden) return;
+
+  olNoteEl.textContent = dailyMode ? '' : t('olRandomNote');
+  olListEl.textContent = '';
+  olStatusEl.textContent = '';
+  olStatusEl.classList.remove('warn');
+  const info = olLast;
+  let msg = '', warn = false, spin = false, html = false;
+
+  if (!info || info.state === 'loading') {
+    if (navigator.onLine) { msg = t('olLoading'); spin = true; }
+    else { msg = t('olOffline'); warn = true; }                            // never spin forever without a connection
+  }
+  else if (info.state === 'offline')     { msg = t('olOffline'); warn = true; }
+  else if (info.state === 'error')       { msg = t('olError'); warn = true; }
+  else {
+    info.entries.forEach(e => olListEl.appendChild(scoreRowEl(e.rank, e.nickname, e.time, 3 - e.mistakes, e.me)));
+    if (olMine && !info.entries.some(e => e.me)) {
+      const gap = document.createElement('li');
+      gap.className = 'ol-gap';
+      gap.textContent = '⋮';
+      gap.setAttribute('aria-hidden', 'true');
+      olListEl.append(gap, scoreRowEl('#' + olMine.rank, olMine.nickname, olMine.time, 3 - olMine.mistakes, true));
+    }
+    if (!navigator.onLine) { msg = t('olOffline'); warn = true; }          // rows below (if any) are the last ones received
+    else if (info.fromCache && !info.entries.length) {
+      if (info.slow) { msg = t('olSlow'); warn = true; } else { msg = t('olLoading'); spin = true; }
+    } else if (!info.entries.length) { msg = t('olEmpty'); html = true; }
+  }
+
+  if (spin) {
+    const s = document.createElement('span');
+    s.className = 'ol-spin';
+    s.setAttribute('aria-hidden', 'true');
+    olStatusEl.append(s, msg);
+  } else if (html) olStatusEl.innerHTML = msg;   // fixed translated string, no user input
+  else olStatusEl.textContent = msg;
+  olStatusEl.classList.toggle('warn', warn);
+}
+
+// Posts a finished run to the worldwide leaderboard and shows what happened in the win screen
+async function submitOnline(ps, name) {
+  const api = onlineApi();
+  if (!api) return;
+  const info = ovInfo;            // the win screen this result belongs to
+  info.online = { status: 'sending' };
+  renderOverlay();
+  const res = await api.submit({ board: ps.board, time: ps.time, mistakes: ps.mistakes, clues: ps.clues, nickname: name });
+  info.online = res;
+  if (ovInfo === info) renderOverlay();
+  renderOnline();
+  if (res.status === 'saved' || res.status === 'kept') { olMineTried = false; if (olBoard === ps.board) loadMine(); }
+}
+
+// ── nickname dialog ──
+function openNick(first) {
+  const api = onlineApi();
+  if (!api) return;
+  nickInput.value = api.getNickname();
+  nickIdEl.textContent = '';
+  nickModal.hidden = false;
+  nickInput.focus();
+  if (!isTouch) nickInput.select();
+  if (!first) api.userId().then(id => { if (!nickModal.hidden) nickIdEl.textContent = t('nickId')(id.slice(-6)); }).catch(() => {});
+}
+function closeNick() {
+  nickModal.hidden = true;
+  localStorage.setItem('sudoku-nick-asked', '1');   // the first-launch prompt is shown only once
+}
+document.getElementById('nick-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const api = onlineApi();
+  const nick = api && api.cleanNickname(nickInput.value);
+  if (!nick) { nickInput.focus(); return; }
+  closeNick();
+  await api.setNickname(nick);
+  renderOnline();
+});
+document.getElementById('nick-cancel').addEventListener('click', closeNick);
+nickModal.addEventListener('click', e => { if (e.target === nickModal) closeNick(); });
+nickModal.addEventListener('keydown', e => { if (e.key === 'Escape') closeNick(); });
+olNickBtn.addEventListener('click', () => openNick(false));
+homeNickBtn.addEventListener('click', () => openNick(false));
+
+// ── tabs, refresh, connectivity ──
+document.querySelectorAll('#sb-tabs button').forEach(b => b.addEventListener('click', () => {
+  sbTab = b.dataset.tab;
+  localStorage.setItem('sudoku-sb-tab', sbTab);
+  applyTab();
+  syncOnline(true);
+  renderOnline();
+}));
+document.getElementById('ol-refresh').addEventListener('click', () => syncOnline(true));
+document.addEventListener('visibilitychange', () => syncOnline());
+window.addEventListener('online',  () => syncOnline(true));    // connection is back: reconnect the list
+window.addEventListener('offline', () => renderOnline());
+
+function onOnlineReady() {
+  applyTab();
+  renderOnline();
+  syncOnline(true);
+  // First launch: offer to pick a nickname once (it can still be set later from 👤 / the scoreboard)
+  if (!localStorage.getItem('sudoku-player-name') && !localStorage.getItem('sudoku-nick-asked')) openNick(true);
+}
+if (window.SudokuOnline) onOnlineReady();
+else window.addEventListener('sudoku-online-ready', onOnlineReady, { once: true });
+
+// ══════════════════════════════════════════════════════════════
+// START
+// ══════════════════════════════════════════════════════════════
+updateBest();
+newGame();
+updateDailyBtn();
+applyLang();
+</script>
+
+<!-- Worldwide leaderboard (optional: the game works without it) — see README.md -->
+<script type="module" src="online.js"></script>
+</body>
+</html>

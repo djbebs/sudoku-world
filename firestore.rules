@@ -1,0 +1,111 @@
+rules_version = '2';
+
+// Worldwide Sudoku leaderboard — Firestore Security Rules.
+//
+// Free-tier reality check: real server-side validation (re-solving the grid, regenerating the
+// Daily puzzle) needs Cloud Functions, which require the paid Blaze plan. On the free Spark plan
+// these rules are the only server-side gate, so they enforce everything a rule CAN check:
+// identity, ownership, document shape, plausible bounds, server timestamps, the UTC date of the
+// Daily Challenge, "personal best only" updates, and a rate limit. They cannot prove that a grid
+// was really solved, so a determined cheater can still post a plausible score. See README.md.
+//
+// Limits here MIRROR online-core.js (MIN_TIME, CLUE_RANGE, MAX_TIME …) — change both together.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── helpers ─────────────────────────────────────────────────────────────
+    function signedIn() { return request.auth != null; }          // anonymous users count as signed in
+    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+
+    function pad2(n) { return (n < 10 ? '0' : '') + string(n); }
+    function utcDate(t) { return string(t.year()) + '-' + pad2(t.month()) + '-' + pad2(t.day()); }
+
+    // 1–14 characters, no control characters or < >, no leading/trailing whitespace
+    function nickOk(n) {
+      return n is string
+          && n.matches('^.{1,14}$')
+          && n.matches('^[^\\s\\x00-\\x1f\\x7f<>]([^\\x00-\\x1f\\x7f<>]*[^\\s\\x00-\\x1f\\x7f<>])?$');
+    }
+
+    // Leaderboards: 'easy' | 'medium' | 'hard' | 'daily-YYYY-MM-DD'.
+    // A Daily board must be today's or yesterday's UTC date (server clock) — never an arbitrary date.
+    function boardOk(b) {
+      return b is string
+          && (b in ['easy', 'medium', 'hard']
+              || b == 'daily-' + utcDate(request.time)
+              || b == 'daily-' + utcDate(request.time - duration.value(1, 'd')));
+    }
+    function minTime(b) { return b == 'easy' ? 30 : (b == 'hard' ? 60 : 45); }      // medium and daily: 45
+    function cluesOk(b, c) {
+      return b == 'easy' ? (c >= 37 && c <= 41)
+           : (b == 'hard' ? (c >= 23 && c <= 30) : (c >= 29 && c <= 33));
+    }
+
+    // Full shape of a score document, checked on the resulting document
+    function scoreOk(d, uid, id) {
+      return d.keys().hasOnly(['uid', 'board', 'nickname', 'time', 'mistakes', 'clues', 'ts'])
+          && d.keys().hasAll(['uid', 'board', 'nickname', 'time', 'mistakes', 'clues', 'ts'])
+          && d.uid == uid
+          && boardOk(d.board)
+          && id == d.board + '_' + uid                 // one document per player per leaderboard
+          && nickOk(d.nickname)
+          && d.time is int && d.time >= minTime(d.board) && d.time <= 21600
+          && d.mistakes is int && d.mistakes >= 0 && d.mistakes <= 2        // 3 mistakes = game over
+          && d.clues is int && cluesOk(d.board, d.clues)
+          && d.ts == request.time;                     // server timestamp, not the device clock
+    }
+
+    // ── scores: the public leaderboards ─────────────────────────────────────
+    match /scores/{id} {
+      // Anyone may read the leaderboards (no sign-in needed to look).
+      allow read: if true;
+
+      // First result of a player on a leaderboard.
+      allow create: if signedIn() && scoreOk(request.resource.data, request.auth.uid, id);
+
+      // Later: only the owner, and only (a) a strictly better result at most every 10 s,
+      // or (b) a nickname change that touches nothing else.
+      allow update: if signedIn()
+                    && resource.data.uid == request.auth.uid
+                    && (improvement() || renameOnly());
+
+      allow delete: if false;                           // entries are never deleted from the client
+
+      function improvement() {
+        let n = request.resource.data;
+        let o = resource.data;
+        return scoreOk(n, request.auth.uid, id)
+            && n.board == o.board
+            && request.time > o.ts + duration.value(10, 's')                 // rate limit
+            && (n.time < o.time || (n.time == o.time && n.mistakes < o.mistakes));
+      }
+      function renameOnly() {
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nickname'])
+            && nickOk(request.resource.data.nickname);
+      }
+    }
+
+    // ── players: private record of a player's nickname ──────────────────────
+    match /players/{uid} {
+      allow get: if isOwner(uid);
+      allow list: if false;
+
+      allow create: if isOwner(uid) && playerOk(request.resource.data);
+      allow update: if isOwner(uid) && playerOk(request.resource.data)
+                    && request.time > resource.data.updatedAt + duration.value(3, 's');
+      allow delete: if false;
+
+      function playerOk(d) {
+        return d.keys().hasOnly(['nickname', 'updatedAt'])
+            && d.keys().hasAll(['nickname', 'updatedAt'])
+            && nickOk(d.nickname)
+            && d.updatedAt == request.time;
+      }
+    }
+
+    // Everything else: closed.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
