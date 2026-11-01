@@ -105,7 +105,13 @@ test('the game builds the Facebook / WhatsApp links from the public share pages 
   assert.ok(g.includes("en: 'https://djbebs.github.io/sudoku-world/en/'") && g.includes("fr: 'https://djbebs.github.io/sudoku-world/fr/'"));
   assert.ok(g.includes("'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url)"), 'Facebook: public link-share URL');
   assert.ok(g.includes("'https://api.whatsapp.com/send?text=' + encodeURIComponent(t('shareWaMsg') + url)"), 'WhatsApp: official send link (wa.me would turn the emoji into �)');
+  // Messenger: the app's own share link on a phone, messenger.com on a computer — never Facebook's "Send dialog", which needs an app id
+  assert.ok(g.includes("'fb-messenger://share/?link=' + encodeURIComponent(url)"), 'Messenger: app share link on a phone');
+  assert.ok(g.includes("shareMsEl.href = 'https://www.messenger.com/'"), 'Messenger: messenger.com on a computer');
+  assert.ok(!/app_id|facebook\.com\/dialog/.test(g), 'no Facebook app id / dialog (that would need a developer account)');
   for (const s of [
+    "shareMs: 'Share on Messenger'", "shareMsCopied: 'Link copied. Paste it in Messenger.'", "shareMsMissing: \"Couldn't open Messenger. Link copied.\"",
+    "shareMs: 'Partager sur Messenger'", "shareMsCopied: 'Lien copié. Colle-le dans Messenger.'", "shareMsMissing: \"Impossible d'ouvrir Messenger. Lien copié.\"",
     "shareSlogan: 'No ads. Just Sudoku.'", "shareDesc: 'Free Sudoku. Daily challenges. Global leaderboard.'", "shareFb: 'Share on Facebook'", "shareWa: 'Share on WhatsApp'", "shareCopy: 'Copy link'", "shareCopied: 'Link copied!'",
     "shareSlogan: 'Zéro pub. Juste du Sudoku.'", "shareDesc: 'Sudoku gratuit. Défis quotidiens. Classement mondial.'", "shareFb: 'Partager sur Facebook'", "shareWa: 'Partager sur WhatsApp'", "shareCopy: 'Copier le lien'", "shareCopied: 'Lien copié' + NBSP + '!'",
     "inviteBravo: '🏆 Well done!'", "inviteText: 'Challenge your friends!'", "inviteBravo: '🏆 Bravo' + NBSP + '!'", "inviteText: 'Défie tes amis' + NBSP + '!'",

@@ -52,7 +52,7 @@ await fetch(`${FS_REST}/emulator/v1/projects/demo-sudoku/databases/(default)/doc
 // ── browsers: two separate profiles = two players ──────────────────────────
 const launch = label => puppeteer.launch({
   // the share links open real public hosts: they are blocked here, so the tests never reach Facebook or WhatsApp
-  executablePath: CHROME, headless: true, args: ['--no-sandbox', '--host-resolver-rules=MAP www.facebook.com ~NOTFOUND, MAP wa.me ~NOTFOUND, MAP api.whatsapp.com ~NOTFOUND'],
+  executablePath: CHROME, headless: true, args: ['--no-sandbox', '--host-resolver-rules=MAP www.facebook.com ~NOTFOUND, MAP wa.me ~NOTFOUND, MAP www.messenger.com ~NOTFOUND, MAP api.whatsapp.com ~NOTFOUND'],
   userDataDir: fs.mkdtempSync(path.join(os.tmpdir(), `sudoku-e2e-${label}-`)),
 });
 const browserA = await launch('a');
@@ -155,10 +155,13 @@ async function step(name, fn) {
 console.log('\nEnd-to-end: two players, two browsers\n');
 let A, B, D, Dctx, uidA, uidB, tFirstWrite;   // D: the fresh desktop player of the popup tests
 
-await step('both browsers load the game; the online leaderboard activates (tabs appear)', async () => {
+await step('both browsers load the game; the online leaderboard activates (the worldwide list is the ranking, no tabs)', async () => {
   A = await newPage(browserA, 'A');
   B = await newPage(browserB, 'B');
-  for (const p of [A, B]) assert.equal(await p.$eval('#sb-tabs', el => !el.hidden), true);
+  for (const p of [A, B]) {
+    assert.deepEqual(await p.evaluate(() => [document.getElementById('ol').hidden, document.getElementById('sb-list').hidden]), [false, true]);
+    assert.equal(await p.$('#sb-tabs'), null, 'there are no Local | Worldwide tabs any more');
+  }
 });
 
 await step('first launch asks for a nickname; each player picks a different one (remembered locally)', async () => {
@@ -306,12 +309,12 @@ await step('offline: the game stays playable, the result is queued, then sent wh
 
 await step('English and French interfaces', async () => {
   await A.click('#header .lang-toggle button[data-lang="fr"]');
-  assert.equal(await A.$eval('#sb-tab-world', el => el.textContent), 'Monde');
+  assert.equal(await A.$eval('#sb-title', el => el.textContent), 'Classement');
   assert.equal(await A.$eval('#ol-refresh', el => el.textContent), 'Actualiser');
   assert.match(await A.$eval('#ol-nick', el => el.textContent), /^Pseudo/);
   assert.match(await A.$eval('#sb-mode', el => el.textContent), /Facile/);
   await A.click('#header .lang-toggle button[data-lang="en"]');
-  assert.equal(await A.$eval('#sb-tab-world', el => el.textContent), 'Worldwide');
+  assert.equal(await A.$eval('#sb-title', el => el.textContent), 'Leaderboard');
   assert.match(await A.$eval('#ol-nick', el => el.textContent), /^Playing as Alicia/);
 });
 
@@ -378,7 +381,7 @@ await step('without configuration the leaderboard stays off and the game is unch
   await P.goto(`http://localhost:${PORT}${SUB}sudoku.html`, { waitUntil: 'load' });
   await P.waitForFunction(() => window.SudokuOnline);
   assert.equal(await P.evaluate(() => SudokuOnline.available), false);
-  assert.equal(await P.$eval('#sb-tabs', el => el.hidden), true);
+  assert.equal(await P.$eval('#ol', el => el.hidden), true);
   assert.equal(await P.$eval('#sb-list', el => el.hidden), false);                 // local scoreboard shown as before
   await P.click('#home-play');
   await P.evaluate(() => { for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) board[r][c] = solution[r][c]; timerSecs = 100; doWin(); });
@@ -387,10 +390,10 @@ await step('without configuration the leaderboard stays off and the game is unch
   await P.click('#ov-form button[type="submit"]');
   assert.match(await P.$eval('#ov-saved', el => el.textContent), /Saved/);
   assert.equal(await P.$eval('#ov-online', el => el.textContent), '');
-  // the popup still works: local ranking only (no Local | Worldwide tabs), the score is listed and highlighted
+  // the popup still works: the device's own ranking, the score is listed and highlighted
   await P.click('#ov-scores');                                      // the win screen's shortcut opens the popup on the ranking just played
   await P.waitForSelector('#lb-modal:not([hidden])');
-  assert.equal(await P.$eval('#sb-tabs', el => el.hidden), true);
+  assert.equal(await P.$('#sb-tabs'), null);
   assert.equal(await P.$eval('#sb-levels', el => el.hidden), false);
   // (this browser profile also holds Alice's earlier local scores: only the new one is highlighted)
   const local = await P.$$eval('#sb-list .sb-row', rows => rows.map(r => [r.querySelector('.sb-name').textContent, r.querySelector('.sb-time').textContent, r.classList.contains('me')]));
@@ -504,11 +507,9 @@ await step('closing: click outside, click on a passive spot inside, ✕ button a
   assert.equal(await D.evaluate(() => document.activeElement && document.activeElement.id), 'lb-open');
 });
 
-await step('exceptions: tabs, difficulty pills, buttons and the gaps between them never close the popup', async () => {
+await step('exceptions: difficulty pills, buttons and the gaps between them never close the popup', async () => {
   await openLb(D);
   const open = async what => assert.equal(await lbIsOpen(D), true, `${what} closed the popup`);
-  await D.click('#sb-tab-local');           await open('Local tab');
-  await D.click('#sb-tab-world');           await open('World tab');
   for (const lvl of ['easy', 'medium', 'hard', 'daily']) { await D.click(`.lb-lvl[data-level="${lvl}"]`); await open(`${lvl} pill`); }
   await D.click('#ol-refresh');             await open('Refresh');
   // the 4 px gap between two pills, and the empty strip of the footer, are near-misses, not passive spots
@@ -529,14 +530,13 @@ await step('exceptions: tabs, difficulty pills, buttons and the gaps between the
   await closeLb(D);
 });
 
-await step('Local ⇄ Worldwide and the four difficulties, without closing; the game keeps its own difficulty', async () => {
+await step('one ranking (no tabs) and the four difficulties, without closing; the game keeps its own difficulty', async () => {
   const game = await gameSnapshot(D);
   await openLb(D);
-  // Local tab: the device's own list; World tab: the live list
-  await D.click('#sb-tab-local');
-  assert.deepEqual(await D.evaluate(() => [document.getElementById('ol').hidden, document.getElementById('sb-list').hidden]), [true, false]);
-  await D.click('#sb-tab-world');
+  // straight to the live worldwide list: no Local | Worldwide switch, the title is followed by the difficulty pills
   assert.deepEqual(await D.evaluate(() => [document.getElementById('ol').hidden, document.getElementById('sb-list').hidden]), [false, true]);
+  assert.equal(await D.$('#sb-tabs'), null);
+  assert.deepEqual(await D.evaluate(() => [...document.querySelectorAll('#scoreboard [role="tab"]')].map(b => b.dataset.level)), ['easy', 'medium', 'hard', 'daily'], 'the only tabs left are the four difficulties');
   const labels = {};
   for (const lvl of ['easy', 'medium', 'hard', 'daily']) {
     await D.click(`.lb-lvl[data-level="${lvl}"]`);
@@ -558,20 +558,18 @@ await step('Local ⇄ Worldwide and the four difficulties, without closing; the 
   await closeLb(D);
 });
 
-await step('the last tab and the last difficulty are remembered for the session', async () => {
+await step('the last difficulty is remembered for the session', async () => {
   await openLb(D, 'hard');
-  await D.click('#sb-tab-local');
   await closeLb(D);
   await D.click('.diff-btn[data-diff="easy"]');                       // the game moves to Easy: the popup must still remember Hard
   await openLb(D);
-  assert.deepEqual(await D.evaluate(() => [document.querySelector('.lb-lvl.active').dataset.level, document.getElementById('ol').hidden]), ['hard', true]);
+  assert.deepEqual(await D.evaluate(() => [document.querySelector('.lb-lvl.active').dataset.level, document.getElementById('ol').hidden]), ['hard', false]);
   await closeLb(D);
   await D.reload({ waitUntil: 'load' });                              // same browser tab = same session
   await D.waitForFunction(() => window.SudokuOnline && window.SudokuOnline.available);
   await D.click('#home-play');
   await openLb(D);
-  assert.deepEqual(await D.evaluate(() => [document.querySelector('.lb-lvl.active').dataset.level, document.getElementById('ol').hidden]), ['hard', true]);
-  await D.click('#sb-tab-world');
+  assert.deepEqual(await D.evaluate(() => [document.querySelector('.lb-lvl.active').dataset.level, document.getElementById('ol').hidden]), ['hard', false]);
   await closeLb(D);
 });
 
@@ -584,11 +582,8 @@ await step('listening is tied to the popup: no live listener while closed, one w
   const active = () => D.evaluate(() => window.__active);
   assert.equal(await active(), 0);
   await openLb(D, 'hard');
-  await D.click('#sb-tab-world');
   assert.equal(await active(), 1);
   for (const lvl of ['easy', 'medium', 'hard', 'daily', 'hard']) { await D.click(`.lb-lvl[data-level="${lvl}"]`); assert.equal(await active(), 1, `listeners after picking ${lvl}`); }
-  await D.click('#sb-tab-local');  assert.equal(await active(), 0);
-  await D.click('#sb-tab-world');  assert.equal(await active(), 1);
   await D.click('#ol-refresh');    // pinned at the bottom of the card, reachable while the 20 rows scroll
   assert.equal(await active(), 1);
   await closeLb(D);                assert.equal(await active(), 0, 'closing the popup must stop listening');
@@ -661,7 +656,6 @@ await step('phone 390 px: touch scrolling of the 20 scores keeps the popup open;
   await M.tap('#nick-cancel');
   await M.tap('#home-play');
   await openLb(M, 'hard', true);
-  await M.tap('#sb-tab-world');
   await waitRows(M, r => r.length === 20, 'Hard top 20 on the phone');
   const g = await M.evaluate(() => {
     const c = document.getElementById('scoreboard').getBoundingClientRect(), s = document.getElementById('lb-scroll');
@@ -687,9 +681,9 @@ await step('phone 390 px: touch scrolling of the 20 scores keeps the popup open;
   await M.$eval('#lb-scroll', el => { el.scrollTop = el.scrollHeight; });
   const last = await M.$eval('#ol-list .sb-row:last-of-type', el => el.getBoundingClientRect().bottom);
   assert.ok(last <= g.b, 'the last row is hidden below the card');
-  // tapping a row of the scrolling list, a tab, a pill: still open
+  // tapping a row of the scrolling list, a pill: still open
   await tapRow(M, 3);           assert.equal(await lbIsOpen(M), true, 'tapping a row closed the popup');
-  await M.tap('#sb-tab-local'); await M.tap('#sb-tab-world'); await M.tap('.lb-lvl[data-level="easy"]'); await M.tap('.lb-lvl[data-level="hard"]');
+  await M.tap('.lb-lvl[data-level="easy"]'); await M.tap('.lb-lvl[data-level="hard"]');
   assert.equal(await lbIsOpen(M), true);
   // tap on the dimmed backdrop → closes
   await M.touchscreen.tap(8, 8);
@@ -697,10 +691,10 @@ await step('phone 390 px: touch scrolling of the 20 scores keeps the popup open;
   await ctx.close();
 });
 
-await step('English and French: button, titles, tabs, pills and ✕', async () => {
+await step('English and French: button, title, pills and ✕ (and no tabs)', async () => {
   const expect = {
-    fr: { btn: 'Classement', title: 'Classement', tabs: ['Cet appareil', 'Monde'], pills: ['Facile', 'Moyen', 'Difficile', 'Défi du jour'], close: 'Fermer', refresh: 'Actualiser' },
-    en: { btn: 'Leaderboard', title: 'Leaderboard', tabs: ['This device', 'Worldwide'], pills: ['Easy', 'Medium', 'Hard', 'Daily'], close: 'Close', refresh: 'Refresh' },
+    fr: { btn: 'Classement', title: 'Classement', pills: ['Facile', 'Moyen', 'Difficile', 'Défi du jour'], close: 'Fermer', refresh: 'Actualiser' },
+    en: { btn: 'Leaderboard', title: 'Leaderboard', pills: ['Easy', 'Medium', 'Hard', 'Daily'], close: 'Close', refresh: 'Refresh' },
   };
   for (const lang of ['fr', 'en']) {
     await D.click(`#header .lang-toggle button[data-lang="${lang}"]`);
@@ -709,13 +703,15 @@ await step('English and French: button, titles, tabs, pills and ✕', async () =
     await openLb(D);
     const got = await D.evaluate(() => ({
       title: document.getElementById('sb-title').textContent,
-      tabs: [...document.querySelectorAll('#sb-tabs button')].map(b => b.textContent),
+      tabs: document.getElementById('sb-tabs') ? 1 : 0,
+      texts: document.getElementById('scoreboard').innerText,
       pills: [...document.querySelectorAll('.lb-lvl')].map(b => b.textContent),
       close: document.getElementById('lb-close').getAttribute('aria-label'), closeTitle: document.getElementById('lb-close').title,
       refresh: document.getElementById('ol-refresh').textContent,
       overflow: document.getElementById('sb-levels').scrollWidth - document.getElementById('sb-levels').clientWidth,
     }));
-    assert.equal(got.title, e.title); assert.deepEqual(got.tabs, e.tabs); assert.deepEqual(got.pills, e.pills);
+    assert.equal(got.title, e.title); assert.equal(got.tabs, 0); assert.deepEqual(got.pills, e.pills);
+    assert.ok(!/cet appareil|this device|^(monde|worldwide)$/im.test(got.texts), `a leftover tab label is shown (${lang}): ${got.texts}`);
     assert.equal(got.close, e.close); assert.equal(got.closeTitle, e.close); assert.equal(got.refresh, e.refresh);
     assert.ok(got.overflow <= 0, `pills overflow in ${lang}`);
     await closeLb(D);
@@ -740,8 +736,8 @@ const WA_MSG = {
   fr: '🧩 Zéro pub. Juste du Sudoku.\n\nJoue gratuitement et défie-moi au classement mondial !\n\n',
 };
 const TXT = {
-  en: { btn: 'Share', title: 'Sudoku World', slogan: 'No ads. Just Sudoku.', desc: 'Free Sudoku. Daily challenges. Global leaderboard.', fb: 'Share on Facebook', wa: 'Share on WhatsApp', copy: 'Copy link', copied: 'Link copied!', bravo: '🏆 Well done!', invite: 'Challenge your friends!' },
-  fr: { btn: 'Partager', title: 'Sudoku World', slogan: 'Zéro pub. Juste du Sudoku.', desc: 'Sudoku gratuit. Défis quotidiens. Classement mondial.', fb: 'Partager sur Facebook', wa: 'Partager sur WhatsApp', copy: 'Copier le lien', copied: 'Lien copié !', bravo: '🏆 Bravo !', invite: 'Défie tes amis !' },
+  en: { btn: 'Share', title: 'Sudoku World', slogan: 'No ads. Just Sudoku.', desc: 'Free Sudoku. Daily challenges. Global leaderboard.', fb: 'Share on Facebook', ms: 'Share on Messenger', wa: 'Share on WhatsApp', copy: 'Copy link', copied: 'Link copied!', msCopied: 'Link copied. Paste it in Messenger.', msMissing: "Couldn't open Messenger. Link copied.", bravo: '🏆 Well done!', invite: 'Challenge your friends!' },
+  fr: { btn: 'Partager', title: 'Sudoku World', slogan: 'Zéro pub. Juste du Sudoku.', desc: 'Sudoku gratuit. Défis quotidiens. Classement mondial.', fb: 'Partager sur Facebook', ms: 'Partager sur Messenger', wa: 'Partager sur WhatsApp', copy: 'Copier le lien', copied: 'Lien copié !', msCopied: 'Lien copié. Colle-le dans Messenger.', msMissing: "Impossible d'ouvrir Messenger. Lien copié.", bravo: '🏆 Bravo !', invite: 'Défie tes amis !' },
 };
 const norm = s => s.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();   // the no-break space before "!" is typography, not content
 const shareIsOpen = page => page.$eval('#share-modal', el => !el.hidden);
@@ -759,11 +755,11 @@ async function setLang(page, lang, tap = false) {
 }
 const readShare = page => page.evaluate(() => {
   const txt = id => document.getElementById(id).textContent;
-  const fb = document.getElementById('share-fb'), wa = document.getElementById('share-wa');
+  const fb = document.getElementById('share-fb'), wa = document.getElementById('share-wa'), ms = document.getElementById('share-ms');
   return {
     btn: document.querySelector('#share-open span').textContent, title: txt('share-title'), slogan: txt('share-slogan'), desc: txt('share-desc'),
-    fb: fb.textContent, wa: wa.textContent, copy: txt('share-copy'),
-    fbHref: fb.href, waHref: wa.href, fbTarget: fb.target, waTarget: wa.target, fbRel: fb.rel, waRel: wa.rel,
+    fb: fb.textContent, ms: ms.textContent, wa: wa.textContent, copy: txt('share-copy'),
+    fbHref: fb.href, msHref: ms.href, waHref: wa.href, fbTarget: fb.target, msTarget: ms.getAttribute('target'), waTarget: wa.target, fbRel: fb.rel, msRel: ms.rel, waRel: wa.rel,
   };
 });
 // Clicking a share link opens a new tab (the hosts are blocked in these browsers, nothing leaves the machine): close it again
@@ -795,7 +791,7 @@ await step('the Share button sits in the top bar, next to 🏆, visible; nothing
   assert.equal(g.open, false);
 });
 
-await step('the popup shows the real logo, name, slogan, description and the three buttons (EN)', async () => {
+await step('the popup shows the real logo, name, slogan, description and the four buttons (EN)', async () => {
   await openShare(D);
   await D.waitForFunction(() => document.getElementById('share-logo').complete && document.getElementById('share-logo').naturalWidth > 0);
   const logo = await D.$eval('#share-logo', el => ({ src: new URL(el.src).pathname, w: el.naturalWidth, shown: el.getBoundingClientRect().width }));
@@ -803,7 +799,7 @@ await step('the popup shows the real logo, name, slogan, description and the thr
   assert.ok(logo.w >= 300 && logo.shown >= 100);
   const st = await readShare(D);
   for (const k of ['title', 'slogan', 'desc']) assert.equal(norm(st[k]), TXT.en[k], k);
-  assert.equal(norm(st.fb), TXT.en.fb); assert.equal(norm(st.wa), TXT.en.wa); assert.equal(norm(st.copy), TXT.en.copy);
+  assert.equal(norm(st.fb), TXT.en.fb); assert.equal(norm(st.ms), TXT.en.ms); assert.equal(norm(st.wa), TXT.en.wa); assert.equal(norm(st.copy), TXT.en.copy);
   const geo = await D.evaluate(() => {
     const c = document.getElementById('share-card').getBoundingClientRect(), m = document.getElementById('share-modal');
     return { cx: (c.left + c.right) / 2, cy: (c.top + c.bottom) / 2, vw: innerWidth, vh: innerHeight, bg: getComputedStyle(m).backgroundColor, blur: getComputedStyle(m).backdropFilter, cls: document.body.classList.contains('popup-open'),
@@ -825,9 +821,10 @@ await step('closing: outside, passive spot inside, ✕, Esc — and the share bu
   await openShare(D); await D.keyboard.press('Escape');                 assert.equal(await open(), false, 'Esc');
   assert.equal(await D.evaluate(() => document.activeElement.id), 'share-open', 'focus goes back to the Share button');
   await openShare(D);
-  const gap = await D.evaluate(() => { const a = document.getElementById('share-fb').getBoundingClientRect(), b = document.getElementById('share-wa').getBoundingClientRect(); return { x: (a.left + a.right) / 2, y: (a.bottom + b.top) / 2 }; });
+  const gap = await D.evaluate(() => { const a = document.getElementById('share-fb').getBoundingClientRect(), b = document.getElementById('share-ms').getBoundingClientRect(); return { x: (a.left + a.right) / 2, y: (a.bottom + b.top) / 2 }; });
   await D.mouse.click(gap.x, gap.y);                                    assert.equal(await open(), true, 'the gap between two buttons closed it');
   await clickAndCloseNewTab(Dctx, D, '#share-fb');                      assert.equal(await open(), true, 'Facebook closed it');
+  await clickAndCloseNewTab(Dctx, D, '#share-ms');                      assert.equal(await open(), true, 'Messenger closed it');
   await clickAndCloseNewTab(Dctx, D, '#share-wa');                      assert.equal(await open(), true, 'WhatsApp closed it');
   await D.click('#share-copy');                                         assert.equal(await open(), true, 'Copy closed it');
   assert.ok(D.url().includes('sudoku.html'), 'the game page itself did not navigate');
@@ -838,14 +835,14 @@ await step('closing: outside, passive spot inside, ✕, Esc — and the share bu
   await D.keyboard.press('Escape');                                     assert.equal(await open(), false);
 });
 
-await step('Facebook and WhatsApp links in English and in French (exact text, public share page, new tab)', async () => {
+await step('Facebook, Messenger and WhatsApp links in English and in French (exact text, public share page, new tab)', async () => {
   for (const lang of ['en', 'fr']) {
     await setLang(D, lang);
     await openShare(D);
     const st = await readShare(D);
     const e = TXT[lang];
     assert.equal(norm(st.btn), e.btn);
-    for (const k of ['title', 'slogan', 'desc', 'fb', 'wa', 'copy']) assert.equal(norm(st[k]), e[k], `${lang} ${k}`);
+    for (const k of ['title', 'slogan', 'desc', 'fb', 'ms', 'wa', 'copy']) assert.equal(norm(st[k]), e[k], `${lang} ${k}`);
     const fb = new URL(st.fbHref);
     assert.equal(fb.origin + fb.pathname, 'https://www.facebook.com/sharer/sharer.php');
     assert.equal(fb.searchParams.get('u'), SHARE[lang]);
@@ -854,7 +851,8 @@ await step('Facebook and WhatsApp links in English and in French (exact text, pu
     assert.equal(wa.origin + wa.pathname, 'https://api.whatsapp.com/send');
     assert.equal(wa.searchParams.get('text'), WA_MSG[lang] + SHARE[lang], `${lang} WhatsApp message`);
     assert.ok(!/\d:\d\d|score|time/i.test(wa.searchParams.get('text').replace(/Sudoku World/g, '')), 'no score in the message');
-    for (const [t, r] of [[st.fbTarget, st.fbRel], [st.waTarget, st.waRel]]) { assert.equal(t, '_blank'); assert.match(r, /noopener/); }
+    assert.equal(st.msHref, 'https://www.messenger.com/', 'computer: Messenger opens messenger.com (no app id needed)');
+    for (const [t, r] of [[st.fbTarget, st.fbRel], [st.msTarget, st.msRel], [st.waTarget, st.waRel]]) { assert.equal(t, '_blank'); assert.match(r, /noopener/); }
     await closeShare(D);
   }
   await setLang(D, 'en');
@@ -912,6 +910,77 @@ await step('Copy link fallbacks: no Clipboard API → execCommand; permission re
   await openShare(D);                                                  // reopening resets the fallback field
   assert.equal(await D.$eval('#share-manual', el => el.classList.contains('on')), false);
   await closeShare(D);
+});
+
+await step('Messenger on a computer: messenger.com opens in a new tab, the share link is copied, and the instruction stays up (EN and FR)', async () => {
+  for (const lang of ['en', 'fr']) {
+    await setLang(D, lang);
+    await openShare(D);
+    await D.bringToFront();
+    await D.evaluate(() => navigator.clipboard.writeText('before'));
+    await clickAndCloseNewTab(Dctx, D, '#share-ms');
+    await D.waitForFunction(() => document.getElementById('share-status').textContent !== '');
+    assert.equal(await D.evaluate(() => navigator.clipboard.readText()), SHARE[lang]);
+    assert.equal(norm(await D.$eval('#share-status', el => el.textContent)), TXT[lang].msCopied);
+    await sleep(3000);
+    assert.equal(norm(await D.$eval('#share-status', el => el.textContent)), TXT[lang].msCopied, 'the instruction stays: the player is in another tab meanwhile');
+    assert.equal(await shareIsOpen(D), true);
+    await closeShare(D);
+    await openShare(D);
+    assert.equal(await D.$eval('#share-status', el => el.textContent), '', 'reopening the popup clears it');
+    await closeShare(D);
+  }
+  await setLang(D, 'en');
+});
+
+await step('Messenger on a phone: its own link opens the app; when nothing opens the link is copied and the player is told (EN and FR)', async () => {
+  const ctx = await browserB.createBrowserContext();
+  await ctx.overridePermissions(`http://localhost:${PORT}`, ['clipboard-read', 'clipboard-write', 'clipboard-sanitized-write']);
+  const M = await ctx.newPage();
+  await M.setViewport(PHONE);
+  await M.setUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1');
+  M.on('pageerror', e => problems.push(`[Mmessenger] pageerror: ${e.message}`));
+  await M.goto(BASE, { waitUntil: 'load' });
+  await M.waitForFunction(() => window.SudokuOnline && window.SudokuOnline.available);
+  await M.waitForSelector('#nick-modal:not([hidden])');
+  await M.tap('#nick-cancel');
+  await M.tap('#home-play');
+  for (const lang of ['en', 'fr']) {
+    await setLang(M, lang, true);
+    await openShare(M, true);
+    await M.bringToFront();
+    const st = await readShare(M);
+    assert.equal(st.msHref, 'fb-messenger://share/?link=' + encodeURIComponent(SHARE[lang]), `${lang}: the Messenger share link`);
+    assert.equal(st.msTarget, null, 'an app link opens in place, not in a blank tab');
+    assert.equal(norm(st.ms), TXT[lang].ms);
+    // 1) no Messenger app (the headless browser has none): the page stays in front, so the link is copied and the player is told
+    await M.evaluate(() => navigator.clipboard.writeText('before'));
+    await M.click('#share-ms');
+    assert.equal(await M.$eval('#share-status', el => el.textContent), '', 'nothing is said while we wait for the app');
+    await M.waitForFunction(() => document.getElementById('share-status').textContent !== '', { timeout: 4000 });
+    assert.equal(norm(await M.$eval('#share-status', el => el.textContent)), TXT[lang].msMissing);
+    assert.equal(await M.evaluate(() => navigator.clipboard.readText()), SHARE[lang]);
+    assert.equal(await shareIsOpen(M), true);
+    // 2) the app takes over (simulated: the page goes to the background right after the tap): the clipboard is left alone
+    await M.touchscreen.tap(8, 8);
+    await M.waitForSelector('#share-modal', { hidden: true });
+    await openShare(M, true);
+    await M.evaluate(() => navigator.clipboard.writeText('before'));
+    await M.click('#share-ms');
+    await M.evaluate(() => { Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' }); document.dispatchEvent(new Event('visibilitychange')); });
+    await sleep(2200);
+    await M.evaluate(() => { delete document.visibilityState; });
+    assert.equal(await M.$eval('#share-status', el => el.textContent), '', 'the app opened: no message');
+    assert.equal(await M.evaluate(() => navigator.clipboard.readText()), 'before', 'the app opened: the clipboard is untouched');
+    // 3) closing the popup while we wait cancels the fallback
+    await M.evaluate(() => navigator.clipboard.writeText('before'));
+    await M.click('#share-ms');
+    await M.touchscreen.tap(8, 8);
+    await M.waitForSelector('#share-modal', { hidden: true });
+    await sleep(2200);
+    assert.equal(await M.evaluate(() => navigator.clipboard.readText()), 'before', 'popup closed: nothing is copied behind the player');
+  }
+  await ctx.close();
 });
 
 await step('a shared link opens the game in its language (?lang=) without overriding the saved choice; static FR / EN pages redirect there', async () => {
@@ -1012,7 +1081,7 @@ await step('phone 390 px (EN and FR), touch: buttons fit, popup fits, share and 
     await openShare(M, true);
     const b = await fits();
     assert.ok(b.card.l >= 0 && b.card.r <= b.vw && b.card.t >= 0 && b.card.b <= b.vh, `popup outside the screen (${lang}): ${JSON.stringify(b.card)}`);
-    assert.ok(b.btns.length === 3 && b.btns.every(x => x.w >= 250 && x.over <= 0), `a share button is too narrow or its label overflows (${lang}): ${JSON.stringify(b.btns)}`);
+    assert.ok(b.btns.length === 4 && b.btns.every(x => x.w >= 250 && x.over <= 0), `a share button is too narrow or its label overflows (${lang}): ${JSON.stringify(b.btns)}`);
     assert.ok(b.slogan <= 0);
     await M.tap('#share-copy');
     await M.waitForFunction(() => document.getElementById('share-status').textContent !== '');
