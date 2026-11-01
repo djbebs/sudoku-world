@@ -38,6 +38,18 @@ const PAGES = [
   { file: 'fr/index.html', url: SITE + 'fr/', ...FR },
 ];
 
+// The name shown in the browser tab is exactly "Sudoku" (not "Sudoku World", not "Sudoku Enhanced"), on the game and on
+// the three pages that open it. Link previews keep their own Open Graph title (checked below); the logo is untouched.
+test('the browser-tab title is exactly "Sudoku" on the game and on its three entry pages; the SUDOKU logo is unchanged', () => {
+  for (const f of ['sudoku.html', 'index.html', 'en/index.html', 'fr/index.html']) {
+    const titles = [...read(f).matchAll(/<title>([^<]*)<\/title>/g)].map(m => m[1]);
+    assert.deepEqual(titles, ['Sudoku'], `${f}: <title>`);
+  }
+  assert.doesNotMatch(read('sudoku.html'), /document\.title\s*=/, 'nothing rewrites the title at run time');
+  assert.match(read('sudoku.html'), /<h1>SUDOKU<\/h1>/);
+  assert.match(read('sudoku.html'), /h1 \{[^}]*linear-gradient\(90deg,\s*#ff6600 0%, #ffcc00 20%,\s*#aaff00 38%, #00ff88 54%, #00ccff 70%,\s*#7700ff 85%, #ff00aa 100%\)/, 'rainbow gradient of the logo');
+});
+
 for (const p of PAGES) {
   test(`${p.file}: every Open Graph / Twitter tag is in the static HTML, with the right values`, () => {
     const m = metas(read(p.file));

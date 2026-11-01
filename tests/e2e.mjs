@@ -1611,6 +1611,24 @@ await step('computer 1280×800 (EN + FR): row 1 = logo · 🏆 Share || EN/FR th
   }
 });
 
+await step('the browser tab says exactly "Sudoku": calendar screen, game, both languages, popups open; the entry pages too', async () => {
+  const { ctx, P } = await candPage({ width: 1280, height: 800 }, { lang: 'en' });
+  assert.equal(await P.title(), 'Sudoku');
+  await P.click('#home-btn');                                           // the calendar screen
+  assert.equal(await P.title(), 'Sudoku');
+  await P.click('#home-play');
+  await P.click('#header .lang-toggle [data-lang="fr"]');
+  assert.equal(await P.title(), 'Sudoku');
+  await P.click('#lb-open'); await P.waitForSelector('#lb-modal:not([hidden])');
+  assert.equal(await P.title(), 'Sudoku');
+  await P.keyboard.press('Escape');
+  for (const url of ['', 'en/', 'fr/']) {
+    const r = await fetch(`http://localhost:${PORT}${SUB}${url}`);
+    assert.match(await r.text(), /<title>Sudoku<\/title>/, `entry page /${url}`);
+  }
+  await ctx.close();
+});
+
 await step('7 widths (320 375 390 430 768 1024 1440) × EN/FR × Night/Day: no overflow, nothing cut, nothing overlapping, nothing covered; phones: icon-only 🏆/Share, 44 px targets, readable text', async () => {
   const shot = process.env.E2E_SHOT_DIR;
   const views = [{ width: 320, height: 568, phone: 1 }, { width: 375, height: 667, phone: 1 }, { width: 390, height: 844, phone: 1 }, { width: 430, height: 932, phone: 1 }, { width: 768, height: 1024 }, { width: 1024, height: 768 }, { width: 1440, height: 900 }];
