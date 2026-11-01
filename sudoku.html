@@ -61,7 +61,7 @@ body::before {
   pointer-events: none;
 }
 
-/* ── LAYOUT (game + scoreboard side by side; scaled with CSS zoom by fitScreen()) ── */
+/* ── LAYOUT (the game; scaled with CSS zoom by fitScreen()) ── */
 #layout {
   display: flex;
   align-items: stretch;
@@ -110,7 +110,7 @@ h1 {
   justify-content: center;
 }
 
-.diff-btn {
+.diff-btn, .lb-lvl {
   background: rgba(255,255,255,0.05);
   border: 1px solid rgba(255,255,255,0.09);
   border-radius: 20px;
@@ -123,8 +123,8 @@ h1 {
   text-transform: uppercase;
   transition: all 0.15s;
 }
-.diff-btn:hover { color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.22); }
-.diff-btn.active {
+.diff-btn:hover, .lb-lvl:hover { color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.22); }
+.diff-btn.active, .lb-lvl.active {
   background: linear-gradient(135deg, #7700ff, #ff00aa);
   border-color: transparent;
   color: #fff;
@@ -482,9 +482,9 @@ body.day::before { display: none; }
 body.day #board  { background: #f5efe4; box-shadow: 0 4px 24px rgba(80,50,20,0.15); }
 body.day .sbox   { background: #ddd5c8; border-color: rgba(80,50,20,0.1); }
 body.day .slabel, body.day #hearts-label { color: rgba(44,31,14,0.45); }
-body.day .diff-btn { background: rgba(80,50,20,0.07); border-color: rgba(80,50,20,0.14); color: rgba(44,31,14,0.55); }
-body.day .diff-btn:hover { color: rgba(44,31,14,0.85); }
-body.day .diff-btn.active { background: linear-gradient(135deg, #7700ff, #ff00aa); border-color: transparent; color: #fff; }
+body.day .diff-btn, body.day .lb-lvl { background: rgba(80,50,20,0.07); border-color: rgba(80,50,20,0.14); color: rgba(44,31,14,0.55); }
+body.day .diff-btn:hover, body.day .lb-lvl:hover { color: rgba(44,31,14,0.85); }
+body.day .diff-btn.active, body.day .lb-lvl.active { background: linear-gradient(135deg, #7700ff, #ff00aa); border-color: transparent; color: #fff; }
 body.day .num-btn { background: #ddd5c8; border-color: rgba(80,50,20,0.12); color: #2c1f0e; }
 body.day .num-btn:hover { background: rgba(0,180,90,0.15); border-color: rgba(0,180,90,0.35); }
 body.day .sd-cell { border-right-color: rgba(80,50,20,0.22); border-bottom-color: rgba(80,50,20,0.22); }
@@ -514,24 +514,27 @@ body.day .num-btn.num-selected { background: rgba(0,230,118,0.45); border-color:
 }
 
 /* ── DAILY CHALLENGE ── */
-.diff-btn.daily-btn {
+.diff-btn.daily-btn, .lb-lvl.daily-lvl {
   background: rgba(255,204,0,0.08);
   border-color: rgba(255,204,0,0.22);
   color: rgba(255,220,0,0.55);
 }
-.diff-btn.daily-btn:hover { color: rgba(255,220,0,0.9); border-color: rgba(255,204,0,0.42); }
-.diff-btn.daily-btn.active {
+.diff-btn.daily-btn:hover, .lb-lvl.daily-lvl:hover { color: rgba(255,220,0,0.9); border-color: rgba(255,204,0,0.42); }
+.diff-btn.daily-btn.active, .lb-lvl.daily-lvl.active {
   background: linear-gradient(135deg, #ff9900, #ffcc00);
   border-color: transparent;
   color: #180e00;
 }
 .diff-btn.daily-btn.done::after { content: ' ✓'; }
-body.day .diff-btn.daily-btn { color: rgba(160,90,0,0.65); border-color: rgba(160,90,0,0.22); }
-body.day .diff-btn.daily-btn:hover { color: rgba(140,70,0,0.9); }
+body.day .diff-btn.daily-btn, body.day .lb-lvl.daily-lvl { color: rgba(160,90,0,0.65); border-color: rgba(160,90,0,0.22); }
+body.day .diff-btn.daily-btn:hover, body.day .lb-lvl.daily-lvl:hover { color: rgba(140,70,0,0.9); }
+body.day .lb-lvl.daily-lvl.active { background: linear-gradient(135deg, #ff9900, #ffcc00); border-color: transparent; color: #180e00; }
 
-/* ── SCOREBOARD ── */
+/* ── SCOREBOARD (the leaderboard popup's card — see "LEADERBOARD POPUP" below) ── */
 #scoreboard {
-  width: 270px;
+  position: relative;
+  width: min(380px, 100%);
+  max-height: 100%;
   background: #12122a;
   border: 1px solid rgba(255,255,255,0.07);
   border-radius: 18px;
@@ -539,6 +542,7 @@ body.day .diff-btn.daily-btn:hover { color: rgba(140,70,0,0.9); }
   display: flex;
   flex-direction: column;
   box-shadow: 0 12px 50px rgba(0,0,0,0.5), 0 0 60px rgba(119,0,255,0.08);
+  outline: none;
 }
 #sb-title {
   font-size: 1.3rem;
@@ -551,7 +555,7 @@ body.day .diff-btn.daily-btn:hover { color: rgba(140,70,0,0.9); }
   -webkit-text-fill-color: transparent;
 }
 #sb-mode {
-  margin: 2px 0 14px;
+  margin: 10px 0 12px;
   text-align: center;
   font-size: 0.62rem;
   font-weight: 700;
@@ -640,11 +644,11 @@ body.day .lang-toggle { background: rgba(80,50,20,0.07); border-color: rgba(80,5
 body.day .lang-toggle button { color: rgba(44,31,14,0.55); }
 body.day .lang-toggle button.active { color: #fff; }
 
-/* Secondary overlay button (phone layout only: jumps down to the scoreboard) */
+/* Secondary overlay button (win screen only: opens the leaderboard popup) */
 .ov-btn.ghost { background: rgba(255,255,255,0.12); }
 body.day .ov-btn.ghost { background: rgba(80,50,20,0.14); color: #2c1f0e; }
 #ov-scores { display: none; }
-body.stack #overlay.win #ov-scores { display: inline-block; }
+#overlay.win #ov-scores { display: inline-block; }
 
 /* ── PHONE / NARROW WINDOW: scoreboard stacked under the game, page scrolls ── */
 body.stack {
@@ -661,7 +665,6 @@ body.stack #layout {
   gap: 16px;
   margin: auto 0;
 }
-body.stack #scoreboard { width: 480px; }
 /* Bigger touch targets: digits on two rows (1-6, then 7-9 + erase + notes) */
 body.stack #numpad { flex-wrap: wrap; gap: 8px 6px; }
 body.stack .num-btn { flex: 1 0 15%; height: 58px; font-size: 1.35rem; }
@@ -886,7 +889,13 @@ body.day #ol-note { color: rgba(44,31,14,0.5); }
 /* worldwide ranks can have 3 digits */
 #scoreboard.world .sb-row, #scoreboard.world #sb-head { grid-template-columns: 30px 1fr 42px 40px; }
 
-#ol-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 14px; padding: 0 4px; }
+/* nickname + refresh: pinned to the bottom of the card while the 20 rows scroll above them */
+#ol-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  position: sticky; bottom: 0; background: #12122a;
+  margin-top: 6px; padding: 8px 4px 0;
+}
+body.day #ol-foot { background: #ddd5c8; }
 .ol-link {
   background: none; border: none; padding: 4px 2px; cursor: pointer;
   color: rgba(255,255,255,0.55); font: inherit; font-size: 0.7rem; font-weight: 700;
@@ -948,6 +957,66 @@ body.day #nick-help { color: rgba(44,31,14,0.65); }
 body.day #nick-id { color: rgba(44,31,14,0.5); }
 
 @media (prefers-reduced-motion: reduce) { .ol-spin { animation-duration: 3s; } }
+
+/* ── LEADERBOARD POPUP (🏆 button → centred card over the game; same card, tabs and rows as the former side panel) ── */
+#topbar { display: flex; justify-content: flex-end; width: 480px; margin-bottom: 8px; }
+.lb-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 12px; white-space: nowrap;
+  color: rgba(255,255,255,0.85);
+  font: inherit; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+}
+.lb-btn > span:first-child { font-size: 1rem; line-height: 1; }   /* the 🏆 emoji, larger than the label */
+.lb-btn:hover { color: #fff; }
+body.day .lb-btn { color: rgba(44,31,14,0.8); }
+body.day .lb-btn:hover { color: #2c1f0e; }
+
+/* a light dimming, no blur: the game stays visible behind the card */
+#lb-modal {
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  background: rgba(8,8,22,0.55);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  overscroll-behavior: contain;
+  animation: lbFade 0.15s ease-out;
+}
+@keyframes lbFade { from { opacity: 0; } to { opacity: 1; } }
+body.lb-open { overflow: hidden; }   /* the page behind does not scroll while the popup is open */
+body.day #lb-modal { background: rgba(44,31,14,0.28); }
+
+#lb-close {
+  position: absolute; top: 10px; right: 10px;
+  width: 26px; height: 26px; padding: 0;
+  display: grid; place-items: center;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 50%;
+  color: rgba(255,255,255,0.55);
+  font: inherit; font-size: 0.7rem; line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+#lb-close::after { content: ''; position: absolute; inset: -9px; }   /* bigger touch target than the discreet icon */
+#lb-close:hover { background: rgba(255,255,255,0.13); color: #fff; }
+body.day #lb-close { background: rgba(80,50,20,0.07); border-color: rgba(80,50,20,0.14); color: rgba(44,31,14,0.6); }
+body.day #lb-close:hover { background: rgba(80,50,20,0.14); color: #2c1f0e; }
+
+/* second level: Easy | Medium | Hard | Daily (the game's own difficulty pills) */
+#sb-levels { display: flex; justify-content: center; gap: 4px; margin-top: 10px; }
+#sb-levels .lb-lvl { flex: 0 1 auto; min-width: 0; padding: 6px 9px; font-size: 0.66rem; letter-spacing: 0.05em; white-space: nowrap; }
+@media (max-width: 400px) {
+  #sb-levels { gap: 3px; }
+  #sb-levels .lb-lvl { padding: 6px 7px; font-size: 0.62rem; letter-spacing: 0.03em; }
+}
+
+/* the ranking itself: scrolls inside the card when the 20 rows do not fit */
+#lb-scroll {
+  flex: 1 1 auto; min-height: 0;
+  overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y;
+  scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.25) transparent;
+}
+body.day #lb-scroll { scrollbar-color: rgba(44,31,14,0.3) transparent; }
+
+@media (prefers-reduced-motion: reduce) { #lb-modal { animation: none; } }
 </style>
 </head>
 <body class="home-open">
@@ -1010,6 +1079,11 @@ body.day #nick-id { color: rgba(44,31,14,0.5); }
 
 <div id="layout">
 <div id="container">
+
+  <!-- Top right: opens the leaderboard popup (see #lb-modal below) -->
+  <div id="topbar">
+    <button type="button" id="lb-open" class="icon-btn lb-btn" aria-haspopup="dialog"><span aria-hidden="true">🏆</span> <span data-i18n="sbTitle">Leaderboard</span></button>
+  </div>
 
   <!-- Header: row 1 = title + buttons, row 2 = difficulty -->
   <div id="header">
@@ -1087,29 +1161,42 @@ body.day #nick-id { color: rgba(44,31,14,0.5); }
   <div id="hint"></div>
 </div>
 
-<!-- Scoreboard -->
-<aside id="scoreboard">
-  <div id="sb-title" data-i18n="sbTitle">Scoreboard</div>
-  <!-- Local | Worldwide tabs: shown only when the online leaderboard is configured (online.js) -->
-  <div id="sb-tabs" role="tablist" hidden>
-    <button type="button" role="tab" id="sb-tab-local" data-tab="local" data-i18n="tabLocal">This device</button>
-    <button type="button" role="tab" id="sb-tab-world" data-tab="world" data-i18n="tabWorld">Worldwide</button>
-  </div>
-  <div id="sb-mode"></div>
-  <div id="sb-head"><span>#</span><span data-i18n="sbPlayer">Player</span><span data-i18n="sbTime">Time</span><span>&#9829;</span></div>
-  <ol id="sb-list"></ol>
-  <div id="sb-empty" data-i18n-html="sbEmpty">No scores yet.<br>Finish a puzzle to get on the board!</div>
+</div>
 
-  <div id="ol" hidden>
-    <div id="ol-status" role="status" aria-live="polite"></div>
-    <ol id="ol-list"></ol>
-    <p id="ol-note"></p>
-    <div id="ol-foot">
-      <button type="button" id="ol-nick" class="ol-link"></button>
-      <button type="button" id="ol-refresh" class="ol-link" data-i18n="refresh">Refresh</button>
+<!-- Leaderboard popup: the former side scoreboard, opened by the 🏆 button (or the win screen) -->
+<div id="lb-modal" class="modal" hidden>
+  <aside id="scoreboard" role="dialog" aria-modal="true" aria-labelledby="sb-title" tabindex="-1">
+    <button type="button" id="lb-close" data-i18n-aria="close" data-i18n-title="close" title="Close" aria-label="Close">&#10005;</button>
+    <div id="sb-title" data-i18n="sbTitle">Leaderboard</div>
+    <!-- Local | Worldwide tabs: shown only when the online leaderboard is configured (online.js) -->
+    <div id="sb-tabs" role="tablist" hidden>
+      <button type="button" role="tab" id="sb-tab-local" data-tab="local" data-i18n="tabLocal">This device</button>
+      <button type="button" role="tab" id="sb-tab-world" data-tab="world" data-i18n="tabWorld">Worldwide</button>
     </div>
-  </div>
-</aside>
+    <!-- Which ranking to show: independent of the game being played -->
+    <div id="sb-levels" role="tablist" data-i18n-aria="lbLevels" aria-label="Difficulty">
+      <button type="button" role="tab" class="lb-lvl" data-level="easy" data-i18n="easy">Easy</button>
+      <button type="button" role="tab" class="lb-lvl" data-level="medium" data-i18n="medium">Medium</button>
+      <button type="button" role="tab" class="lb-lvl" data-level="hard" data-i18n="hard">Hard</button>
+      <button type="button" role="tab" class="lb-lvl daily-lvl" data-level="daily" data-i18n="daily">Daily</button>
+    </div>
+    <div id="sb-mode"></div>
+    <div id="lb-scroll">
+      <div id="sb-head"><span>#</span><span data-i18n="sbPlayer">Player</span><span data-i18n="sbTime">Time</span><span>&#9829;</span></div>
+      <ol id="sb-list"></ol>
+      <div id="sb-empty" data-i18n-html="sbEmpty">No scores yet.<br>Finish a puzzle to get on the board!</div>
+
+      <div id="ol" hidden>
+        <div id="ol-status" role="status" aria-live="polite"></div>
+        <ol id="ol-list"></ol>
+        <p id="ol-note"></p>
+        <div id="ol-foot">
+          <button type="button" id="ol-nick" class="ol-link"></button>
+          <button type="button" id="ol-refresh" class="ol-link" data-i18n="refresh">Refresh</button>
+        </div>
+      </div>
+    </div>
+  </aside>
 </div>
 
 <!-- Nickname settings (worldwide leaderboard) -->
@@ -1165,7 +1252,7 @@ const I18N = {
     time: 'Time', best: 'Best', mistakes: 'Mistakes',
     hint:      ['Click a cell', 'Or pick a number first to sticky-place', '✎ for notes', 'Arrows navigate'].join(HINT_SEP),
     hintTouch: ['Tap a cell', 'Or pick a number first to place it repeatedly', '✎ for notes'].join(HINT_SEP),
-    sbTitle: 'Scoreboard', sbPlayer: 'Player', sbTime: 'Time',
+    sbTitle: 'Leaderboard', sbPlayer: 'Player', sbTime: 'Time',
     sbEmpty: 'No scores yet.<br>Finish a puzzle to get on the board!',
     won: 'You Won!', lost: 'Game Over',
     winMsg: (time, m) => 'Time: ' + time + '  ·  Mistakes: ' + m,
@@ -1185,6 +1272,7 @@ const I18N = {
     totalCount: n => n + (n === 1 ? ' challenge' : ' challenges') + ' completed in total',
     // worldwide leaderboard
     tabLocal: 'This device', tabWorld: 'Worldwide', refresh: 'Refresh',
+    close: 'Close', lbLevels: 'Difficulty',
     olLoading: 'Loading the worldwide ranking…',
     olEmpty: 'No online scores yet.<br>Be the first!',
     olOffline: 'You are offline — the worldwide ranking is unavailable. The game itself still works.',
@@ -1229,6 +1317,7 @@ const I18N = {
     totalCount: n => n + (n > 1 ? ' défis terminés' : ' défi terminé') + ' au total',
     // worldwide leaderboard
     tabLocal: 'Cet appareil', tabWorld: 'Monde', refresh: 'Actualiser',
+    close: 'Fermer', lbLevels: 'Difficulté',
     olLoading: 'Chargement du classement mondial…',
     olEmpty: 'Aucun score en ligne pour l’instant.<br>Soyez le premier' + NBSP + '!',
     olOffline: 'Vous êtes hors ligne — le classement mondial est indisponible. Le jeu reste jouable.',
@@ -1867,13 +1956,25 @@ function drawBigSplat(v) {
 
 // ══════════════════════════════════════════════════════════════
 // SCOREBOARD  (localStorage — one list per difficulty, and per day for Daily)
+// It lives in the leaderboard popup, which has its own difficulty selector (see "LEADERBOARD POPUP"):
+// the ranking on screen is independent of the game being played.
 // ══════════════════════════════════════════════════════════════
 const SCORE_SHOW = 10;
 const SCORE_KEEP = 100;
+const LB_LEVELS = ['easy', 'medium', 'hard', 'daily'];
 
-function scoreKey() {
-  return dailyMode ? 'sudoku-scores-daily-' + getDailyDateStr() : 'sudoku-scores-' + difficulty;
+function scoreKeyFor(level) {
+  return level === 'daily' ? 'sudoku-scores-daily-' + getDailyDateStr() : 'sudoku-scores-' + level;
 }
+function scoreKey() {   // where the game being played saves its result
+  return scoreKeyFor(dailyMode ? 'daily' : difficulty);
+}
+
+// Ranking shown in the popup: the one picked there (kept for the session), else the game being played
+let lbLevel = null;
+try { const saved = sessionStorage.getItem('sudoku-lb-level'); if (LB_LEVELS.includes(saved)) lbLevel = saved; } catch (_) { /* storage blocked: not remembered */ }
+function lbLevelNow() { return lbLevel || (dailyMode ? 'daily' : difficulty); }
+function lbDailyDate() { return (dailyMode && dailyDate) || getDailyDateStr(); }   // the date of the Daily puzzle being played, else today (UTC)
 
 function loadScores(key) {
   try {
@@ -1918,14 +2019,20 @@ function scoreRowEl(rankText, nameText, seconds, heartsLeft, isMe) {
 
 function renderScores(highlightId) {
   sbHighlight = highlightId === undefined ? null : highlightId;
-  const list = loadScores(scoreKey()).sort(cmpScore).slice(0, SCORE_SHOW);
-  sbMode.textContent = dailyMode
-    ? t('daily') + ' · ' + (dailyDate || getDailyDateStr()) + ' (UTC)'
-    : t(difficulty);
+  const level = lbLevelNow();
+  const list = loadScores(scoreKeyFor(level)).sort(cmpScore).slice(0, SCORE_SHOW);
+  sbMode.textContent = level === 'daily'
+    ? t('daily') + ' · ' + lbDailyDate() + ' (UTC)'
+    : t(level);
+  document.querySelectorAll('#sb-levels button').forEach(b => {
+    const on = b.dataset.level === level;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-selected', on);
+  });
   sbEmpty.style.display = list.length ? 'none' : 'block';
   sbList.textContent = '';
   list.forEach((s, i) => sbList.appendChild(scoreRowEl(i + 1, s.name, s.time, s.hearts, s.id === highlightId)));
-  syncOnline();   // the worldwide tab follows the current difficulty / daily date
+  syncOnline();   // the worldwide tab follows the ranking on screen (difficulty / daily date)
 }
 
 ovForm.addEventListener('submit', e => {
@@ -2210,10 +2317,8 @@ document.querySelectorAll('.lang-toggle button').forEach(btn => {
   });
 });
 
-// Phone layout: jump from the win screen down to the scoreboard
-document.getElementById('ov-scores').addEventListener('click', () => {
-  scoreboardEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-});
+// Win screen: open the leaderboard popup on the ranking of the game just played
+document.getElementById('ov-scores').addEventListener('click', () => openLb(dailyMode ? 'daily' : difficulty));
 
 // New Game
 document.getElementById('newbtn').addEventListener('click', newGame);
@@ -2221,6 +2326,10 @@ document.getElementById('ov-newgame').addEventListener('click', newGame);
 
 // Keyboard
 document.addEventListener('keydown', e => {
+  if (!lbModal.hidden) {                               // leaderboard popup: Esc closes it, the game keys stay inert
+    if (e.key === 'Escape' && nickModal.hidden) closeLb();
+    return;
+  }
   if (e.target instanceof HTMLInputElement) return; // typing a name — don't treat keys as game input
   if (document.body.classList.contains('home-open')) return;  // calendar screen: the game is hidden
   if (!nickModal.hidden) return;                                // nickname dialog is open
@@ -2254,9 +2363,9 @@ function moveSelection(dr, dc) {
 
 // ══════════════════════════════════════════════════════════════
 // RESPONSIVE SCALE
-//  · width >= 760px : game and scoreboard side by side, scaled to fit the window
-//  · width <  760px : phone layout — scoreboard stacked under the game, scaled to the
-//                     width only (the page scrolls vertically)
+//  · width >= 760px : the game, scaled to fit the window
+//  · width <  760px : phone layout — scaled to the width only (the page scrolls vertically
+//                     when the screen is too short)
 // The layout is measured at scale 1, then scaled with CSS zoom (it affects layout, so
 // scrolling works); browsers without zoom fall back to transform.
 // The calendar screen (#home) is scaled the same way while it is the visible one.
@@ -2479,14 +2588,12 @@ function showHome() {
   renderHome(true);
   fitScreen();
   window.scrollTo(0, 0);
-  syncOnline();   // the scoreboard is hidden: stop listening
 }
 
 function showGame() {
   document.body.classList.remove('home-open');
   fitScreen();
   if (timerStarted && !gameOver && !won && !timerIv) runTimer();   // resume a paused game
-  syncOnline();
 }
 
 function playFromHome() {
@@ -2515,6 +2622,8 @@ const nickModal   = document.getElementById('nick-modal');
 const nickInput   = document.getElementById('nick-input');
 const nickIdEl    = document.getElementById('nick-id');
 const homeNickBtn = document.getElementById('home-nick');
+const lbModal     = document.getElementById('lb-modal');
+const lbScrollEl  = document.getElementById('lb-scroll');
 
 let sbTab = localStorage.getItem('sudoku-sb-tab') === 'local' ? 'local' : 'world';
 let olUnsub = null;       // stops the live listener
@@ -2525,10 +2634,10 @@ let olMineTried = false;
 let olSlowTimer = null;
 
 function onlineApi() { const o = window.SudokuOnline; return o && o.available ? o : null; }
-function onlineBoard() { return dailyMode ? 'daily-' + dailyDate : difficulty; }
-// Listen only while the worldwide list is actually on screen (saves Firestore reads)
+function onlineBoard() { const level = lbLevelNow(); return level === 'daily' ? 'daily-' + lbDailyDate() : level; }
+// Listen only while the worldwide list is actually on screen, i.e. the popup is open (saves Firestore reads)
 function onlineWanted() {
-  return !!onlineApi() && sbTab === 'world' && !document.hidden && !document.body.classList.contains('home-open');
+  return !!onlineApi() && sbTab === 'world' && !document.hidden && !lbModal.hidden;
 }
 
 function applyTab() {
@@ -2666,9 +2775,71 @@ document.getElementById('nick-form').addEventListener('submit', async e => {
 });
 document.getElementById('nick-cancel').addEventListener('click', closeNick);
 nickModal.addEventListener('click', e => { if (e.target === nickModal) closeNick(); });
-nickModal.addEventListener('keydown', e => { if (e.key === 'Escape') closeNick(); });
+nickModal.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); closeNick(); } });   // one Esc closes one dialog (not the leaderboard popup under it)
 olNickBtn.addEventListener('click', () => openNick(false));
 homeNickBtn.addEventListener('click', () => openNick(false));
+
+// ── leaderboard popup: open / close ──
+// Opening or closing it only shows or hides the card: the game behind is not touched (the timer keeps running).
+let lbOpener = null;   // gets the focus back when the popup closes
+
+function pickLevel(level) {
+  lbLevel = level;
+  try { sessionStorage.setItem('sudoku-lb-level', level); } catch (_) { /* storage blocked: not remembered */ }
+}
+
+function openLb(level) {
+  if (!lbModal.hidden) return;
+  if (level) pickLevel(level);
+  lbOpener = document.activeElement;
+  lbModal.hidden = false;
+  document.body.classList.add('lb-open');
+  renderScores(sbHighlight);   // fresh local list; also starts the live worldwide list, now that it is on screen
+  lbScrollEl.scrollTop = 0;
+  scoreboardEl.focus({ preventScroll: true });
+}
+
+function closeLb() {
+  if (lbModal.hidden) return;
+  lbModal.hidden = true;
+  document.body.classList.remove('lb-open');
+  syncOnline();                // off screen: stop listening (saves Firestore reads)
+  if (lbOpener && lbOpener.isConnected) lbOpener.focus({ preventScroll: true });
+  lbOpener = null;
+}
+
+// Closing is easy: a click outside the card, or on any passive spot inside it, closes the popup.
+// Never closing by accident: buttons, tabs, the difficulty pills and a list that scrolls keep it open, and a click only
+// counts when the press ALSO started on a closable spot without dragging (scrollbar drags, touch scrolling and text
+// selection end in a "click" on some ancestor, which must not close anything).
+const LB_KEEP_OPEN = 'button, a, input, select, textarea, label, [role="tab"], [role="tablist"], #ol-foot';
+function lbCloseSpot(el) {
+  if (!(el instanceof Element) || !el.isConnected || el.closest(LB_KEEP_OPEN)) return false;
+  return !(el.closest('#lb-scroll') && lbScrollEl.scrollHeight > lbScrollEl.clientHeight + 1);
+}
+let lbPress = null;
+lbModal.addEventListener('pointerdown', e => { lbPress = { x: e.clientX, y: e.clientY, ok: lbCloseSpot(e.target) }; });
+lbModal.addEventListener('pointercancel', () => { lbPress = null; });   // the browser took the gesture over (scrolling)
+lbModal.addEventListener('click', e => {
+  const press = lbPress;
+  lbPress = null;
+  if (press && (!press.ok || Math.hypot(e.clientX - press.x, e.clientY - press.y) > 10)) return;
+  if (lbCloseSpot(e.target)) closeLb();
+});
+lbModal.addEventListener('keydown', e => {   // Tab stays inside the popup
+  if (e.key !== 'Tab') return;
+  const btns = [...scoreboardEl.querySelectorAll('button')].filter(b => b.offsetParent !== null);
+  const first = btns[0], last = btns[btns.length - 1], now = document.activeElement;
+  if (e.shiftKey && (now === first || now === scoreboardEl)) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && now === last) { e.preventDefault(); first.focus(); }
+});
+
+document.getElementById('lb-open').addEventListener('click', () => openLb());
+document.getElementById('lb-close').addEventListener('click', closeLb);
+document.querySelectorAll('#sb-levels button').forEach(b => b.addEventListener('click', () => {
+  pickLevel(b.dataset.level);
+  renderScores(sbHighlight);   // local list + worldwide listener follow the pick; the game is not touched
+}));
 
 // ── tabs, refresh, connectivity ──
 document.querySelectorAll('#sb-tabs button').forEach(b => b.addEventListener('click', () => {

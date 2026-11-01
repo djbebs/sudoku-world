@@ -7,7 +7,7 @@
 - Easy, Medium, Hard: each player's **personal best**, top 20.
 - Daily Challenge: one ranking **per UTC date**, same puzzle for everybody, top 20.
 - Players pick a nickname (14 characters max), identified by an anonymous Firebase ID. No registration.
-- The scoreboard has two tabs: **This device** (the original local list) and **Worldwide** (live, updates by itself).
+- The ranking lives in a popup opened by the **🏆 Leaderboard** button (top right of the game). Two levels of navigation: **This device** | **Worldwide** (live, updates by itself), then **Easy | Medium | Hard | Daily**. Browsing them never touches the game being played (the timer keeps running). The popup closes with a click outside, a click on an empty spot of the card, the ✕, or Esc; tabs, buttons and a list that scrolls never close it. The last tab and difficulty are remembered for the session.
 
 Stack: Firebase **Firestore** + **Anonymous Authentication** + optional **App Check**, Firebase modular SDK, vanilla HTML/CSS/JS, hosted for free on **GitHub Pages**. No framework, no build step.
 
@@ -17,7 +17,7 @@ Stack: Firebase **Firestore** + **Anonymous Authentication** + optional **App Ch
 
 | File | Role |
 |---|---|
-| `sudoku.html` | The game. Gained the Worldwide tab, nickname dialog and a status line in the win screen. |
+| `sudoku.html` | The game. Gained the leaderboard popup (Worldwide tab, difficulty selector), nickname dialog and a status line in the win screen. |
 | `online.js` | ES module: Firebase bootstrap (lazy), anonymous sign-in, live ranking, score submission, offline queue. Exposes `window.SudokuOnline`. |
 | `online-core.js` | Pure helpers (board ids, nickname cleaning, validation limits, ordering, queue). Shared by the browser and the tests. |
 | `firebase-config.js` | **You edit this** (Firebase web config). While it contains `YOUR_…` the leaderboard stays off. |
@@ -48,7 +48,7 @@ Stack: Firebase **Firestore** + **Anonymous Authentication** + optional **App Ch
 * **Boards** are `easy`, `medium`, `hard`, and `daily-YYYY-MM-DD` (UTC).
 * **Daily Challenge uses the UTC date** everywhere (puzzle seed, calendar, leaderboard), so a player in Tokyo and one in New York get the same puzzle on the same date. (Before this change it used the device's local date.)
 * **Random puzzles.** Easy/Medium/Hard puzzles are generated randomly on each device, so times come from *different puzzles of the same difficulty*. The Worldwide tab says so under the list.
-* **Reads are economical.** The live listener only runs while the Worldwide list is actually on screen (not on the calendar screen, not in a hidden tab). The Firebase SDK is downloaded only when first needed.
+* **Reads are economical.** The live listener only runs while the Worldwide list is actually on screen (popup open on the Worldwide tab, page visible) and stops when the popup closes. The Firebase SDK is downloaded only when first needed.
 * **Offline / outages.** If a score cannot be sent (offline, Firebase down, SDK blocked) it is stored in `localStorage` (one entry per board, best kept) and retried when the connection returns (and every 20 s while pending). A Daily result older than yesterday (UTC) is dropped, because the server would refuse it.
 
 ---
@@ -207,9 +207,9 @@ Requirements: Node 22+, **Java 11+** (the Firestore emulator), Google Chrome (se
 |---|---|
 | `core.test.mjs` | UTC date, board/doc ids, nickname cleaning, ordering, personal-best rule, validation limits, offline queue |
 | `rules.test.mjs` | Firestore rules: signed-out writes, wrong uid/doc id, extra/missing fields, client timestamps, nickname rules (incl. emoji), time/mistakes/clues bounds, board/date rules, duplicate prevention, improvement-only updates, 10 s rate limit, rename-only updates, no deletes, private `players` |
-| `e2e.mjs` | Two separate Chrome profiles (two identities) + a third: first-launch nickname, same Daily puzzle, ranks #1/#2, both see the same list, live update without reload, persistence after reload, duplicate prevention, better-score replacement, tie-break by mistakes, live rename, offline play + queue + automatic send, Firebase unreachable, EN/FR, 390×844 touch layout, leaderboard-off when unconfigured |
+| `e2e.mjs` | Two separate Chrome profiles (two identities) + a third: first-launch nickname, same Daily puzzle, ranks #1/#2, both see the same list, live update without reload, persistence after reload, duplicate prevention, better-score replacement, tie-break by mistakes, live rename, offline play + queue + automatic send, Firebase unreachable, EN/FR, 390×844 touch layout, leaderboard-off when unconfigured. Leaderboard popup: 🏆 button position, centred card and light dimming, game and timer untouched, closing (outside / passive spot / ✕ / Esc, never by tabs, pills, buttons, gaps or a scrolling list), Local ⇄ Worldwide and the four difficulties, session memory, listener only while open, personal rank below the top 20, 20-row scrolling on desktop and on a 390 px touch screen, EN/FR, day theme |
 
-**Last run (2026-10-31, Windows 11, Node 24, Java 21, Chrome, local emulators):** `core` 8/8, `rules` 20/20, `e2e` 16/16 (three consecutive runs). **Not tested:** a real Firebase project (so App Check, real index builds and production quotas are untested), real iPhone/Android devices (only Chrome's touch/viewport emulation), other browsers than Chrome, and anything on the live GitHub Pages URL. The Firestore emulator does not enforce indexes, so `firestore.indexes.json` is unverified until deployed.
+**Last run (2026-11-01, Windows 11, Node 24, Java 21, Chrome, local emulators):** `core` 8/8, `rules` 20/20, `e2e` 30/30. **Not tested:** a real Firebase project (so App Check, real index builds and production quotas are untested), real iPhone/Android devices (only Chrome's touch/viewport emulation), other browsers than Chrome, and automated runs against the live GitHub Pages URL (it is checked by hand after each release). The Firestore emulator does not enforce indexes, so `firestore.indexes.json` is unverified until deployed.
 
 ---
 
