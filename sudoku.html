@@ -622,15 +622,10 @@ body.day .lb-lvl.daily-lvl.active { background: linear-gradient(135deg, #ff9900,
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
-#sb-mode {
-  margin: 10px 0 12px;
-  text-align: center;
-  font-size: 0.62rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.13em;
-  color: rgba(255,255,255,0.35);
-}
+#sb-mode { margin: 9px 0 11px; text-align: center; }
+#sb-sub { font-size: 0.74rem; font-weight: 600; line-height: 1.35; color: rgba(255,255,255,0.62); }
+#sb-date { margin-top: 2px; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.13em; color: rgba(255,255,255,0.55); }
+#sb-date:empty { display: none; }
 .sb-row, #sb-head {
   display: grid;
   grid-template-columns: 22px 1fr 42px 40px;
@@ -696,7 +691,9 @@ body.day .lb-lvl.daily-lvl.active { background: linear-gradient(135deg, #ff9900,
 #ov-saved.on { display: block; }
 
 body.day #scoreboard, body.day #share-card { background: #ddd5c8; border-color: rgba(80,50,20,0.12); box-shadow: 0 4px 24px rgba(80,50,20,0.15); }
-body.day #sb-mode, body.day #sb-head { color: rgba(44,31,14,0.5); }
+body.day #sb-head { color: rgba(44,31,14,0.5); }
+body.day #sb-sub { color: rgba(44,31,14,0.78); }
+body.day #sb-date { color: rgba(44,31,14,0.68); }
 body.day .sb-row { background: rgba(80,50,20,0.06); }
 body.day .sb-row.me { background: rgba(0,180,90,0.18); box-shadow: inset 0 0 0 1px rgba(0,150,75,0.6); }
 body.day .sb-rank { color: rgba(44,31,14,0.45); }
@@ -916,8 +913,26 @@ body.day #home-all:hover { color: #2c1f0e; }
   #home *, #home *::before { animation: none !important; transition: none !important; }
 }
 
-/* ── WORLDWIDE LEADERBOARD (online list, nickname dialog) ── */
+/* ── WORLDWIDE LEADERBOARD (tabs, online list, nickname dialog) ── */
 [hidden] { display: none !important; }
+
+#sb-tabs {
+  display: flex; gap: 4px;
+  margin: 10px 0 2px; padding: 2px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 10px;
+}
+#sb-tabs button {
+  flex: 1;
+  background: none; border: none; border-radius: 8px;
+  color: rgba(255,255,255,0.5);
+  font: inherit; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase;
+  padding: 6px 8px; cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+#sb-tabs button:hover { color: rgba(255,255,255,0.85); }
+#sb-tabs button.active { background: linear-gradient(135deg, #7700ff, #ff00aa); color: #fff; }
 
 #ol-status {
   margin: 14px 0 4px; padding: 0 8px;
@@ -991,6 +1006,9 @@ body.day #ol-foot { background: #ddd5c8; }
 #nick-id:empty { display: none; }
 .modal-btns { display: flex; gap: 10px; justify-content: flex-end; }
 
+body.day #sb-tabs { background: rgba(80,50,20,0.07); border-color: rgba(80,50,20,0.14); }
+body.day #sb-tabs button { color: rgba(44,31,14,0.55); }
+body.day #sb-tabs button.active { color: #fff; }
 body.day #ol-status { color: rgba(44,31,14,0.55); }
 body.day #ol-status.warn { color: #9a5b00; }
 body.day .ol-gap { color: rgba(44,31,14,0.35); }
@@ -1296,6 +1314,11 @@ body.day #ov-invite-text b { color: #2c1f0e; }
   <aside id="scoreboard" role="dialog" aria-modal="true" aria-labelledby="sb-title" tabindex="-1">
     <button type="button" id="lb-close" data-i18n-aria="close" data-i18n-title="close" title="Close" aria-label="Close">&#10005;</button>
     <div id="sb-title" data-i18n="sbTitle">Leaderboard</div>
+    <!-- Local | Worldwide tabs: shown only when the online leaderboard is configured (online.js) -->
+    <div id="sb-tabs" role="tablist" hidden>
+      <button type="button" role="tab" id="sb-tab-local" data-tab="local" data-i18n="tabLocal">This device</button>
+      <button type="button" role="tab" id="sb-tab-world" data-tab="world" data-i18n="tabWorld">Worldwide</button>
+    </div>
     <!-- Which ranking to show: independent of the game being played -->
     <div id="sb-levels" role="tablist" data-i18n-aria="lbLevels" aria-label="Difficulty">
       <button type="button" role="tab" class="lb-lvl" data-level="easy" data-i18n="easy">Easy</button>
@@ -1303,7 +1326,8 @@ body.day #ov-invite-text b { color: #2c1f0e; }
       <button type="button" role="tab" class="lb-lvl" data-level="hard" data-i18n="hard">Hard</button>
       <button type="button" role="tab" class="lb-lvl daily-lvl" data-level="daily" data-i18n="daily">Daily</button>
     </div>
-    <div id="sb-mode"></div>
+    <!-- What the list below is: this device's history, or the best score of each player (Daily adds its UTC day) -->
+    <div id="sb-mode"><div id="sb-sub"></div><div id="sb-date"></div></div>
     <div id="lb-scroll">
       <div id="sb-head"><span>#</span><span data-i18n="sbPlayer">Player</span><span data-i18n="sbTime">Time</span><span>&#9829;</span></div>
       <ol id="sb-list"></ol>
@@ -1415,7 +1439,7 @@ const I18N = {
     monthCount: (n, total) => n + ' of ' + total + ' this month',
     totalCount: n => n + (n === 1 ? ' challenge' : ' challenges') + ' completed in total',
     // worldwide leaderboard
-    refresh: 'Refresh',
+    tabLocal: 'This device', tabWorld: 'Worldwide', subLocal: 'My game history', subWorld: 'Best score per player', refresh: 'Refresh',
     close: 'Close', lbLevels: 'Difficulty',
     // sharing
     share: 'Share', shareTitle: 'Sudoku World',
@@ -1470,7 +1494,7 @@ const I18N = {
     monthCount: (n, total) => n + ' sur ' + total + ' ce mois-ci',
     totalCount: n => n + (n > 1 ? ' défis terminés' : ' défi terminé') + ' au total',
     // worldwide leaderboard
-    refresh: 'Actualiser',
+    tabLocal: 'Cet appareil', tabWorld: 'Monde', subLocal: 'Historique de mes parties', subWorld: 'Meilleur score par joueur', refresh: 'Actualiser',
     close: 'Fermer', lbLevels: 'Difficulté',
     // partage
     share: 'Partager', shareTitle: 'Sudoku World',
@@ -1558,7 +1582,8 @@ const ovForm     = document.getElementById('ov-form');
 const ovName     = document.getElementById('ov-name');
 const ovSaved    = document.getElementById('ov-saved');
 const ovOnlineEl = document.getElementById('ov-online');
-const sbMode     = document.getElementById('sb-mode');
+const sbSubEl    = document.getElementById('sb-sub');
+const sbDateEl   = document.getElementById('sb-date');
 const sbList     = document.getElementById('sb-list');
 const sbEmpty    = document.getElementById('sb-empty');
 const hintEl     = document.getElementById('hint');
@@ -2182,13 +2207,19 @@ function scoreRowEl(rankText, nameText, seconds, heartsLeft, isMe) {
   return li;
 }
 
+// The line under the difficulty pills says what the list below is: this device's history (every game saved here, the same
+// player can appear several times) or, worldwide, the best score of each player. Easy / Medium / Hard are not repeated (the
+// active pill says it); Daily adds the UTC day of its board.
+function renderSub() {
+  sbSubEl.textContent = t(worldShown() ? 'subWorld' : 'subLocal');
+  sbDateEl.textContent = lbLevelNow() === 'daily' ? lbDailyDate() + ' (UTC)' : '';
+}
+
 function renderScores(highlightId) {
   sbHighlight = highlightId === undefined ? null : highlightId;
   const level = lbLevelNow();
   const list = loadScores(scoreKeyFor(level)).sort(cmpScore).slice(0, SCORE_SHOW);
-  sbMode.textContent = level === 'daily'
-    ? t('daily') + ' · ' + lbDailyDate() + ' (UTC)'
-    : t(level);
+  renderSub();
   document.querySelectorAll('#sb-levels button').forEach(b => {
     const on = b.dataset.level === level;
     b.classList.toggle('active', on);
@@ -2835,6 +2866,7 @@ const lbScrollEl  = document.getElementById('lb-scroll');
 const shareModal  = document.getElementById('share-modal');
 const shareCard   = document.getElementById('share-card');
 const shareFbEl   = document.getElementById('share-fb');
+const sbTabsEl    = document.getElementById('sb-tabs');
 const shareMsEl   = document.getElementById('share-ms');
 const shareWaEl   = document.getElementById('share-wa');
 const shareCopyBtn = document.getElementById('share-copy');
@@ -2842,6 +2874,7 @@ const shareStatusEl = document.getElementById('share-status');
 const shareManualEl = document.getElementById('share-manual');
 const popups = [[lbModal, () => closeLb()], [shareModal, () => closeShare()]];   // [popup, how to close it]
 
+let sbTab = localStorage.getItem('sudoku-sb-tab') === 'local' ? 'local' : 'world';
 let olUnsub = null;       // stops the live listener
 let olBoard = null;       // board currently listened to
 let olLast = null;        // last snapshot info from online.js
@@ -2853,16 +2886,26 @@ function onlineApi() { const o = window.SudokuOnline; return o && o.available ? 
 function onlineBoard() { const level = lbLevelNow(); return level === 'daily' ? 'daily-' + lbDailyDate() : level; }
 // Listen only while the worldwide list is actually on screen, i.e. the popup is open (saves Firestore reads)
 function onlineWanted() {
-  return !!onlineApi() && !document.hidden && !lbModal.hidden;
+  return !!onlineApi() && sbTab === 'world' && !document.hidden && !lbModal.hidden;
 }
 
-// One ranking, no tabs: the worldwide list when the online leaderboard is configured (online.js), otherwise the list of this device
-function applyBoardView() {
-  const world = !!onlineApi();
-  homeNickBtn.hidden = !world;
+// Which list is on screen: the worldwide one (tab "World", online configured) or the scores saved on this device
+function worldShown() { return !!onlineApi() && sbTab === 'world'; }
+
+function applyTab() {
+  const on = !!onlineApi();
+  const world = worldShown();
+  sbTabsEl.hidden = !on;
+  homeNickBtn.hidden = !on;
   olEl.hidden = !world;
   sbList.hidden = sbEmpty.hidden = world;
   scoreboardEl.classList.toggle('world', world);
+  document.querySelectorAll('#sb-tabs button').forEach(b => {
+    const active = b.dataset.tab === (world ? 'world' : 'local');
+    b.classList.toggle('active', active);
+    b.setAttribute('aria-selected', active);
+  });
+  renderSub();
 }
 
 // (Re)attach the live listener when the board or visibility changed
@@ -3166,14 +3209,21 @@ shareMsEl.addEventListener('click', () => {
   }, 1500);
 });
 
-// ── refresh, connectivity ──
+// ── tabs, refresh, connectivity ──
+document.querySelectorAll('#sb-tabs button').forEach(b => b.addEventListener('click', () => {
+  sbTab = b.dataset.tab;
+  localStorage.setItem('sudoku-sb-tab', sbTab);
+  applyTab();
+  syncOnline(true);
+  renderOnline();
+}));
 document.getElementById('ol-refresh').addEventListener('click', () => syncOnline(true));
 document.addEventListener('visibilitychange', () => syncOnline());
 window.addEventListener('online',  () => syncOnline(true));    // connection is back: reconnect the list
 window.addEventListener('offline', () => renderOnline());
 
 function onOnlineReady() {
-  applyBoardView();
+  applyTab();
   renderOnline();
   syncOnline(true);
   // First launch: offer to pick a nickname once (it can still be set later from 👤 / the scoreboard)

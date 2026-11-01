@@ -155,13 +155,10 @@ async function step(name, fn) {
 console.log('\nEnd-to-end: two players, two browsers\n');
 let A, B, D, Dctx, uidA, uidB, tFirstWrite;   // D: the fresh desktop player of the popup tests
 
-await step('both browsers load the game; the online leaderboard activates (the worldwide list is the ranking, no tabs)', async () => {
+await step('both browsers load the game; the online leaderboard activates (tabs appear)', async () => {
   A = await newPage(browserA, 'A');
   B = await newPage(browserB, 'B');
-  for (const p of [A, B]) {
-    assert.deepEqual(await p.evaluate(() => [document.getElementById('ol').hidden, document.getElementById('sb-list').hidden]), [false, true]);
-    assert.equal(await p.$('#sb-tabs'), null, 'there are no Local | Worldwide tabs any more');
-  }
+  for (const p of [A, B]) assert.equal(await p.$eval('#sb-tabs', el => !el.hidden), true);
 });
 
 await step('first launch asks for a nickname; each player picks a different one (remembered locally)', async () => {
@@ -309,12 +306,12 @@ await step('offline: the game stays playable, the result is queued, then sent wh
 
 await step('English and French interfaces', async () => {
   await A.click('#header .lang-toggle button[data-lang="fr"]');
-  assert.equal(await A.$eval('#sb-title', el => el.textContent), 'Classement');
+  assert.equal(await A.$eval('#sb-tab-world', el => el.textContent), 'Monde');
   assert.equal(await A.$eval('#ol-refresh', el => el.textContent), 'Actualiser');
   assert.match(await A.$eval('#ol-nick', el => el.textContent), /^Pseudo/);
-  assert.match(await A.$eval('#sb-mode', el => el.textContent), /Facile/);
+  assert.equal(await A.$eval('#sb-sub', el => el.textContent), 'Meilleur score par joueur');
   await A.click('#header .lang-toggle button[data-lang="en"]');
-  assert.equal(await A.$eval('#sb-title', el => el.textContent), 'Leaderboard');
+  assert.equal(await A.$eval('#sb-tab-world', el => el.textContent), 'Worldwide');
   assert.match(await A.$eval('#ol-nick', el => el.textContent), /^Playing as Alicia/);
 });
 
@@ -381,7 +378,7 @@ await step('without configuration the leaderboard stays off and the game is unch
   await P.goto(`http://localhost:${PORT}${SUB}sudoku.html`, { waitUntil: 'load' });
   await P.waitForFunction(() => window.SudokuOnline);
   assert.equal(await P.evaluate(() => SudokuOnline.available), false);
-  assert.equal(await P.$eval('#ol', el => el.hidden), true);
+  assert.equal(await P.$eval('#sb-tabs', el => el.hidden), true);
   assert.equal(await P.$eval('#sb-list', el => el.hidden), false);                 // local scoreboard shown as before
   await P.click('#home-play');
   await P.evaluate(() => { for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) board[r][c] = solution[r][c]; timerSecs = 100; doWin(); });
@@ -390,10 +387,10 @@ await step('without configuration the leaderboard stays off and the game is unch
   await P.click('#ov-form button[type="submit"]');
   assert.match(await P.$eval('#ov-saved', el => el.textContent), /Saved/);
   assert.equal(await P.$eval('#ov-online', el => el.textContent), '');
-  // the popup still works: the device's own ranking, the score is listed and highlighted
+  // the popup still works: local ranking only (no Local | Worldwide tabs), the score is listed and highlighted
   await P.click('#ov-scores');                                      // the win screen's shortcut opens the popup on the ranking just played
   await P.waitForSelector('#lb-modal:not([hidden])');
-  assert.equal(await P.$('#sb-tabs'), null);
+  assert.equal(await P.$eval('#sb-tabs', el => el.hidden), true);
   assert.equal(await P.$eval('#sb-levels', el => el.hidden), false);
   // (this browser profile also holds Alice's earlier local scores: only the new one is highlighted)
   const local = await P.$$eval('#sb-list .sb-row', rows => rows.map(r => [r.querySelector('.sb-name').textContent, r.querySelector('.sb-time').textContent, r.classList.contains('me')]));
@@ -507,9 +504,11 @@ await step('closing: click outside, click on a passive spot inside, ✕ button a
   assert.equal(await D.evaluate(() => document.activeElement && document.activeElement.id), 'lb-open');
 });
 
-await step('exceptions: difficulty pills, buttons and the gaps between them never close the popup', async () => {
+await step('exceptions: tabs, difficulty pills, buttons and the gaps between them never close the popup', async () => {
   await openLb(D);
   const open = async what => assert.equal(await lbIsOpen(D), true, `${what} closed the popup`);
+  await D.click('#sb-tab-local');           await open('Local tab');
+  await D.click('#sb-tab-world');           await open('World tab');
   for (const lvl of ['easy', 'medium', 'hard', 'daily']) { await D.click(`.lb-lvl[data-level="${lvl}"]`); await open(`${lvl} pill`); }
   await D.click('#ol-refresh');             await open('Refresh');
   // the 4 px gap between two pills, and the empty strip of the footer, are near-misses, not passive spots
@@ -530,13 +529,14 @@ await step('exceptions: difficulty pills, buttons and the gaps between them neve
   await closeLb(D);
 });
 
-await step('one ranking (no tabs) and the four difficulties, without closing; the game keeps its own difficulty', async () => {
+await step('Local ⇄ Worldwide and the four difficulties, without closing; the game keeps its own difficulty', async () => {
   const game = await gameSnapshot(D);
   await openLb(D);
-  // straight to the live worldwide list: no Local | Worldwide switch, the title is followed by the difficulty pills
+  // Local tab: the device's own list; World tab: the live list
+  await D.click('#sb-tab-local');
+  assert.deepEqual(await D.evaluate(() => [document.getElementById('ol').hidden, document.getElementById('sb-list').hidden]), [true, false]);
+  await D.click('#sb-tab-world');
   assert.deepEqual(await D.evaluate(() => [document.getElementById('ol').hidden, document.getElementById('sb-list').hidden]), [false, true]);
-  assert.equal(await D.$('#sb-tabs'), null);
-  assert.deepEqual(await D.evaluate(() => [...document.querySelectorAll('#scoreboard [role="tab"]')].map(b => b.dataset.level)), ['easy', 'medium', 'hard', 'daily'], 'the only tabs left are the four difficulties');
   const labels = {};
   for (const lvl of ['easy', 'medium', 'hard', 'daily']) {
     await D.click(`.lb-lvl[data-level="${lvl}"]`);
@@ -544,7 +544,7 @@ await step('one ranking (no tabs) and the four difficulties, without closing; th
     assert.deepEqual(labels[lvl].active, [lvl]);
     assert.equal(labels[lvl].selected, 1);
   }
-  assert.match(labels.easy.mode, /Easy|Facile/); assert.match(labels.medium.mode, /Medium|Moyen/); assert.match(labels.hard.mode, /Hard|Difficile/);
+  for (const lvl of ['easy', 'medium', 'hard']) assert.ok(!/easy|medium|hard|facile|moyen|difficile/i.test(labels[lvl].mode), `${lvl}: the difficulty is not repeated above the table (the active pill says it)`);
   assert.match(labels.daily.mode, new RegExp(utcToday));
   // each pill shows the right worldwide ranking: Hard has the 22 seeded players (top 20 shown), Daily has today's three + seed
   await D.click('.lb-lvl[data-level="hard"]');
@@ -558,18 +558,20 @@ await step('one ranking (no tabs) and the four difficulties, without closing; th
   await closeLb(D);
 });
 
-await step('the last difficulty is remembered for the session', async () => {
+await step('the last tab and the last difficulty are remembered for the session', async () => {
   await openLb(D, 'hard');
+  await D.click('#sb-tab-local');
   await closeLb(D);
   await D.click('.diff-btn[data-diff="easy"]');                       // the game moves to Easy: the popup must still remember Hard
   await openLb(D);
-  assert.deepEqual(await D.evaluate(() => [document.querySelector('.lb-lvl.active').dataset.level, document.getElementById('ol').hidden]), ['hard', false]);
+  assert.deepEqual(await D.evaluate(() => [document.querySelector('.lb-lvl.active').dataset.level, document.getElementById('ol').hidden]), ['hard', true]);
   await closeLb(D);
   await D.reload({ waitUntil: 'load' });                              // same browser tab = same session
   await D.waitForFunction(() => window.SudokuOnline && window.SudokuOnline.available);
   await D.click('#home-play');
   await openLb(D);
-  assert.deepEqual(await D.evaluate(() => [document.querySelector('.lb-lvl.active').dataset.level, document.getElementById('ol').hidden]), ['hard', false]);
+  assert.deepEqual(await D.evaluate(() => [document.querySelector('.lb-lvl.active').dataset.level, document.getElementById('ol').hidden]), ['hard', true]);
+  await D.click('#sb-tab-world');
   await closeLb(D);
 });
 
@@ -582,8 +584,11 @@ await step('listening is tied to the popup: no live listener while closed, one w
   const active = () => D.evaluate(() => window.__active);
   assert.equal(await active(), 0);
   await openLb(D, 'hard');
+  await D.click('#sb-tab-world');
   assert.equal(await active(), 1);
   for (const lvl of ['easy', 'medium', 'hard', 'daily', 'hard']) { await D.click(`.lb-lvl[data-level="${lvl}"]`); assert.equal(await active(), 1, `listeners after picking ${lvl}`); }
+  await D.click('#sb-tab-local');  assert.equal(await active(), 0);
+  await D.click('#sb-tab-world');  assert.equal(await active(), 1);
   await D.click('#ol-refresh');    // pinned at the bottom of the card, reachable while the 20 rows scroll
   assert.equal(await active(), 1);
   await closeLb(D);                assert.equal(await active(), 0, 'closing the popup must stop listening');
@@ -656,6 +661,7 @@ await step('phone 390 px: touch scrolling of the 20 scores keeps the popup open;
   await M.tap('#nick-cancel');
   await M.tap('#home-play');
   await openLb(M, 'hard', true);
+  await M.tap('#sb-tab-world');
   await waitRows(M, r => r.length === 20, 'Hard top 20 on the phone');
   const g = await M.evaluate(() => {
     const c = document.getElementById('scoreboard').getBoundingClientRect(), s = document.getElementById('lb-scroll');
@@ -681,9 +687,9 @@ await step('phone 390 px: touch scrolling of the 20 scores keeps the popup open;
   await M.$eval('#lb-scroll', el => { el.scrollTop = el.scrollHeight; });
   const last = await M.$eval('#ol-list .sb-row:last-of-type', el => el.getBoundingClientRect().bottom);
   assert.ok(last <= g.b, 'the last row is hidden below the card');
-  // tapping a row of the scrolling list, a pill: still open
+  // tapping a row of the scrolling list, a tab, a pill: still open
   await tapRow(M, 3);           assert.equal(await lbIsOpen(M), true, 'tapping a row closed the popup');
-  await M.tap('.lb-lvl[data-level="easy"]'); await M.tap('.lb-lvl[data-level="hard"]');
+  await M.tap('#sb-tab-local'); await M.tap('#sb-tab-world'); await M.tap('.lb-lvl[data-level="easy"]'); await M.tap('.lb-lvl[data-level="hard"]');
   assert.equal(await lbIsOpen(M), true);
   // tap on the dimmed backdrop → closes
   await M.touchscreen.tap(8, 8);
@@ -691,10 +697,10 @@ await step('phone 390 px: touch scrolling of the 20 scores keeps the popup open;
   await ctx.close();
 });
 
-await step('English and French: button, title, pills and ✕ (and no tabs)', async () => {
+await step('English and French: button, titles, tabs, pills and ✕', async () => {
   const expect = {
-    fr: { btn: 'Classement', title: 'Classement', pills: ['Facile', 'Moyen', 'Difficile', 'Défi du jour'], close: 'Fermer', refresh: 'Actualiser' },
-    en: { btn: 'Leaderboard', title: 'Leaderboard', pills: ['Easy', 'Medium', 'Hard', 'Daily'], close: 'Close', refresh: 'Refresh' },
+    fr: { btn: 'Classement', title: 'Classement', tabs: ['Cet appareil', 'Monde'], pills: ['Facile', 'Moyen', 'Difficile', 'Défi du jour'], close: 'Fermer', refresh: 'Actualiser' },
+    en: { btn: 'Leaderboard', title: 'Leaderboard', tabs: ['This device', 'Worldwide'], pills: ['Easy', 'Medium', 'Hard', 'Daily'], close: 'Close', refresh: 'Refresh' },
   };
   for (const lang of ['fr', 'en']) {
     await D.click(`#header .lang-toggle button[data-lang="${lang}"]`);
@@ -703,15 +709,13 @@ await step('English and French: button, title, pills and ✕ (and no tabs)', asy
     await openLb(D);
     const got = await D.evaluate(() => ({
       title: document.getElementById('sb-title').textContent,
-      tabs: document.getElementById('sb-tabs') ? 1 : 0,
-      texts: document.getElementById('scoreboard').innerText,
+      tabs: [...document.querySelectorAll('#sb-tabs button')].map(b => b.textContent),
       pills: [...document.querySelectorAll('.lb-lvl')].map(b => b.textContent),
       close: document.getElementById('lb-close').getAttribute('aria-label'), closeTitle: document.getElementById('lb-close').title,
       refresh: document.getElementById('ol-refresh').textContent,
       overflow: document.getElementById('sb-levels').scrollWidth - document.getElementById('sb-levels').clientWidth,
     }));
-    assert.equal(got.title, e.title); assert.equal(got.tabs, 0); assert.deepEqual(got.pills, e.pills);
-    assert.ok(!/cet appareil|this device|^(monde|worldwide)$/im.test(got.texts), `a leftover tab label is shown (${lang}): ${got.texts}`);
+    assert.equal(got.title, e.title); assert.deepEqual(got.tabs, e.tabs); assert.deepEqual(got.pills, e.pills);
     assert.equal(got.close, e.close); assert.equal(got.closeTitle, e.close); assert.equal(got.refresh, e.refresh);
     assert.ok(got.overflow <= 0, `pills overflow in ${lang}`);
     await closeLb(D);
@@ -726,6 +730,126 @@ await step('day theme: the popup follows the theme', async () => {
   assert.match(c.back, /rgba\(44, 31, 14, 0\.28\)/);
   await closeLb(D);
   await D.click('#header .theme-toggle');
+});
+
+await step('subtitles: This device → "My game history", World → "Best score per player" (EN / FR), immediate, difficulty not repeated, game untouched', async () => {
+  const SUB = { en: { local: 'My game history', world: 'Best score per player' }, fr: { local: 'Historique de mes parties', world: 'Meilleur score par joueur' } };
+  const game = await gameSnapshot(D);
+  await openLb(D, 'easy');
+  for (const lang of ['en', 'fr']) {
+    await D.evaluate(l => document.querySelector(`#header .lang-toggle button[data-lang="${l}"]`).click(), lang);   // the language changes while the popup is open
+    for (const lvl of ['easy', 'medium', 'hard', 'daily']) {
+      await D.click(`.lb-lvl[data-level="${lvl}"]`);
+      for (const tab of ['local', 'world', 'local']) {
+        // click and read in the same task: nothing is awaited between them, so the subtitle follows the tab at once
+        const x = await D.evaluate(tab => {
+          document.getElementById('sb-tab-' + tab).click();
+          return { text: document.getElementById('sb-sub').textContent, date: document.getElementById('sb-date').textContent, dateShown: getComputedStyle(document.getElementById('sb-date')).display !== 'none',
+            mode: document.getElementById('sb-mode').textContent, listShown: tab === 'world' ? !document.getElementById('ol').hidden : !document.getElementById('sb-list').hidden };
+        }, tab);
+        const where = `${lang} / ${lvl} / ${tab}`;
+        assert.equal(x.text, SUB[lang][tab], where);
+        assert.equal(x.listShown, true, `${where}: the list that goes with the subtitle is the one on screen`);
+        if (lvl === 'daily') assert.ok(x.dateShown && x.date === `${utcToday} (UTC)`, `${where}: Daily names its UTC day`);
+        else assert.ok(!x.dateShown && x.date === '' && !/easy|medium|hard|facile|moyen|difficile/i.test(x.mode), `${where}: nothing repeats the difficulty`);
+      }
+    }
+  }
+  assert.equal(await lbIsOpen(D), true, 'switching tabs / languages never closes the popup');
+  await D.evaluate(() => { document.getElementById('sb-tab-world').click(); document.querySelector('#header .lang-toggle button[data-lang="en"]').click(); });   // back to English (the snapshot holds translated labels)
+  assert.deepEqual({ ...(await gameSnapshot(D)), timerSecs: 0 }, { ...game, timerSecs: 0 }, 'the game in progress is untouched');
+  await closeLb(D);
+});
+
+await step('subtitle colours: readable (≥ 4.5:1) on the card in the Night and the Day theme, smaller than the title', async () => {
+  const rgba = v => { const m = (v.match(/[\d.]+/g) || []).map(Number); return { r: m[0], g: m[1], b: m[2], a: m.length > 3 ? m[3] : 1 }; };
+  const mix = (f, b) => ({ r: f.r * f.a + b.r * (1 - f.a), g: f.g * f.a + b.g * (1 - f.a), b: f.b * f.a + b.b * (1 - f.a), a: 1 });
+  const lumi = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+  const ratioOf = (a, b) => { const [hi, lo] = [lumi(a), lumi(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
+  await openLb(D, 'daily');                                               // Daily shows the second line (the date) too
+  for (const theme of ['night', 'day']) {
+    if ((await D.$eval('body', b => b.classList.contains('day'))) !== (theme === 'day')) await D.evaluate(() => document.querySelector('#header .theme-toggle').click());
+    for (const tab of ['local', 'world']) {
+      await D.evaluate(tab => document.getElementById('sb-tab-' + tab).click(), tab);
+      const c = await D.evaluate(() => { const st = id => getComputedStyle(document.getElementById(id)); return { sub: st('sb-sub').color, date: st('sb-date').color, card: st('scoreboard').backgroundColor, body: st('lb-modal').backgroundColor,
+        subPx: parseFloat(st('sb-sub').fontSize), titlePx: parseFloat(st('sb-title').fontSize), subTransform: st('sb-sub').textTransform, subCursor: st('sb-sub').cursor }; });
+      const card = mix(rgba(c.card), { r: 128, g: 128, b: 128, a: 1 });   // an opaque card: the backdrop behind it does not matter
+      for (const k of ['sub', 'date']) {
+        const r = ratioOf(mix(rgba(c[k]), card), card);
+        assert.ok(r >= 4.5, `${theme} / ${tab}: ${k} text is only ${r.toFixed(2)}:1`);
+      }
+      assert.ok(c.subPx < c.titlePx && c.subPx >= 11.5, `${theme}: subtitle ${c.subPx}px vs title ${c.titlePx}px`);
+      assert.ok(c.subCursor !== 'pointer', 'the subtitle does not look like a button');
+    }
+  }
+  await D.evaluate(() => { document.getElementById('sb-tab-world').click(); if (document.body.classList.contains('day')) document.querySelector('#header .theme-toggle').click(); });
+  await closeLb(D);
+});
+
+await step('subtitles fit on 320 / 375 / 390 / 430 / 768 px (EN and FR, both tabs, Daily = longest): no overflow, card on screen, tabs and pills still usable', async () => {
+  const ctx = await browserB.createBrowserContext();
+  const M = await ctx.newPage();
+  M.on('pageerror', e => problems.push(`[Msub] pageerror: ${e.message}`));
+  await M.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+  await M.goto(BASE, { waitUntil: 'load' });
+  await M.waitForFunction(() => window.SudokuOnline && window.SudokuOnline.available);
+  await M.waitForSelector('#nick-modal:not([hidden])');
+  await M.tap('#nick-cancel');
+  await M.tap('#home-play');
+  await openLb(M, 'daily', true);
+  const heights = {};
+  for (const [w, h] of [[320, 568], [375, 812], [390, 844], [430, 932], [768, 1024]]) {
+    await M.setViewport({ width: w, height: h, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+    await sleep(250);
+    for (const lang of ['en', 'fr']) {
+      await M.evaluate(l => document.querySelector(`#header .lang-toggle button[data-lang="${l}"]`).click(), lang);
+      for (const tab of ['local', 'world']) {
+        await M.tap(`#sb-tab-${tab}`);
+        const g = await M.evaluate(() => {
+          const r = id => document.getElementById(id).getBoundingClientRect(), sub = document.getElementById('sb-sub'), card = r('scoreboard');
+          return { subOver: sub.scrollWidth - sub.clientWidth, subH: r('sb-sub').height, subLine: parseFloat(getComputedStyle(sub).lineHeight), subL: r('sb-sub').left, subR: r('sb-sub').right, cardL: card.left, cardR: card.right, cardT: card.top, cardB: card.bottom,
+            vw: innerWidth, vh: innerHeight, ox: document.documentElement.scrollWidth - innerWidth, text: sub.textContent, tabW: r('sb-tab-local').width };
+        });
+        const where = `${w}px ${lang} ${tab}`;
+        assert.ok(g.subOver <= 0 && g.subL >= g.cardL && g.subR <= g.cardR, `${where}: subtitle overflows ${JSON.stringify(g)}`);
+        assert.ok(g.cardL >= 0 && g.cardR <= g.vw && g.cardT >= 0 && g.cardB <= g.vh && g.ox <= 1, `${where}: card or page overflows ${JSON.stringify(g)}`);
+        assert.ok(g.subH <= g.subLine * 2 + 1, `${where}: subtitle takes ${g.subH}px (> 2 lines)`);
+        assert.ok(g.tabW >= 44, `${where}: tab touch target ${g.tabW}px`);
+        heights[`${w}/${lang}`] = Math.max(heights[`${w}/${lang}`] || 0, g.subH);
+      }
+    }
+    // the four difficulties and the popup itself still answer on this width
+    for (const lvl of ['easy', 'hard', 'daily']) await M.tap(`.lb-lvl[data-level="${lvl}"]`);
+    assert.equal(await lbIsOpen(M), true, `${w}px: tapping tabs and pills must not close the popup`);
+  }
+  await M.touchscreen.tap(6, 6);                                           // the dimmed backdrop closes it, as before
+  await M.waitForSelector('#lb-modal', { hidden: true });
+  await ctx.close();
+});
+
+await step('same player, several games: "This device" lists each one (times, hearts), "World" keeps one row per player — the best', async () => {
+  const games = [[330, 0], [280, 0], [400, 2]];                           // first score, a better one, a worse one
+  const said = [];
+  for (const [i, [time, mistakes]] of games.entries()) {
+    if (i === 1) await sleep(11000);                                      // the rules allow one update of a score every 10 s (a real game lasts far longer)
+    said.push(await winGame(D, { mode: 'medium', time, mistakes, name: 'Zed' }));
+    await D.click('#ov-newgame').catch(() => {});
+  }
+  await openLb(D, 'medium');
+  await D.evaluate(() => document.getElementById('sb-tab-local').click());
+  const local = await D.$$eval('#sb-list .sb-row', rows => rows.map(r => [r.querySelector('.sb-name').textContent, r.querySelector('.sb-time').textContent, r.querySelectorAll('.sb-heart:not(.lost)').length]));
+  assert.deepEqual(local, [['Zed', '4:40', 3], ['Zed', '5:30', 3], ['Zed', '6:40', 1]], 'every game stays in the history of this device, with its time and hearts');
+  assert.equal(await D.$eval('#sb-sub', el => el.textContent), 'My game history');
+  await D.evaluate(() => document.getElementById('sb-tab-world').click());
+  const world = await waitRows(D, r => r.some(x => x.name === 'Zed'), 'Zed on the worldwide Medium ranking');
+  const zed = world.filter(r => r.name === 'Zed');
+  assert.equal(zed.length, 1, 'one row per player: the three games of Zed make a single world entry');
+  assert.deepEqual([zed[0].time, zed[0].hearts, zed[0].me], ['4:40', 3, true], 'and it is his best');
+  assert.equal(new Set(world.map(r => r.name)).size, world.length, 'no player appears twice on the ranking');
+  assert.equal(await D.$eval('#sb-sub', el => el.textContent), 'Best score per player');
+  const mine = await D.evaluate(() => SudokuOnline.getMine('medium'));
+  assert.equal(mine.time, 280, 'the server keeps the best of the three');
+  await closeLb(D);
 });
 
 // ═══════════════════════════ sharing (Share button, popup, win invitation) ═══════════════════════════
