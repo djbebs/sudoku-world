@@ -51,7 +51,8 @@ await fetch(`${FS_REST}/emulator/v1/projects/demo-sudoku/databases/(default)/doc
 
 // ── browsers: two separate profiles = two players ──────────────────────────
 const launch = label => puppeteer.launch({
-  executablePath: CHROME, headless: true, args: ['--no-sandbox'],
+  // the share links open real public hosts: they are blocked here, so the tests never reach Facebook or WhatsApp
+  executablePath: CHROME, headless: true, args: ['--no-sandbox', '--host-resolver-rules=MAP www.facebook.com ~NOTFOUND, MAP wa.me ~NOTFOUND, MAP api.whatsapp.com ~NOTFOUND'],
   userDataDir: fs.mkdtempSync(path.join(os.tmpdir(), `sudoku-e2e-${label}-`)),
 });
 const browserA = await launch('a');
@@ -152,7 +153,7 @@ async function step(name, fn) {
 }
 
 console.log('\nEnd-to-end: two players, two browsers\n');
-let A, B, D, uidA, uidB, tFirstWrite;   // D: the fresh desktop player of the popup tests
+let A, B, D, Dctx, uidA, uidB, tFirstWrite;   // D: the fresh desktop player of the popup tests
 
 await step('both browsers load the game; the online leaderboard activates (tabs appear)', async () => {
   A = await newPage(browserA, 'A');
@@ -410,8 +411,9 @@ for (let i = 1; i <= 22; i++) await seedScore('hard', i, 100 + i * 3, i % 3);   
 await seedScore('daily-' + utcToday, 90, 500, 0);
 
 await step('the 🏆 button is at the top right, visible, and the ranking is no longer on the page', async () => {
-  const ctx = await browserB.createBrowserContext();
-  D = await ctx.newPage();
+  Dctx = await browserB.createBrowserContext();
+  await Dctx.overridePermissions(`http://localhost:${PORT}`, ['clipboard-read', 'clipboard-write', 'clipboard-sanitized-write']);
+  D = await Dctx.newPage();
   await D.setViewport(DESKTOP);
   D.on('pageerror', e => problems.push(`[D] pageerror: ${e.message}`));
   D.on('console', m => { if (m.type() === 'error' && !/Failed to load resource|ERR_INTERNET_DISCONNECTED|offline/i.test(m.text())) problems.push(`[D] console.error: ${m.text()}`); });
@@ -497,7 +499,7 @@ await step('closing: click outside, click on a passive spot inside, ✕ button a
   await D.keyboard.press('Escape');
   assert.equal(await stillOpen(), false, 'Esc should close');
   assert.equal(await D.evaluate(() => JSON.stringify(selected)), sel, 'Esc closing the popup must not also deselect the cell');
-  assert.equal(await D.$eval('body', b => b.classList.contains('lb-open')), false);
+  assert.equal(await D.$eval('body', b => b.classList.contains('popup-open')), false);
   // focus returns to the 🏆 button; the page behind is not left locked
   assert.equal(await D.evaluate(() => document.activeElement && document.activeElement.id), 'lb-open');
 });
@@ -728,6 +730,320 @@ await step('day theme: the popup follows the theme', async () => {
   assert.match(c.back, /rgba\(44, 31, 14, 0\.28\)/);
   await closeLb(D);
   await D.click('#header .theme-toggle');
+});
+
+// ═══════════════════════════ sharing (Share button, popup, win invitation) ═══════════════════════════
+console.log('\nSharing\n');
+const SHARE = { en: 'https://djbebs.github.io/sudoku-world/en/', fr: 'https://djbebs.github.io/sudoku-world/fr/' };
+const WA_MSG = {
+  en: '🧩 No ads. Just Sudoku.\n\nPlay for free and challenge me on the global leaderboard!\n\n',
+  fr: '🧩 Zéro pub. Juste du Sudoku.\n\nJoue gratuitement et défie-moi au classement mondial !\n\n',
+};
+const TXT = {
+  en: { btn: 'Share', title: 'Sudoku World', slogan: 'No ads. Just Sudoku.', desc: 'Free Sudoku. Daily challenges. Global leaderboard.', fb: 'Share on Facebook', wa: 'Share on WhatsApp', copy: 'Copy link', copied: 'Link copied!', bravo: '🏆 Well done!', invite: 'Challenge your friends!' },
+  fr: { btn: 'Partager', title: 'Sudoku World', slogan: 'Zéro pub. Juste du Sudoku.', desc: 'Sudoku gratuit. Défis quotidiens. Classement mondial.', fb: 'Partager sur Facebook', wa: 'Partager sur WhatsApp', copy: 'Copier le lien', copied: 'Lien copié !', bravo: '🏆 Bravo !', invite: 'Défie tes amis !' },
+};
+const norm = s => s.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();   // the no-break space before "!" is typography, not content
+const shareIsOpen = page => page.$eval('#share-modal', el => !el.hidden);
+async function openShare(page, tap = false) {
+  await (tap ? page.tap('#share-open') : page.click('#share-open'));
+  await page.waitForSelector('#share-modal:not([hidden])');
+}
+async function closeShare(page) {
+  await page.click('#share-close');
+  await page.waitForSelector('#share-modal', { hidden: true });
+}
+async function setLang(page, lang, tap = false) {
+  const sel = `#header .lang-toggle button[data-lang="${lang}"]`;
+  await (tap ? page.tap(sel) : page.click(sel));
+}
+const readShare = page => page.evaluate(() => {
+  const txt = id => document.getElementById(id).textContent;
+  const fb = document.getElementById('share-fb'), wa = document.getElementById('share-wa');
+  return {
+    btn: document.querySelector('#share-open span').textContent, title: txt('share-title'), slogan: txt('share-slogan'), desc: txt('share-desc'),
+    fb: fb.textContent, wa: wa.textContent, copy: txt('share-copy'),
+    fbHref: fb.href, waHref: wa.href, fbTarget: fb.target, waTarget: wa.target, fbRel: fb.rel, waRel: wa.rel,
+  };
+});
+// Clicking a share link opens a new tab (the hosts are blocked in these browsers, nothing leaves the machine): close it again
+async function clickAndCloseNewTab(ctx, page, selector) {
+  const known = new Set(await ctx.pages());
+  await page.click(selector);
+  const fresh = async () => (await ctx.pages()).filter(p => !known.has(p));
+  const t0 = Date.now();
+  while (!(await fresh()).length && Date.now() - t0 < 5000) await sleep(100);
+  const opened = await fresh();
+  assert.ok(opened.length > 0, `${selector} did not open a new tab`);
+  for (const p of opened) await p.close();
+  await page.bringToFront();
+}
+
+await step('the Share button sits in the top bar, next to 🏆, visible; nothing opens by itself', async () => {
+  const g = await D.evaluate(() => {
+    const r = id => document.getElementById(id).getBoundingClientRect();
+    const s = r('share-open'), l = r('lb-open'), h = document.getElementById('header').getBoundingClientRect();
+    return { sw: s.width, sh: s.height, sRight: s.right, sLeft: s.left, sTop: s.top, lLeft: l.left, lTop: l.top, lRight: l.right, hLeft: h.left, hRight: h.right, hTop: h.top, sBottom: s.bottom,
+      text: document.querySelector('#share-open span').textContent, open: !document.getElementById('share-modal').hidden };
+  });
+  assert.ok(g.sw > 0 && g.sh > 0);
+  assert.ok(g.sRight <= g.lLeft && g.lLeft - g.sRight < 20, `Share must be right next to 🏆 (${g.sRight} → ${g.lLeft})`);
+  assert.ok(Math.abs(g.sTop - g.lTop) <= 2, 'same row as 🏆');
+  assert.ok(g.sLeft >= g.hLeft - 1 && g.lRight <= g.hRight + 1, 'inside the width of the game');
+  assert.ok(g.sBottom <= g.hTop + 1, 'above the game header');
+  assert.equal(g.text, 'Share');
+  assert.equal(g.open, false);
+});
+
+await step('the popup shows the real logo, name, slogan, description and the three buttons (EN)', async () => {
+  await openShare(D);
+  await D.waitForFunction(() => document.getElementById('share-logo').complete && document.getElementById('share-logo').naturalWidth > 0);
+  const logo = await D.$eval('#share-logo', el => ({ src: new URL(el.src).pathname, w: el.naturalWidth, shown: el.getBoundingClientRect().width }));
+  assert.match(logo.src, /\/assets\/logo-sudoku\.png$/);
+  assert.ok(logo.w >= 300 && logo.shown >= 100);
+  const st = await readShare(D);
+  for (const k of ['title', 'slogan', 'desc']) assert.equal(norm(st[k]), TXT.en[k], k);
+  assert.equal(norm(st.fb), TXT.en.fb); assert.equal(norm(st.wa), TXT.en.wa); assert.equal(norm(st.copy), TXT.en.copy);
+  const geo = await D.evaluate(() => {
+    const c = document.getElementById('share-card').getBoundingClientRect(), m = document.getElementById('share-modal');
+    return { cx: (c.left + c.right) / 2, cy: (c.top + c.bottom) / 2, vw: innerWidth, vh: innerHeight, bg: getComputedStyle(m).backgroundColor, blur: getComputedStyle(m).backdropFilter, cls: document.body.classList.contains('popup-open'),
+      card: getComputedStyle(document.getElementById('share-card')).backgroundColor, lbCard: getComputedStyle(document.getElementById('scoreboard')).backgroundColor, lbModalBg: getComputedStyle(document.getElementById('lb-modal')).backgroundColor };
+  });
+  assert.ok(Math.abs(geo.cx - geo.vw / 2) <= 2 && Math.abs(geo.cy - geo.vh / 2) <= 2, 'centred');
+  assert.equal(geo.card, geo.lbCard, 'same card style as the leaderboard');
+  assert.equal(geo.bg, geo.lbModalBg, 'same light dimming as the leaderboard');
+  assert.equal(geo.blur, 'none'); assert.equal(geo.cls, true);
+  await closeShare(D);
+});
+
+await step('closing: outside, passive spot inside, ✕, Esc — and the share buttons never close it', async () => {
+  const open = () => shareIsOpen(D);
+  await openShare(D); await D.mouse.click(6, 6);                       assert.equal(await open(), false, 'outside click');
+  await openShare(D); await D.click('#share-title');                    assert.equal(await open(), false, 'click on the title');
+  await openShare(D); await D.click('#share-desc');                     assert.equal(await open(), false, 'click on the description');
+  await openShare(D); await D.click('#share-close');                    assert.equal(await open(), false, '✕');
+  await openShare(D); await D.keyboard.press('Escape');                 assert.equal(await open(), false, 'Esc');
+  assert.equal(await D.evaluate(() => document.activeElement.id), 'share-open', 'focus goes back to the Share button');
+  await openShare(D);
+  const gap = await D.evaluate(() => { const a = document.getElementById('share-fb').getBoundingClientRect(), b = document.getElementById('share-wa').getBoundingClientRect(); return { x: (a.left + a.right) / 2, y: (a.bottom + b.top) / 2 }; });
+  await D.mouse.click(gap.x, gap.y);                                    assert.equal(await open(), true, 'the gap between two buttons closed it');
+  await clickAndCloseNewTab(Dctx, D, '#share-fb');                      assert.equal(await open(), true, 'Facebook closed it');
+  await clickAndCloseNewTab(Dctx, D, '#share-wa');                      assert.equal(await open(), true, 'WhatsApp closed it');
+  await D.click('#share-copy');                                         assert.equal(await open(), true, 'Copy closed it');
+  assert.ok(D.url().includes('sudoku.html'), 'the game page itself did not navigate');
+  // game keys are inert while it is open
+  const before = await D.evaluate(() => JSON.stringify(board));
+  await D.keyboard.press('5'); await D.keyboard.press('ArrowRight');
+  assert.equal(await D.evaluate(() => JSON.stringify(board)), before);
+  await D.keyboard.press('Escape');                                     assert.equal(await open(), false);
+});
+
+await step('Facebook and WhatsApp links in English and in French (exact text, public share page, new tab)', async () => {
+  for (const lang of ['en', 'fr']) {
+    await setLang(D, lang);
+    await openShare(D);
+    const st = await readShare(D);
+    const e = TXT[lang];
+    assert.equal(norm(st.btn), e.btn);
+    for (const k of ['title', 'slogan', 'desc', 'fb', 'wa', 'copy']) assert.equal(norm(st[k]), e[k], `${lang} ${k}`);
+    const fb = new URL(st.fbHref);
+    assert.equal(fb.origin + fb.pathname, 'https://www.facebook.com/sharer/sharer.php');
+    assert.equal(fb.searchParams.get('u'), SHARE[lang]);
+    assert.deepEqual([...fb.searchParams.keys()], ['u'], 'only the link is passed to Facebook');
+    const wa = new URL(st.waHref);
+    assert.equal(wa.origin + wa.pathname, 'https://wa.me/');
+    assert.equal(wa.searchParams.get('text'), WA_MSG[lang] + SHARE[lang], `${lang} WhatsApp message`);
+    assert.ok(!/\d:\d\d|score|time/i.test(wa.searchParams.get('text').replace(/Sudoku World/g, '')), 'no score in the message');
+    for (const [t, r] of [[st.fbTarget, st.fbRel], [st.waTarget, st.waRel]]) { assert.equal(t, '_blank'); assert.match(r, /noopener/); }
+    await closeShare(D);
+  }
+  await setLang(D, 'en');
+});
+
+await step('Copy link: the public share page of the current language lands in the clipboard, with a discreet confirmation', async () => {
+  for (const lang of ['en', 'fr']) {
+    await setLang(D, lang);
+    await openShare(D);
+    await D.bringToFront();
+    await D.evaluate(() => navigator.clipboard.writeText('before'));
+    await D.click('#share-copy');
+    await D.waitForFunction(() => document.getElementById('share-status').textContent !== '');
+    assert.equal(await D.evaluate(() => navigator.clipboard.readText()), SHARE[lang]);
+    assert.equal(norm(await D.$eval('#share-status', el => el.textContent)), TXT[lang].copied);
+    assert.equal(await D.$eval('#share-manual', el => el.classList.contains('on')), false);
+    assert.equal(await shareIsOpen(D), true);
+    if (lang === 'en') { await sleep(3000); assert.equal(await D.$eval('#share-status', el => el.textContent), '', 'the confirmation fades by itself'); }
+    await closeShare(D);
+  }
+  await setLang(D, 'en');
+});
+
+await step('Copy link fallbacks: no Clipboard API → execCommand; permission refused → execCommand; nothing works → link shown, selected', async () => {
+  await openShare(D);
+  const cleanup = () => D.evaluate(() => { delete navigator.clipboard; delete document.execCommand; });
+  // 1) no async Clipboard API at all
+  await D.evaluate(() => {
+    Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true });
+    window.__copied = null;
+    document.execCommand = cmd => { const a = document.activeElement; window.__copied = cmd === 'copy' ? a.value.substring(a.selectionStart, a.selectionEnd) : null; return true; };
+  });
+  await D.click('#share-copy');
+  assert.equal(await D.evaluate(() => window.__copied), SHARE.en, 'execCommand copied the selected link');
+  assert.equal(norm(await D.$eval('#share-status', el => el.textContent)), TXT.en.copied);
+  // 2) the Clipboard API refuses (permission denied)
+  await D.evaluate(() => {
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: () => Promise.reject(new DOMException('denied', 'NotAllowedError')) }, configurable: true });
+    window.__copied = null;
+  });
+  await D.click('#share-copy');
+  assert.equal(await D.evaluate(() => window.__copied), SHARE.en);
+  // 3) nothing works: the link is shown and selected so it can be copied by hand
+  await D.evaluate(() => { document.execCommand = () => false; });
+  await D.click('#share-copy');
+  const man = await D.evaluate(() => { const i = document.getElementById('share-manual'); return { on: i.classList.contains('on'), v: i.value, focus: document.activeElement === i, sel: [i.selectionStart, i.selectionEnd], ro: i.readOnly, status: document.getElementById('share-status').textContent }; });
+  assert.deepEqual([man.on, man.v, man.focus, man.ro], [true, SHARE.en, true, true]);
+  assert.deepEqual(man.sel, [0, SHARE.en.length]);
+  assert.equal(man.status, 'Copy the link below');
+  assert.equal(await shareIsOpen(D), true);
+  await sleep(3000);
+  assert.equal(await D.$eval('#share-status', el => el.textContent), 'Copy the link below', 'the instruction stays while the link is shown');
+  await cleanup();
+  await closeShare(D);
+  await openShare(D);                                                  // reopening resets the fallback field
+  assert.equal(await D.$eval('#share-manual', el => el.classList.contains('on')), false);
+  await closeShare(D);
+});
+
+await step('a shared link opens the game in its language (?lang=) without overriding the saved choice; static FR / EN pages redirect there', async () => {
+  const origin = `http://localhost:${PORT}${SUB}`;
+  const ctx = await browserB.createBrowserContext();
+  const noFirebase = page => page.setRequestInterception(true).then(() => page.on('request', r => (/\/firebase-config\.js$/.test(r.url())
+    ? r.respond({ status: 200, contentType: 'text/javascript', body: "export const firebaseConfig = { apiKey: 'YOUR_API_KEY', authDomain: 'x', projectId: 'YOUR_PROJECT_ID', appId: 'YOUR_APP_ID' }; export const appCheckSiteKey = '';" })
+    : r.continue())));
+  const info = page => page.evaluate(() => ({ lang, html: document.documentElement.lang, saved: localStorage.getItem('sudoku-lang'), search: location.search, btn: document.querySelector('#share-open span').textContent }));
+  const P = await ctx.newPage();
+  P.on('pageerror', e => problems.push(`[lang] pageerror: ${e.message}`));
+  await noFirebase(P);
+  for (const lang of ['fr', 'en']) {
+    await P.goto(`${origin}${lang}/`, { waitUntil: 'load' });           // the static page, then the redirect
+    await P.waitForFunction(() => /sudoku\.html/.test(location.pathname), { timeout: 10000 });
+    const i = await info(P);
+    assert.equal(i.lang, lang); assert.equal(i.html, lang); assert.equal(i.saved, null, 'the link must not overwrite the saved choice');
+    assert.equal(norm(i.btn), TXT[lang].btn);
+    assert.match(i.search, new RegExp(`lang=${lang}`));
+  }
+  await P.goto(`${origin}sudoku.html?lang=fr&x=1`, { waitUntil: 'load' });
+  await P.evaluate(() => localStorage.setItem('sudoku-lang', 'en'));   // a saved choice exists…
+  await P.reload({ waitUntil: 'load' });
+  assert.equal((await info(P)).lang, 'fr', '…but the link says French, for this visit');
+  await P.click('#home .lang-toggle button[data-lang="en"]');
+  const after = await info(P);
+  assert.equal(after.lang, 'en'); assert.equal(after.saved, 'en');
+  assert.ok(!/lang=/.test(after.search) && /x=1/.test(after.search), `the link's language is dropped once the player chooses (${after.search})`);
+  await P.goto(`${origin}sudoku.html?lang=xx`, { waitUntil: 'load' });
+  assert.ok(['en', 'fr'].includes((await info(P)).lang), 'an unknown language is ignored');
+  await P.goto(`${origin}?x=1`, { waitUntil: 'load' });                  // the existing bare address still works
+  await P.waitForFunction(() => /sudoku\.html/.test(location.pathname), { timeout: 10000 });
+  await ctx.close();
+});
+
+await step('win screen: a discreet invitation to share; it never opens by itself and the score logic is untouched', async () => {
+  await D.evaluate(() => { window.__opens = 0; const o = window.open; window.open = (...a) => { window.__opens++; return o.apply(window, a); }; });
+  const tabs = (await Dctx.pages()).length;
+  const t = await winGame(D, { mode: 'easy', time: 200, mistakes: 0, name: 'Zed' });
+  assert.match(t, /Worldwide/, t);                                      // the worldwide result line is still there
+  const inv = await D.evaluate(() => {
+    const v = id => { const e = document.getElementById(id), b = e.getBoundingClientRect(); return { shown: getComputedStyle(e).display !== 'none' && b.width > 0, text: e.textContent }; };
+    return { invite: v('ov-invite'), btn: v('ov-share'), saved: v('ov-saved'), online: v('ov-online'), nbtn: v('ov-newgame'), board: v('ov-scores'), title: v('ov-title'), msg: v('ov-msg'),
+      inside: document.getElementById('ov-invite').getBoundingClientRect().bottom <= document.getElementById('board-wrap').getBoundingClientRect().bottom };
+  });
+  assert.ok(inv.invite.shown && inv.btn.shown && inv.inside);
+  assert.equal(norm(inv.invite.text), '🏆 Well done! Challenge your friends! Share');
+  for (const k of ['saved', 'online', 'nbtn', 'board', 'title', 'msg']) assert.ok(inv[k].shown, `${k} is still there`);
+  await sleep(1500);
+  assert.equal(await shareIsOpen(D), false, 'the share popup must not open by itself');
+  assert.equal(await D.evaluate(() => window.__opens), 0);
+  assert.equal((await Dctx.pages()).length, tabs, 'no tab was opened');
+  // the score was saved exactly as before (local + worldwide)
+  assert.ok(await D.evaluate(() => loadScores(scoreKey()).some(s => s.time === 200 && s.name === 'Zed')));
+  assert.equal((await serverScores()).filter(s => s.board === 'easy' && s.nickname === 'Zed' && s.time === 200).length, 1);
+  // French wording, then the click opens the popup (and only then)
+  await setLang(D, 'fr');
+  assert.equal(norm(await D.$eval('#ov-invite', el => el.textContent)), '🏆 Bravo ! Défie tes amis ! Partager');
+  await setLang(D, 'en');
+  await D.click('#ov-share');
+  await D.waitForSelector('#share-modal:not([hidden])');
+  assert.equal(await D.evaluate(() => window.__opens), 0, 'opening the popup shares nothing');
+  await D.keyboard.press('Escape');
+  await D.waitForSelector('#share-modal', { hidden: true });
+  assert.equal(await D.evaluate(() => document.activeElement.id), 'ov-share');
+  // no invitation on the game-over screen, nor once a new game started
+  await D.click('#ov-newgame');
+  assert.equal(await D.$eval('#ov-invite', el => getComputedStyle(el).display), 'none');
+  await D.evaluate(() => doGameOver());
+  assert.equal(await D.$eval('#ov-invite', el => getComputedStyle(el).display), 'none', 'no invitation after a loss');
+  await D.click('#ov-newgame');
+});
+
+await step('phone 390 px (EN and FR), touch: buttons fit, popup fits, share and copy work; also 320 px and landscape', async () => {
+  const ctx = await browserB.createBrowserContext();
+  await ctx.overridePermissions(`http://localhost:${PORT}`, ['clipboard-read', 'clipboard-write', 'clipboard-sanitized-write']);
+  const M = await ctx.newPage();
+  await M.setViewport(PHONE);
+  M.on('pageerror', e => problems.push(`[Mshare] pageerror: ${e.message}`));
+  await M.goto(BASE, { waitUntil: 'load' });
+  await M.waitForFunction(() => window.SudokuOnline && window.SudokuOnline.available);
+  await M.waitForSelector('#nick-modal:not([hidden])');
+  await M.tap('#nick-cancel');
+  await M.tap('#home-play');
+  const fits = () => M.evaluate(() => {
+    const r = id => document.getElementById(id).getBoundingClientRect(), s = r('share-open'), l = r('lb-open');
+    const card = r('share-card');
+    const btns = [...document.querySelectorAll('.share-btn')].map(b => ({ w: b.getBoundingClientRect().width, over: b.scrollWidth - b.clientWidth }));
+    return { vw: innerWidth, vh: innerHeight, s: [s.left, s.right], l: [l.left, l.right], row: [s.top, l.top], ox: document.documentElement.scrollWidth - innerWidth,
+      card: { l: card.left, r: card.right, t: card.top, b: card.bottom, sh: document.getElementById('share-card').scrollHeight, ch: document.getElementById('share-card').clientHeight }, btns,
+      slogan: document.getElementById('share-slogan').scrollWidth - document.getElementById('share-slogan').clientWidth };
+  });
+  for (const lang of ['en', 'fr']) {
+    await setLang(M, lang, true);
+    const a = await fits();
+    assert.ok(a.s[0] >= 0 && a.l[1] <= a.vw && a.s[1] <= a.l[0], `top bar buttons overlap or leave the screen (${lang}): ${JSON.stringify(a)}`);
+    assert.ok(Math.abs(a.row[0] - a.row[1]) <= 2 && a.ox <= 1);
+    await openShare(M, true);
+    const b = await fits();
+    assert.ok(b.card.l >= 0 && b.card.r <= b.vw && b.card.t >= 0 && b.card.b <= b.vh, `popup outside the screen (${lang}): ${JSON.stringify(b.card)}`);
+    assert.ok(b.btns.length === 3 && b.btns.every(x => x.w >= 250 && x.over <= 0), `a share button is too narrow or its label overflows (${lang}): ${JSON.stringify(b.btns)}`);
+    assert.ok(b.slogan <= 0);
+    await M.tap('#share-copy');
+    await M.waitForFunction(() => document.getElementById('share-status').textContent !== '');
+    await M.bringToFront();
+    assert.equal(await M.evaluate(() => navigator.clipboard.readText()), SHARE[lang]);
+    await clickAndCloseNewTab(ctx, M, '#share-wa');                    // (a click, not a tap: puppeteer's tap does not open tabs reliably)
+    assert.equal(await shareIsOpen(M), true, 'tapping a share button must not close the popup');
+    const shot = process.env.E2E_SHOT_DIR;
+    if (shot) await M.screenshot({ path: path.join(shot, `share-phone-${lang}.png`) });
+    await M.touchscreen.tap(8, 8);                                      // the dimmed backdrop
+    await M.waitForSelector('#share-modal', { hidden: true });
+  }
+  // a very small phone
+  await M.setViewport({ width: 320, height: 568, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+  await openShare(M, true);
+  const small = await fits();
+  assert.ok(small.s[0] >= 0 && small.l[1] <= small.vw && small.s[1] <= small.l[0], `320 px: ${JSON.stringify(small)}`);
+  assert.ok(small.card.l >= 0 && small.card.r <= small.vw && small.card.b <= small.vh && small.btns.every(x => x.over <= 0), `320 px popup: ${JSON.stringify(small.card)}`);
+  await M.touchscreen.tap(6, 6);
+  await M.waitForSelector('#share-modal', { hidden: true });
+  // landscape phone: short screen, the card scrolls and every button stays reachable
+  await M.setViewport({ width: 844, height: 390, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+  await openShare(M, true);
+  const land = await fits();
+  assert.ok(land.card.t >= 0 && land.card.b <= land.vh, `landscape: card taller than the screen ${JSON.stringify(land.card)}`);
+  await M.$eval('#share-card', el => { el.scrollTop = el.scrollHeight; });
+  const last = await M.$eval('#share-copy', el => { const b = el.getBoundingClientRect(); return { y: b.bottom, vh: innerHeight }; });
+  assert.ok(last.y <= last.vh, 'the last button must be reachable by scrolling');
+  await M.tap('#share-copy');
+  assert.equal(await shareIsOpen(M), true, 'a scrolling card is not closed by tapping its content');
+  await ctx.close();
 });
 
 await step('nothing was lost: local scores and the worldwide data are intact, no JavaScript error anywhere', async () => {

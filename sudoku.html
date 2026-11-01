@@ -6,28 +6,29 @@
 <meta name="theme-color" content="#0d0d1a">
 <meta name="mobile-web-app-capable" content="yes">
 <title>Sudoku Enhanced</title>
-<meta name="description" content="Free online Sudoku with a daily challenge and a worldwide leaderboard. Easy, Medium and Hard levels, no sign-up needed.">
+<meta name="description" content="Free Sudoku. Daily challenges. Global leaderboard.">
 <link rel="icon" href="assets/favicon-32.png" type="image/png" sizes="32x32">
 <link rel="icon" href="assets/favicon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <!-- Link preview (WhatsApp, Facebook, X/Twitter, Telegram…): read from this static HTML, no JavaScript involved -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Sudoku World">
-<meta property="og:title" content="Sudoku World">
-<meta property="og:description" content="Free online Sudoku with a daily challenge and a worldwide leaderboard. Easy, Medium and Hard levels, no sign-up needed.">
+<meta property="og:title" content="Sudoku World – No ads. Just Sudoku.">
+<meta property="og:description" content="Free Sudoku. Daily challenges. Global leaderboard.">
 <meta property="og:url" content="https://djbebs.github.io/sudoku-world/sudoku.html">
 <meta property="og:locale" content="en_US">
-<meta property="og:image" content="https://djbebs.github.io/sudoku-world/assets/og-sudoku-world-v2.jpg">
-<meta property="og:image:secure_url" content="https://djbebs.github.io/sudoku-world/assets/og-sudoku-world-v2.jpg">
+<meta property="og:locale:alternate" content="fr_FR">
+<meta property="og:image" content="https://djbebs.github.io/sudoku-world/assets/og-sudoku-en.jpg">
+<meta property="og:image:secure_url" content="https://djbebs.github.io/sudoku-world/assets/og-sudoku-en.jpg">
 <meta property="og:image:type" content="image/jpeg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Sudoku World: the neon SUDOKU logo with a glowing Sudoku grid">
+<meta property="og:image:alt" content="Sudoku World: the neon SUDOKU logo and the slogan “No ads. Just Sudoku.”">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Sudoku World">
-<meta name="twitter:description" content="Free online Sudoku with a daily challenge and a worldwide leaderboard. Easy, Medium and Hard levels, no sign-up needed.">
-<meta name="twitter:image" content="https://djbebs.github.io/sudoku-world/assets/og-sudoku-world-v2.jpg">
-<meta name="twitter:image:alt" content="Sudoku World: the neon SUDOKU logo with a glowing Sudoku grid">
+<meta name="twitter:title" content="Sudoku World – No ads. Just Sudoku.">
+<meta name="twitter:description" content="Free Sudoku. Daily challenges. Global leaderboard.">
+<meta name="twitter:image" content="https://djbebs.github.io/sudoku-world/assets/og-sudoku-en.jpg">
+<meta name="twitter:image:alt" content="Sudoku World: the neon SUDOKU logo and the slogan “No ads. Just Sudoku.”">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -530,8 +531,8 @@ body.day .diff-btn.daily-btn, body.day .lb-lvl.daily-lvl { color: rgba(160,90,0,
 body.day .diff-btn.daily-btn:hover, body.day .lb-lvl.daily-lvl:hover { color: rgba(140,70,0,0.9); }
 body.day .lb-lvl.daily-lvl.active { background: linear-gradient(135deg, #ff9900, #ffcc00); border-color: transparent; color: #180e00; }
 
-/* ── SCOREBOARD (the leaderboard popup's card — see "LEADERBOARD POPUP" below) ── */
-#scoreboard {
+/* ── SCOREBOARD (the leaderboard popup's card — see "LEADERBOARD POPUP" below; the share popup uses the same card) ── */
+#scoreboard, #share-card {
   position: relative;
   width: min(380px, 100%);
   max-height: 100%;
@@ -544,7 +545,7 @@ body.day .lb-lvl.daily-lvl.active { background: linear-gradient(135deg, #ff9900,
   box-shadow: 0 12px 50px rgba(0,0,0,0.5), 0 0 60px rgba(119,0,255,0.08);
   outline: none;
 }
-#sb-title {
+#sb-title, #share-title {
   font-size: 1.3rem;
   font-weight: 900;
   letter-spacing: -0.02em;
@@ -627,7 +628,7 @@ body.day .lb-lvl.daily-lvl.active { background: linear-gradient(135deg, #ff9900,
 #ov-saved { display: none; color: #00e676; font-weight: 800; font-size: 0.95rem; }
 #ov-saved.on { display: block; }
 
-body.day #scoreboard { background: #ddd5c8; border-color: rgba(80,50,20,0.12); box-shadow: 0 4px 24px rgba(80,50,20,0.15); }
+body.day #scoreboard, body.day #share-card { background: #ddd5c8; border-color: rgba(80,50,20,0.12); box-shadow: 0 4px 24px rgba(80,50,20,0.15); }
 body.day #sb-mode, body.day #sb-head { color: rgba(44,31,14,0.5); }
 body.day .sb-row { background: rgba(80,50,20,0.06); }
 body.day .sb-row.me { background: rgba(0,180,90,0.18); box-shadow: inset 0 0 0 1px rgba(0,150,75,0.6); }
@@ -959,7 +960,7 @@ body.day #nick-id { color: rgba(44,31,14,0.5); }
 @media (prefers-reduced-motion: reduce) { .ol-spin { animation-duration: 3s; } }
 
 /* ── LEADERBOARD POPUP (🏆 button → centred card over the game; same card, tabs and rows as the former side panel) ── */
-#topbar { display: flex; justify-content: flex-end; width: 480px; margin-bottom: 8px; }
+#topbar { display: flex; justify-content: flex-end; gap: 8px; width: 480px; margin-bottom: 8px; }
 .lb-btn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 12px; white-space: nowrap;
@@ -967,12 +968,13 @@ body.day #nick-id { color: rgba(44,31,14,0.5); }
   font: inherit; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
 }
 .lb-btn > span:first-child { font-size: 1rem; line-height: 1; }   /* the 🏆 emoji, larger than the label */
+.lb-btn > svg { width: 16px; height: 16px; flex-shrink: 0; }   /* the share icon */
 .lb-btn:hover { color: #fff; }
 body.day .lb-btn { color: rgba(44,31,14,0.8); }
 body.day .lb-btn:hover { color: #2c1f0e; }
 
 /* a light dimming, no blur: the game stays visible behind the card */
-#lb-modal {
+#lb-modal, #share-modal {
   padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   background: rgba(8,8,22,0.55);
   backdrop-filter: none; -webkit-backdrop-filter: none;
@@ -980,10 +982,10 @@ body.day .lb-btn:hover { color: #2c1f0e; }
   animation: lbFade 0.15s ease-out;
 }
 @keyframes lbFade { from { opacity: 0; } to { opacity: 1; } }
-body.lb-open { overflow: hidden; }   /* the page behind does not scroll while the popup is open */
-body.day #lb-modal { background: rgba(44,31,14,0.28); }
+body.popup-open { overflow: hidden; }   /* the page behind does not scroll while a popup is open */
+body.day #lb-modal, body.day #share-modal { background: rgba(44,31,14,0.28); }
 
-#lb-close {
+#lb-close, #share-close {
   position: absolute; top: 10px; right: 10px;
   width: 26px; height: 26px; padding: 0;
   display: grid; place-items: center;
@@ -995,10 +997,10 @@ body.day #lb-modal { background: rgba(44,31,14,0.28); }
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
-#lb-close::after { content: ''; position: absolute; inset: -9px; }   /* bigger touch target than the discreet icon */
-#lb-close:hover { background: rgba(255,255,255,0.13); color: #fff; }
-body.day #lb-close { background: rgba(80,50,20,0.07); border-color: rgba(80,50,20,0.14); color: rgba(44,31,14,0.6); }
-body.day #lb-close:hover { background: rgba(80,50,20,0.14); color: #2c1f0e; }
+#lb-close::after, #share-close::after { content: ''; position: absolute; inset: -9px; }   /* bigger touch target than the discreet icon */
+#lb-close:hover, #share-close:hover { background: rgba(255,255,255,0.13); color: #fff; }
+body.day #lb-close, body.day #share-close { background: rgba(80,50,20,0.07); border-color: rgba(80,50,20,0.14); color: rgba(44,31,14,0.6); }
+body.day #lb-close:hover, body.day #share-close:hover { background: rgba(80,50,20,0.14); color: #2c1f0e; }
 
 /* second level: Easy | Medium | Hard | Daily (the game's own difficulty pills) */
 #sb-levels { display: flex; justify-content: center; gap: 4px; margin-top: 10px; }
@@ -1016,7 +1018,71 @@ body.day #lb-close:hover { background: rgba(80,50,20,0.14); color: #2c1f0e; }
 }
 body.day #lb-scroll { scrollbar-color: rgba(44,31,14,0.3) transparent; }
 
-@media (prefers-reduced-motion: reduce) { #lb-modal { animation: none; } }
+/* ── SHARE POPUP (same card as the leaderboard: logo, name, slogan, three buttons) ── */
+#share-card { align-items: center; text-align: center; padding: 22px 18px 18px; overflow-y: auto; overscroll-behavior: contain; }   /* scrolls on a short (landscape) screen */
+#share-logo { display: block; width: 150px; height: 150px; margin: 0 auto 2px; }
+#share-slogan { margin-top: 8px; font-size: 1.08rem; font-weight: 800; letter-spacing: -0.01em; }
+#share-desc { margin-top: 4px; font-size: 0.8rem; line-height: 1.5; color: rgba(255,255,255,0.55); }
+#share-btns { display: flex; flex-direction: column; gap: 8px; width: 100%; margin-top: 18px; }
+.share-btn {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; height: 46px; padding: 0 16px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  color: #fff; text-decoration: none;
+  font: inherit; font-size: 0.88rem; font-weight: 700; letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+.share-btn:hover  { background: rgba(255,255,255,0.13); border-color: rgba(255,255,255,0.22); }
+.share-btn:active { transform: scale(0.97); }
+.share-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+#share-fb svg { color: #1877f2; fill: currentColor; }
+#share-wa svg { color: #25d366; fill: currentColor; }
+#share-copy { background: linear-gradient(135deg, #7700ff, #ff00aa); border-color: transparent; }
+#share-copy:hover { background: linear-gradient(135deg, #7700ff, #ff00aa); filter: brightness(1.2); }
+#share-copy svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+#share-status { min-height: 1.3em; margin-top: 10px; font-size: 0.82rem; font-weight: 800; color: #00e676; }
+#share-manual {
+  display: none; width: 100%; height: 38px; margin-top: 8px; padding: 0 12px;
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px;
+  color: #fff; font: inherit; font-size: 0.8rem; font-weight: 700; outline: none;
+  user-select: text; -webkit-user-select: text;
+}
+#share-manual.on { display: block; }
+#share-manual:focus { border-color: #00e676; box-shadow: 0 0 12px rgba(0,230,118,0.35); }
+@media (max-height: 560px) {
+  #share-card { padding-top: 16px; }
+  #share-logo { width: 90px; height: 90px; }
+  #share-btns { margin-top: 12px; }
+}
+body.day #share-desc { color: rgba(44,31,14,0.6); }
+body.day .share-btn { background: rgba(80,50,20,0.07); border-color: rgba(80,50,20,0.14); color: #2c1f0e; }
+body.day .share-btn:hover { background: rgba(80,50,20,0.13); border-color: rgba(80,50,20,0.26); }
+body.day #share-copy { background: linear-gradient(135deg, #7700ff, #ff00aa); border-color: transparent; color: #fff; }
+body.day #share-status { color: #007a3d; }
+body.day #share-manual { background: #fff; border-color: rgba(80,50,20,0.3); color: #2c1f0e; }
+
+/* win screen: a discreet invitation (never opens by itself, never shares a score) */
+#ov-invite {
+  display: none; align-items: center; gap: 14px;
+  padding: 7px 8px 7px 14px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 12px;
+  text-align: left; line-height: 1.35;
+}
+#overlay.win #ov-invite { display: flex; }
+#ov-invite-text { display: flex; flex-direction: column; font-size: 0.8rem; color: rgba(255,255,255,0.6); }
+#ov-invite-text b { font-size: 0.86rem; font-weight: 800; color: #fff; }
+#ov-share { padding: 8px 14px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 7px; }
+#ov-share svg { width: 14px; height: 14px; }
+body.day #ov-invite { background: rgba(80,50,20,0.06); border-color: rgba(80,50,20,0.14); }
+body.day #ov-invite-text { color: rgba(44,31,14,0.6); }
+body.day #ov-invite-text b { color: #2c1f0e; }
+
+@media (prefers-reduced-motion: reduce) { #lb-modal, #share-modal { animation: none; } }
 </style>
 </head>
 <body class="home-open">
@@ -1080,8 +1146,9 @@ body.day #lb-scroll { scrollbar-color: rgba(44,31,14,0.3) transparent; }
 <div id="layout">
 <div id="container">
 
-  <!-- Top right: opens the leaderboard popup (see #lb-modal below) -->
+  <!-- Top right: Share (opens #share-modal) and Leaderboard (opens #lb-modal), both popups are below -->
   <div id="topbar">
+    <button type="button" id="share-open" class="icon-btn lb-btn" aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg> <span data-i18n="share">Share</span></button>
     <button type="button" id="lb-open" class="icon-btn lb-btn" aria-haspopup="dialog"><span aria-hidden="true">🏆</span> <span data-i18n="sbTitle">Leaderboard</span></button>
   </div>
 
@@ -1140,6 +1207,11 @@ body.day #lb-scroll { scrollbar-color: rgba(44,31,14,0.3) transparent; }
         <button class="ov-btn ghost" id="ov-scores" data-i18n="sbTitle">Scoreboard</button>
         <button class="ov-btn" id="ov-newgame" data-i18n="newGame">New Game</button>
       </div>
+      <!-- Shown on a win only. Never opens by itself and never shares the score: sharing starts with the player's click. -->
+      <div id="ov-invite">
+        <div id="ov-invite-text"><b data-i18n="inviteBravo">🏆 Well done!</b> <span data-i18n="inviteText">Challenge your friends!</span></div>
+        <button type="button" class="ov-btn ghost" id="ov-share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg> <span data-i18n="share">Share</span></button>
+      </div>
     </div>
   </div>
 
@@ -1197,6 +1269,25 @@ body.day #lb-scroll { scrollbar-color: rgba(44,31,14,0.3) transparent; }
       </div>
     </div>
   </aside>
+</div>
+
+<!-- Share popup: opened by the Share buttons (top bar, win screen). Same card as the leaderboard.
+     The links are rewritten in the player's language by renderShare(); the values below are the English defaults. -->
+<div id="share-modal" class="modal" hidden>
+  <div id="share-card" role="dialog" aria-modal="true" aria-labelledby="share-title" tabindex="-1">
+    <button type="button" id="share-close" data-i18n-aria="close" data-i18n-title="close" title="Close" aria-label="Close">&#10005;</button>
+    <img id="share-logo" src="assets/logo-sudoku.png" width="150" height="150" alt="Sudoku" loading="lazy" decoding="async">
+    <div id="share-title" data-i18n="shareTitle">Sudoku World</div>
+    <div id="share-slogan" data-i18n="shareSlogan">No ads. Just Sudoku.</div>
+    <div id="share-desc" data-i18n="shareDesc">Free Sudoku. Daily challenges. Global leaderboard.</div>
+    <div id="share-btns">
+      <a id="share-fb" class="share-btn" href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fdjbebs.github.io%2Fsudoku-world%2Fen%2F" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.686 1.686 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647Z"/></svg> <span data-i18n="shareFb">Share on Facebook</span></a>
+      <a id="share-wa" class="share-btn" href="https://wa.me/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg> <span data-i18n="shareWa">Share on WhatsApp</span></a>
+      <button type="button" id="share-copy" class="share-btn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> <span data-i18n="shareCopy">Copy link</span></button>
+    </div>
+    <input id="share-manual" type="text" readonly data-i18n-aria="shareCopy" aria-label="Copy link">
+    <div id="share-status" role="status" aria-live="polite"></div>
+  </div>
 </div>
 
 <!-- Nickname settings (worldwide leaderboard) -->
@@ -1273,6 +1364,14 @@ const I18N = {
     // worldwide leaderboard
     tabLocal: 'This device', tabWorld: 'Worldwide', refresh: 'Refresh',
     close: 'Close', lbLevels: 'Difficulty',
+    // sharing
+    share: 'Share', shareTitle: 'Sudoku World',
+    shareSlogan: 'No ads. Just Sudoku.',
+    shareDesc: 'Free Sudoku. Daily challenges. Global leaderboard.',
+    shareFb: 'Share on Facebook', shareWa: 'Share on WhatsApp', shareCopy: 'Copy link',
+    shareCopied: 'Link copied!', shareManual: 'Copy the link below',
+    inviteBravo: '🏆 Well done!', inviteText: 'Challenge your friends!',
+    shareWaMsg: '🧩 No ads. Just Sudoku.\n\nPlay for free and challenge me on the global leaderboard!\n\n',
     olLoading: 'Loading the worldwide ranking…',
     olEmpty: 'No online scores yet.<br>Be the first!',
     olOffline: 'You are offline — the worldwide ranking is unavailable. The game itself still works.',
@@ -1318,6 +1417,14 @@ const I18N = {
     // worldwide leaderboard
     tabLocal: 'Cet appareil', tabWorld: 'Monde', refresh: 'Actualiser',
     close: 'Fermer', lbLevels: 'Difficulté',
+    // partage
+    share: 'Partager', shareTitle: 'Sudoku World',
+    shareSlogan: 'Zéro pub. Juste du Sudoku.',
+    shareDesc: 'Sudoku gratuit. Défis quotidiens. Classement mondial.',
+    shareFb: 'Partager sur Facebook', shareWa: 'Partager sur WhatsApp', shareCopy: 'Copier le lien',
+    shareCopied: 'Lien copié' + NBSP + '!', shareManual: 'Copiez le lien ci-dessous',
+    inviteBravo: '🏆 Bravo' + NBSP + '!', inviteText: 'Défie tes amis' + NBSP + '!',
+    shareWaMsg: '🧩 Zéro pub. Juste du Sudoku.\n\nJoue gratuitement et défie-moi au classement mondial !\n\n',
     olLoading: 'Chargement du classement mondial…',
     olEmpty: 'Aucun score en ligne pour l’instant.<br>Soyez le premier' + NBSP + '!',
     olOffline: 'Vous êtes hors ligne — le classement mondial est indisponible. Le jeu reste jouable.',
@@ -1338,7 +1445,9 @@ const I18N = {
   },
 };
 
-let lang = localStorage.getItem('sudoku-lang');
+// A shared link (…/fr/ or …/en/ → sudoku.html?lang=fr) opens the game in that language, for this visit only
+const urlLang = new URLSearchParams(location.search).get('lang');
+let lang = urlLang === 'en' || urlLang === 'fr' ? urlLang : localStorage.getItem('sudoku-lang');
 if (lang !== 'en' && lang !== 'fr') lang = /^fr/i.test(navigator.language || '') ? 'fr' : 'en';
 function t(key) { return I18N[lang][key]; }
 
@@ -2313,6 +2422,8 @@ document.querySelectorAll('.lang-toggle button').forEach(btn => {
     if (btn.dataset.lang === lang) return;
     lang = btn.dataset.lang;
     localStorage.setItem('sudoku-lang', lang);
+    const q = new URLSearchParams(location.search);   // the player chose: the link's language no longer applies
+    if (q.has('lang')) { q.delete('lang'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash); }
     applyLang();
   });
 });
@@ -2320,14 +2431,19 @@ document.querySelectorAll('.lang-toggle button').forEach(btn => {
 // Win screen: open the leaderboard popup on the ranking of the game just played
 document.getElementById('ov-scores').addEventListener('click', () => openLb(dailyMode ? 'daily' : difficulty));
 
+// Share: top bar and win screen (opens the popup; nothing is shared until the player picks a button there)
+document.getElementById('share-open').addEventListener('click', () => openShare());
+document.getElementById('ov-share').addEventListener('click', () => openShare());
+
 // New Game
 document.getElementById('newbtn').addEventListener('click', newGame);
 document.getElementById('ov-newgame').addEventListener('click', newGame);
 
 // Keyboard
 document.addEventListener('keydown', e => {
-  if (!lbModal.hidden) {                               // leaderboard popup: Esc closes it, the game keys stay inert
-    if (e.key === 'Escape' && nickModal.hidden) closeLb();
+  const openPopup = popups.find(([modal]) => !modal.hidden);
+  if (openPopup) {                                     // a popup is open: Esc closes it, the game keys stay inert
+    if (e.key === 'Escape' && nickModal.hidden) openPopup[1]();
     return;
   }
   if (e.target instanceof HTMLInputElement) return; // typing a name — don't treat keys as game input
@@ -2406,6 +2522,7 @@ function applyLang() {
   renderOverlay();
   renderScores(sbHighlight);
   renderOnline();
+  renderShare();
   renderHome();
   fitScreen();   // text length can change the layout height
 }
@@ -2624,6 +2741,14 @@ const nickIdEl    = document.getElementById('nick-id');
 const homeNickBtn = document.getElementById('home-nick');
 const lbModal     = document.getElementById('lb-modal');
 const lbScrollEl  = document.getElementById('lb-scroll');
+const shareModal  = document.getElementById('share-modal');
+const shareCard   = document.getElementById('share-card');
+const shareFbEl   = document.getElementById('share-fb');
+const shareWaEl   = document.getElementById('share-wa');
+const shareCopyBtn = document.getElementById('share-copy');
+const shareStatusEl = document.getElementById('share-status');
+const shareManualEl = document.getElementById('share-manual');
+const popups = [[lbModal, () => closeLb()], [shareModal, () => closeShare()]];   // [popup, how to close it]
 
 let sbTab = localStorage.getItem('sudoku-sb-tab') === 'local' ? 'local' : 'world';
 let olUnsub = null;       // stops the live listener
@@ -2779,10 +2904,54 @@ nickModal.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPro
 olNickBtn.addEventListener('click', () => openNick(false));
 homeNickBtn.addEventListener('click', () => openNick(false));
 
-// ── leaderboard popup: open / close ──
-// Opening or closing it only shows or hides the card: the game behind is not touched (the timer keeps running).
-let lbOpener = null;   // gets the focus back when the popup closes
+// ── popups (leaderboard, share): open / close ──
+// Opening or closing a popup only shows or hides a card: the game behind is not touched (the timer keeps running).
+const popupOpeners = new Map();   // popup → the element that had the focus (gets it back when the popup closes)
 
+function showPopup(modal, card) {
+  popupOpeners.set(modal, document.activeElement);
+  modal.hidden = false;
+  document.body.classList.add('popup-open');
+  card.focus({ preventScroll: true });
+}
+
+function hidePopup(modal) {
+  modal.hidden = true;
+  document.body.classList.remove('popup-open');
+  const opener = popupOpeners.get(modal);
+  popupOpeners.delete(modal);
+  if (opener && opener.isConnected) opener.focus({ preventScroll: true });
+}
+
+// Closing is easy: a click outside the card, or on any passive spot inside it, closes the popup.
+// Never closing by accident: buttons, links, tabs, the difficulty pills and a list that scrolls keep it open, and a click
+// only counts when the press ALSO started on a closable spot without dragging (scrollbar drags, touch scrolling and text
+// selection end in a "click" on some ancestor, which must not close anything).
+const POPUP_KEEP_OPEN = 'button, a, input, select, textarea, label, [role="tab"], [role="tablist"], #ol-foot, #share-btns';
+function bindPopupClose(modal, card, close, scroller) {
+  const closeSpot = el => {
+    if (!(el instanceof Element) || !el.isConnected || el.closest(POPUP_KEEP_OPEN)) return false;
+    return !(scroller && scroller.contains(el) && scroller.scrollHeight > scroller.clientHeight + 1);
+  };
+  let press = null;
+  modal.addEventListener('pointerdown', e => { press = { x: e.clientX, y: e.clientY, ok: closeSpot(e.target) }; });
+  modal.addEventListener('pointercancel', () => { press = null; });   // the browser took the gesture over (scrolling)
+  modal.addEventListener('click', e => {
+    const p = press;
+    press = null;
+    if (p && (!p.ok || Math.hypot(e.clientX - p.x, e.clientY - p.y) > 10)) return;
+    if (closeSpot(e.target)) close();
+  });
+  modal.addEventListener('keydown', e => {   // Tab stays inside the popup
+    if (e.key !== 'Tab') return;
+    const items = [...card.querySelectorAll('button, a[href], input')].filter(b => b.offsetParent !== null);
+    const first = items[0], last = items[items.length - 1], now = document.activeElement;
+    if (e.shiftKey && (now === first || now === card)) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && now === last) { e.preventDefault(); first.focus(); }
+  });
+}
+
+// ── leaderboard popup ──
 function pickLevel(level) {
   lbLevel = level;
   try { sessionStorage.setItem('sudoku-lb-level', level); } catch (_) { /* storage blocked: not remembered */ }
@@ -2791,55 +2960,95 @@ function pickLevel(level) {
 function openLb(level) {
   if (!lbModal.hidden) return;
   if (level) pickLevel(level);
-  lbOpener = document.activeElement;
-  lbModal.hidden = false;
-  document.body.classList.add('lb-open');
+  showPopup(lbModal, scoreboardEl);
   renderScores(sbHighlight);   // fresh local list; also starts the live worldwide list, now that it is on screen
   lbScrollEl.scrollTop = 0;
-  scoreboardEl.focus({ preventScroll: true });
 }
 
 function closeLb() {
   if (lbModal.hidden) return;
-  lbModal.hidden = true;
-  document.body.classList.remove('lb-open');
+  hidePopup(lbModal);
   syncOnline();                // off screen: stop listening (saves Firestore reads)
-  if (lbOpener && lbOpener.isConnected) lbOpener.focus({ preventScroll: true });
-  lbOpener = null;
 }
 
-// Closing is easy: a click outside the card, or on any passive spot inside it, closes the popup.
-// Never closing by accident: buttons, tabs, the difficulty pills and a list that scrolls keep it open, and a click only
-// counts when the press ALSO started on a closable spot without dragging (scrollbar drags, touch scrolling and text
-// selection end in a "click" on some ancestor, which must not close anything).
-const LB_KEEP_OPEN = 'button, a, input, select, textarea, label, [role="tab"], [role="tablist"], #ol-foot';
-function lbCloseSpot(el) {
-  if (!(el instanceof Element) || !el.isConnected || el.closest(LB_KEEP_OPEN)) return false;
-  return !(el.closest('#lb-scroll') && lbScrollEl.scrollHeight > lbScrollEl.clientHeight + 1);
-}
-let lbPress = null;
-lbModal.addEventListener('pointerdown', e => { lbPress = { x: e.clientX, y: e.clientY, ok: lbCloseSpot(e.target) }; });
-lbModal.addEventListener('pointercancel', () => { lbPress = null; });   // the browser took the gesture over (scrolling)
-lbModal.addEventListener('click', e => {
-  const press = lbPress;
-  lbPress = null;
-  if (press && (!press.ok || Math.hypot(e.clientX - press.x, e.clientY - press.y) > 10)) return;
-  if (lbCloseSpot(e.target)) closeLb();
-});
-lbModal.addEventListener('keydown', e => {   // Tab stays inside the popup
-  if (e.key !== 'Tab') return;
-  const btns = [...scoreboardEl.querySelectorAll('button')].filter(b => b.offsetParent !== null);
-  const first = btns[0], last = btns[btns.length - 1], now = document.activeElement;
-  if (e.shiftKey && (now === first || now === scoreboardEl)) { e.preventDefault(); last.focus(); }
-  else if (!e.shiftKey && now === last) { e.preventDefault(); first.focus(); }
-});
-
+bindPopupClose(lbModal, scoreboardEl, () => closeLb(), lbScrollEl);
 document.getElementById('lb-open').addEventListener('click', () => openLb());
 document.getElementById('lb-close').addEventListener('click', closeLb);
 document.querySelectorAll('#sb-levels button').forEach(b => b.addEventListener('click', () => {
   pickLevel(b.dataset.level);
   renderScores(sbHighlight);   // local list + worldwide listener follow the pick; the game is not touched
 }));
+
+// ── share popup ──
+// Facebook and WhatsApp do not run JavaScript when they build a link preview: they read the Open Graph tags of the
+// page that is shared. So each language has its own static page (fr/index.html, en/index.html) and that is the link we share.
+const SHARE_URL = { en: 'https://djbebs.github.io/sudoku-world/en/', fr: 'https://djbebs.github.io/sudoku-world/fr/' };
+let shareStatusTimer = null;
+
+function renderShare() {
+  const url = SHARE_URL[lang];
+  // Facebook's public link-share URL (no app id, no login SDK). Only the link is passed: the text of the post is the
+  // visitor's own, and the title / description / image come from the page's Open Graph tags.
+  shareFbEl.href = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url);
+  // wa.me: WhatsApp's official link, opens the app on a phone and WhatsApp Web / Desktop on a computer
+  shareWaEl.href = 'https://wa.me/?text=' + encodeURIComponent(t('shareWaMsg') + url);
+  shareManualEl.value = url;
+}
+
+function shareSay(text, keep) {
+  shareStatusEl.textContent = text;
+  clearTimeout(shareStatusTimer);
+  if (text && !keep) shareStatusTimer = setTimeout(() => { shareStatusEl.textContent = ''; }, 2500);
+}
+
+// Fallback for browsers without the async Clipboard API (or an insecure page): select + execCommand('copy')
+function legacyCopy(text) {
+  const box = document.createElement('textarea');
+  box.value = text;
+  box.setAttribute('readonly', '');
+  box.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;user-select:text;-webkit-user-select:text';
+  document.body.appendChild(box);
+  box.focus();
+  box.select();
+  box.setSelectionRange(0, text.length);
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (_) { /* refused */ }
+  box.remove();
+  return ok;
+}
+
+async function copyShareLink() {
+  const url = SHARE_URL[lang];
+  shareManualEl.classList.remove('on');
+  let ok = false;
+  try {
+    if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(url); ok = true; }
+  } catch (_) { /* permission refused: try the fallback */ }
+  if (!ok) ok = legacyCopy(url);
+  if (ok) { shareCopyBtn.focus({ preventScroll: true }); shareSay(t('shareCopied')); return; }
+  // Last resort: show the link, selected, so the player can copy it by hand
+  shareManualEl.value = url;
+  shareManualEl.classList.add('on');
+  shareManualEl.focus();
+  shareManualEl.select();
+  shareSay(t('shareManual'), true);
+}
+
+function openShare() {
+  if (!shareModal.hidden) return;
+  shareSay('');
+  shareManualEl.classList.remove('on');
+  renderShare();
+  showPopup(shareModal, shareCard);
+}
+
+function closeShare() {
+  if (!shareModal.hidden) hidePopup(shareModal);
+}
+
+bindPopupClose(shareModal, shareCard, () => closeShare(), shareCard);
+document.getElementById('share-close').addEventListener('click', closeShare);
+shareCopyBtn.addEventListener('click', copyShareLink);
 
 // ── tabs, refresh, connectivity ──
 document.querySelectorAll('#sb-tabs button').forEach(b => b.addEventListener('click', () => {

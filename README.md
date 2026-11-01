@@ -8,6 +8,7 @@
 - Daily Challenge: one ranking **per UTC date**, same puzzle for everybody, top 20.
 - Players pick a nickname (14 characters max), identified by an anonymous Firebase ID. No registration.
 - The ranking lives in a popup opened by the **🏆 Leaderboard** button (top right of the game). Two levels of navigation: **This device** | **Worldwide** (live, updates by itself), then **Easy | Medium | Hard | Daily**. Browsing them never touches the game being played (the timer keeps running). The popup closes with a click outside, a click on an empty spot of the card, the ✕, or Esc; tabs, buttons and a list that scrolls never close it. The last tab and difficulty are remembered for the session.
+- A **Share** button (top bar, plus a discreet invitation on the win screen) opens a popup with **Facebook**, **WhatsApp** and **Copy link**, in French or English. The game is free, with no ads: *No ads. Just Sudoku.* / *Zéro pub. Juste du Sudoku.* See "Sharing and link preview" below.
 
 Stack: Firebase **Firestore** + **Anonymous Authentication** + optional **App Check**, Firebase modular SDK, vanilla HTML/CSS/JS, hosted for free on **GitHub Pages**. No framework, no build step.
 
@@ -17,7 +18,7 @@ Stack: Firebase **Firestore** + **Anonymous Authentication** + optional **App Ch
 
 | File | Role |
 |---|---|
-| `sudoku.html` | The game. Gained the leaderboard popup (Worldwide tab, difficulty selector), nickname dialog and a status line in the win screen. |
+| `sudoku.html` | The game. Gained the leaderboard popup (Worldwide tab, difficulty selector), the share popup and win-screen invitation, nickname dialog and a status line in the win screen. |
 | `online.js` | ES module: Firebase bootstrap (lazy), anonymous sign-in, live ranking, score submission, offline queue. Exposes `window.SudokuOnline`. |
 | `online-core.js` | Pure helpers (board ids, nickname cleaning, validation limits, ordering, queue). Shared by the browser and the tests. |
 | `firebase-config.js` | **You edit this** (Firebase web config). While it contains `YOUR_…` the leaderboard stays off. |
@@ -25,10 +26,11 @@ Stack: Firebase **Firestore** + **Anonymous Authentication** + optional **App Ch
 | `firestore.rules` | Security rules (the server-side gate). |
 | `firestore.indexes.json` | Required composite indexes. |
 | `firebase.json` | Firebase CLI config (rules, indexes, local emulators). |
-| `tests/` | Unit, security-rules and two-browser end-to-end tests (run on local emulators only). |
-| `index.html` | Tiny redirect so the bare site address opens `sudoku.html`. |
+| `tests/` | Unit, link-preview, security-rules and two-browser end-to-end tests (run on local emulators only). |
+| `index.html` | Tiny redirect so the bare site address opens `sudoku.html` (with English link-preview tags). |
+| `fr/index.html`, `en/index.html` | The French and English **share pages** (`…/sudoku-world/fr/`, `…/en/`): their own link-preview tags and image, then they open the game in that language. |
 | `landing.html`, `2048.html`, `minesweeper.html`, `spectrum-flux.html`, `tictactoe.html` | The other games and the portal behind Sudoku's "All games" button. |
-| `assets/` | Link-preview image `og-sudoku-world-v2.jpg` (1200×630) and the favicons (`favicon-32.png`, `favicon-192.png`, `apple-touch-icon.png`), all made from the Sudoku logo. |
+| `assets/` | Link-preview images `og-sudoku-en.jpg`, `og-sudoku-fr.jpg` (1200×630; the older `og-sudoku-world-v2.jpg` stays for links already shared), the logo for the share popup / pages `logo-sudoku.png`, and the favicons (`favicon-32.png`, `favicon-192.png`, `apple-touch-icon.png`), all made from the Sudoku logo. |
 | `.nojekyll` | Empty file: tells GitHub Pages to serve the files as they are. |
 | `.gitignore` | An **allowlist**: only the files named in it can be committed. Add a file there before publishing it. |
 
@@ -170,17 +172,36 @@ Scores saved in the local scoreboard live in the browser, **per site address**: 
 
 > The page must be served over **http(s)**. Opened as a plain file (`file://`) the Worldwide tab simply does not appear and the game works as before.
 
-### Link preview (WhatsApp, Facebook, X, Telegram…)
+### Sharing and link preview (Facebook, WhatsApp, X, Telegram…)
 
-`index.html` and `sudoku.html` carry Open Graph + Twitter Card tags in their static HTML (title "Sudoku World", a short description, and the 1200×630 image `assets/og-sudoku-world-v2.jpg` through an absolute `https://djbebs.github.io/sudoku-world/…` URL). Preview robots do not run JavaScript, so this is all they read. The image is the neon Sudoku logo, centred on the site's dark background; the editable sources (`assets-src/logo-sudoku.png`, the original transparent logo, and `assets-src/og-image.html`) are kept local, not published. The same logo, cropped and resized, gives the favicons.
+**The Share button** (top bar, next to 🏆) and the invitation on the win screen open a popup with the logo, the name, the slogan and three buttons. Everything is optional and starts with a click: the popup never opens by itself, the message never contains a score, and the game sends nothing anywhere.
+
+* **Facebook** → `https://www.facebook.com/sharer/sharer.php?u=<share page>`, Facebook's public link-share URL: no app id, no Facebook SDK, no login. **Limitation:** only the link is passed. Facebook builds the preview (title, description, image) from the page's Open Graph tags, and the sender writes their own message: Facebook does not let a site pre-fill the text of a post.
+* **WhatsApp** → `https://wa.me/?text=…`, WhatsApp's official link (opens the app on a phone, WhatsApp Web / Desktop on a computer), with a ready-made message in the player's language:
+  `🧩 No ads. Just Sudoku.` / `Play for free and challenge me on the global leaderboard!` / the link (French: `🧩 Zéro pub. Juste du Sudoku.` / `Joue gratuitement et défie-moi au classement mondial !` / the link). The player can edit it before sending.
+* **Copy link** → the clipboard (fallbacks: `document.execCommand('copy')`, then the link is shown, selected, to copy by hand), with a discreet "Link copied!" / "Lien copié !".
+
+**Why two share pages.** Preview robots (Facebook, WhatsApp…) do not run JavaScript, and GitHub Pages is static, so one page cannot show a French preview to French readers and an English one to the others. Each language therefore has its own static page with its own Open Graph / Twitter tags and image:
+
+| Language | Link that is shared | Preview image |
+|---|---|---|
+| French | `https://djbebs.github.io/sudoku-world/fr/` | `assets/og-sudoku-fr.jpg` ("Zéro pub. Juste du Sudoku.") |
+| English | `https://djbebs.github.io/sudoku-world/en/` | `assets/og-sudoku-en.jpg` ("No ads. Just Sudoku.") |
+
+A human who opens one of these pages is sent straight to the game (`sudoku.html?lang=fr|en`) by a one-line script — deliberately **not** a `meta refresh`, so a robot keeps reading the page it was given. Without JavaScript a visible *Play / Jouer* button leads to the game. `?lang=` picks the language for that visit only: it does not overwrite the language the player saved, and it disappears from the address as soon as they choose one. The bare address (`…/sudoku-world/`) and `sudoku.html` keep working exactly as before, with English tags (`og:locale` `en_US`, `fr_FR` as alternate).
+
+**Images.** Two images, because the slogan is part of the picture. They are 1200×630 **JPEG**, not PNG: WhatsApp skips preview images above ~300 KB, and a PNG with glowing gradients is several times heavier (these are ~145 KB). They reuse the real neon Sudoku logo, untouched, next to a discreet 9×9 board drawn like the game's and the slogan in the game's own title gradient. Editable source (kept local, not published): `assets-src/og-share.html?lang=en|fr`, rendered with Chrome at 1200×630. The logo in the popup and on the share pages is `assets/logo-sudoku.png`, the original trimmed and resized to 320×320.
+
+**No ads, no tracking.** No Meta Pixel, no Facebook SDK, no analytics, no ad code, no sign-in: `tests/share.test.mjs` scans every published page for them. The only third-party code is the Firebase SDK that powers the optional worldwide leaderboard.
 
 **WhatsApp caches previews for a long time, per exact URL.** To see a changed preview, share a URL it has never seen — add a throw-away query parameter, which the site ignores:
 
 ```
-https://djbebs.github.io/sudoku-world/?v=2
+https://djbebs.github.io/sudoku-world/fr/?v=2
+https://djbebs.github.io/sudoku-world/en/?v=2
 ```
 
-Use a new number each time (`?v=3`, …). Send it to yourself ("Messages to yourself") and wait a few seconds. If you change the *image*, also give it a new file name (e.g. `og-sudoku-world-v3.jpg`) and update the tags: robots cache the image URL too. Free checkers: the Facebook Sharing Debugger (<https://developers.facebook.com/tools/debug/>, "Scrape Again"; needs a Facebook login) or <https://www.opengraph.xyz>. Keep the image under ~300 KB — WhatsApp skips larger ones.
+Use a new number each time (`?v=3`, …). Send it to yourself ("Messages to yourself") and wait a few seconds. If you change the *image*, also give it a new file name (e.g. `og-sudoku-fr-v2.jpg`) and update the tags: robots cache the image URL too. Free checkers: the Facebook Sharing Debugger (<https://developers.facebook.com/tools/debug/>, "Scrape Again"; needs a Facebook login) or <https://www.opengraph.xyz>. Keep the image under ~300 KB — WhatsApp skips larger ones.
 
 ---
 
@@ -198,7 +219,7 @@ Use a new number each time (`?v=3`, …). Send it to yourself ("Messages to your
 ```bash
 cd tests
 npm install
-npm test            # = test:core + test:rules + test:e2e
+npm test            # = test:core + test:share + test:rules + test:e2e
 ```
 
 Requirements: Node 22+, **Java 11+** (the Firestore emulator), Google Chrome (set `CHROME_PATH` if needed) and internet access (the Firebase SDK loads from gstatic.com). Everything runs against **local emulators** with a fake project (`demo-sudoku`); nothing touches your real Firebase project.
@@ -206,10 +227,11 @@ Requirements: Node 22+, **Java 11+** (the Firestore emulator), Google Chrome (se
 | Suite | Covers |
 |---|---|
 | `core.test.mjs` | UTC date, board/doc ids, nickname cleaning, ordering, personal-best rule, validation limits, offline queue |
+| `share.test.mjs` | The link-preview tags read from the raw HTML of the 4 pages (every `og:*` / `twitter:*` tag, absolute https URLs, locales), the two share images (real 1200×630 JPEG, under 300 KB), the FR / EN share pages (no meta refresh, redirect, hreflang), the exact FR / EN texts and share links in `sudoku.html`, and the "no ads, no tracking" scan of every published page |
 | `rules.test.mjs` | Firestore rules: signed-out writes, wrong uid/doc id, extra/missing fields, client timestamps, nickname rules (incl. emoji), time/mistakes/clues bounds, board/date rules, duplicate prevention, improvement-only updates, 10 s rate limit, rename-only updates, no deletes, private `players` |
-| `e2e.mjs` | Two separate Chrome profiles (two identities) + a third: first-launch nickname, same Daily puzzle, ranks #1/#2, both see the same list, live update without reload, persistence after reload, duplicate prevention, better-score replacement, tie-break by mistakes, live rename, offline play + queue + automatic send, Firebase unreachable, EN/FR, 390×844 touch layout, leaderboard-off when unconfigured. Leaderboard popup: 🏆 button position, centred card and light dimming, game and timer untouched, closing (outside / passive spot / ✕ / Esc, never by tabs, pills, buttons, gaps or a scrolling list), Local ⇄ Worldwide and the four difficulties, session memory, listener only while open, personal rank below the top 20, 20-row scrolling on desktop and on a 390 px touch screen, EN/FR, day theme |
+| `e2e.mjs` | Two separate Chrome profiles (two identities) + a third: first-launch nickname, same Daily puzzle, ranks #1/#2, both see the same list, live update without reload, persistence after reload, duplicate prevention, better-score replacement, tie-break by mistakes, live rename, offline play + queue + automatic send, Firebase unreachable, EN/FR, 390×844 touch layout, leaderboard-off when unconfigured. Leaderboard popup: 🏆 button position, centred card and light dimming, game and timer untouched, closing (outside / passive spot / ✕ / Esc, never by tabs, pills, buttons, gaps or a scrolling list), Local ⇄ Worldwide and the four difficulties, session memory, listener only while open, personal rank below the top 20, 20-row scrolling on desktop and on a 390 px touch screen, EN/FR, day theme. Sharing: the Share button next to 🏆, popup content and style, closing (never by the share buttons), exact Facebook / WhatsApp links in EN and FR (opened in a new tab, hosts blocked in the test browsers), copy to the real clipboard and its three fallbacks, `?lang=` and the static FR / EN pages, the win-screen invitation (never automatic, score logic untouched, none after a loss), 390 / 320 px and landscape phones |
 
-**Last run (2026-11-01, Windows 11, Node 24, Java 21, Chrome, local emulators):** `core` 8/8, `rules` 20/20, `e2e` 30/30. **Not tested:** a real Firebase project (so App Check, real index builds and production quotas are untested), real iPhone/Android devices (only Chrome's touch/viewport emulation), other browsers than Chrome, and automated runs against the live GitHub Pages URL (it is checked by hand after each release). The Firestore emulator does not enforce indexes, so `firestore.indexes.json` is unverified until deployed.
+**Last run (2026-11-01, Windows 11, Node 24, Java 21, Chrome, local emulators):** `core` 8/8, `share` 12/12, `rules` 20/20, `e2e` 39/39. Also checked by hand-run scripts against the live site after publishing (see the release notes in the commit). **Not tested:** a real Firebase project (so App Check, real index builds and production quotas are untested), real iPhone/Android devices (only Chrome's touch/viewport emulation), other browsers than Chrome, and automated runs against the live GitHub Pages URL (it is checked by hand after each release). The Firestore emulator does not enforce indexes, so `firestore.indexes.json` is unverified until deployed.
 
 ---
 
