@@ -844,8 +844,10 @@ body.stack .slabel, body.stack #hearts-label { font-size: max(0.55rem, calc(10 *
 body.stack .sval { font-size: max(1.25rem, calc(17 * var(--u))); }
 body.stack .heart { font-size: max(1.35rem, calc(17 * var(--u))); }
 
-/* ── HOME: daily-challenge calendar (first screen; scaled by fitScreen() like #layout) ── */
+/* ── HOME: daily-challenge calendar (opened by the 📅 button of the game header; scaled by fitScreen() like #layout) ── */
 body.home-open #layout { display: none; }
+body.booting #layout { visibility: hidden; }   /* the game is the first screen: hidden for the instant before the script has sized it… */
+body.booting * { transition: none !important; }   /* …and without the size animations the first scaling would otherwise start */
 body:not(.home-open) #home { display: none; }
 #home {
   width: 480px;
@@ -1266,9 +1268,9 @@ body.day #ov-invite-text b { color: #2c1f0e; }
 @media (prefers-reduced-motion: reduce) { #lb-modal, #share-modal { animation: none; } }
 </style>
 </head>
-<body class="home-open">
+<body class="booting">
 
-<!-- HOME: calendar of daily challenges, first screen (Play → today's Daily Challenge) -->
+<!-- HOME: calendar of daily challenges, opened by 📅 in the game header (Play → today's Daily Challenge) -->
 <div id="home">
   <div id="home-top">
     <div class="home-chip" data-i18n-title="totalTip">
@@ -2837,7 +2839,7 @@ setInterval(() => {
 }, 60000);
 
 // ══════════════════════════════════════════════════════════════
-// HOME  (first screen: calendar of Daily Challenges)
+// HOME  (calendar of Daily Challenges, opened by 📅; the game itself is the first screen)
 // A finished day is the 'sudoku-daily-YYYY-MM-DD-done' flag written by doWin().
 // "Play" (or today's cell) starts today's Daily Challenge; 📅 in the game header comes back here.
 // ══════════════════════════════════════════════════════════════
@@ -3364,9 +3366,14 @@ else window.addEventListener('sudoku-online-ready', onOnlineReady, { once: true 
 // START
 // ══════════════════════════════════════════════════════════════
 updateBest();
-newGame();
+// The game is the first screen: today's Daily Challenge, or — once that one is done — a regular game (the calendar is behind 📅)
+if (isDailyDone()) newGame(); else startDailyChallenge();
 updateDailyBtn();
 applyLang();
+// show the game once its first scaled layout has been drawn (twice rAF = after that first frame; the timeout is only a safety net)
+const bootDone = () => document.body.classList.remove('booting');
+requestAnimationFrame(() => requestAnimationFrame(bootDone));
+setTimeout(bootDone, 300);
 </script>
 
 <!-- Worldwide leaderboard (optional: the game works without it) — see README.md -->

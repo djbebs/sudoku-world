@@ -70,6 +70,8 @@ async function newPage(browser, who, viewport) {
 
 // ── game helpers (the game's top-level `let`s are reachable from page.evaluate) ──
 const inGame = page => page.$eval('body', b => !b.classList.contains('home-open'));
+// The game is the first screen (the calendar sits behind 📅): nothing to click, only wait for it
+const enterGame = page => page.waitForSelector('#board', { visible: true });
 async function startMode(page, mode) {
   if (!(await inGame(page))) await page.click('#home-play');          // from the calendar screen: starts today's Daily
   if (mode === 'daily') await page.click('#daily-btn');
@@ -175,7 +177,7 @@ await step('first launch asks for a nickname; each player picks a different one 
 });
 
 await step('Daily Challenge: both players get the very same puzzle (UTC date)', async () => {
-  await A.click('#home-play'); await B.click('#home-play');
+  await enterGame(A); await enterGame(B);
   const [pa, pb] = await Promise.all([A, B].map(p => p.evaluate(() => JSON.stringify({ d: dailyDate, p: puzzle }))));
   assert.equal(pa, pb);
   assert.equal(JSON.parse(pa).d, utcToday);
@@ -227,7 +229,7 @@ await step('score persistence: after a reload the same identity, nickname and ra
   await A.waitForFunction(() => window.SudokuOnline && window.SudokuOnline.available);
   assert.equal(await A.evaluate(() => SudokuOnline.userId()), uidA);
   assert.equal(await A.evaluate(() => SudokuOnline.getNickname()), 'Alice');
-  await A.click('#home-play');
+  await enterGame(A);
   await A.click('#daily-btn');
   await openLb(A);
   const rows = await waitRows(A, r => r.length === 3, 'three daily rows after reload');
@@ -317,7 +319,7 @@ await step('English and French interfaces', async () => {
 
 await step('mobile layout (390×844, touch): the popup fits the screen, worldwide list inside', async () => {
   const M = await newPage(browserA, 'mobile', { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
-  await M.tap('#home-play');
+  await enterGame(M);
   await M.tap('#daily-btn');
   assert.equal(await lbIsOpen(M), false);
   const btn = await M.$eval('#lb-open', el => { const b = el.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, w: b.width, vw: innerWidth }; });
@@ -354,7 +356,7 @@ await step('Firebase unreachable (SDK blocked while online): clear message, game
   await P.waitForFunction(() => window.SudokuOnline && window.SudokuOnline.available);
   await P.waitForSelector('#nick-modal:not([hidden])');
   await P.click('#nick-cancel');
-  await P.click('#home-play');
+  await enterGame(P);
   await openLb(P);
   await P.waitForFunction(() => /unavailable/i.test(document.getElementById('ol-status').textContent), { timeout: 15000 });
   assert.equal(await P.$eval('#ol-status', el => el.classList.contains('warn')), true);
@@ -380,7 +382,7 @@ await step('without configuration the leaderboard stays off and the game is unch
   assert.equal(await P.evaluate(() => SudokuOnline.available), false);
   assert.equal(await P.$eval('#sb-tabs', el => el.hidden), true);
   assert.equal(await P.$eval('#sb-list', el => el.hidden), false);                 // local scoreboard shown as before
-  await P.click('#home-play');
+  await enterGame(P);
   await P.evaluate(() => { for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) board[r][c] = solution[r][c]; timerSecs = 100; doWin(); });
   await P.waitForSelector('#ov-form.on', { visible: true });
   await P.$eval('#ov-name', el => { el.value = 'Solo'; });
@@ -421,7 +423,7 @@ await step('the 🏆 button is in the first header row, right of the logo, visib
   await D.waitForFunction(() => window.SudokuOnline && window.SudokuOnline.available);
   await D.waitForSelector('#nick-modal:not([hidden])');
   await D.click('#nick-cancel');
-  await D.click('#home-play');
+  await enterGame(D);
   const g = await D.evaluate(() => {
     const r = s => document.querySelector(s).getBoundingClientRect();
     const btn = r('#lb-open'), head = r('#header'), logo = r('#header h1'), theme = r('#header .theme-toggle');
@@ -572,7 +574,7 @@ await step('the last tab and the last difficulty are remembered for the session'
   await closeLb(D);
   await D.reload({ waitUntil: 'load' });                              // same browser tab = same session
   await D.waitForFunction(() => window.SudokuOnline && window.SudokuOnline.available);
-  await D.click('#home-play');
+  await enterGame(D);
   await openLb(D);
   assert.deepEqual(await D.evaluate(() => [document.querySelector('.lb-lvl.active').dataset.level, document.getElementById('ol').hidden]), ['hard', true]);
   await D.click('#sb-tab-world');
@@ -663,7 +665,7 @@ await step('phone 390 px: touch scrolling of the 20 scores keeps the popup open;
   await M.waitForFunction(() => window.SudokuOnline && window.SudokuOnline.available);
   await M.waitForSelector('#nick-modal:not([hidden])');
   await M.tap('#nick-cancel');
-  await M.tap('#home-play');
+  await enterGame(M);
   await openLb(M, 'hard', true);
   await M.tap('#sb-tab-world');
   await waitRows(M, r => r.length === 20, 'Hard top 20 on the phone');
@@ -799,7 +801,7 @@ await step('subtitles fit on 320 / 375 / 390 / 430 / 768 px (EN and FR, both tab
   await M.waitForFunction(() => window.SudokuOnline && window.SudokuOnline.available);
   await M.waitForSelector('#nick-modal:not([hidden])');
   await M.tap('#nick-cancel');
-  await M.tap('#home-play');
+  await enterGame(M);
   await openLb(M, 'daily', true);
   const heights = {};
   for (const [w, h] of [[320, 568], [375, 812], [390, 844], [430, 932], [768, 1024]]) {
@@ -1076,7 +1078,7 @@ await step('Messenger on a phone: its own link opens the app; when nothing opens
   await M.waitForFunction(() => window.SudokuOnline && window.SudokuOnline.available);
   await M.waitForSelector('#nick-modal:not([hidden])');
   await M.tap('#nick-cancel');
-  await M.tap('#home-play');
+  await enterGame(M);
   for (const lang of ['en', 'fr']) {
     await setLang(M, lang, true);
     await openShare(M, true);
@@ -1137,7 +1139,7 @@ await step('a shared link opens the game in its language (?lang=) without overri
   await P.evaluate(() => localStorage.setItem('sudoku-lang', 'en'));   // a saved choice exists…
   await P.reload({ waitUntil: 'load' });
   assert.equal((await info(P)).lang, 'fr', '…but the link says French, for this visit');
-  await P.click('#home .lang-toggle button[data-lang="en"]');
+  await P.click('#header .lang-toggle button[data-lang="en"]');
   const after = await info(P);
   assert.equal(after.lang, 'en'); assert.equal(after.saved, 'en');
   assert.ok(!/lang=/.test(after.search) && /x=1/.test(after.search), `the link's language is dropped once the player chooses (${after.search})`);
@@ -1196,7 +1198,7 @@ await step('phone 390 px (EN and FR), touch: buttons fit, popup fits, share and 
   await M.waitForFunction(() => window.SudokuOnline && window.SudokuOnline.available);
   await M.waitForSelector('#nick-modal:not([hidden])');
   await M.tap('#nick-cancel');
-  await M.tap('#home-play');
+  await enterGame(M);
   const fits = () => M.evaluate(() => {
     const r = id => document.getElementById(id).getBoundingClientRect(), s = r('share-open'), l = r('lb-open');
     const card = r('share-card');
@@ -1261,7 +1263,7 @@ async function candPage(viewport, { lang = 'en', tap = false } = {}) {
   P.on('request', r => (/\/firebase-config\.js$/.test(r.url()) ? r.respond({ status: 200, contentType: 'text/javascript', body: NO_FIREBASE }) : r.continue()));
   await P.evaluateOnNewDocument(l => { if (!localStorage.getItem('sudoku-lang')) localStorage.setItem('sudoku-lang', l); }, lang);
   await P.goto(`http://localhost:${PORT}${SUB}sudoku.html`, { waitUntil: 'load' });
-  await (tap ? P.tap('#home-play') : P.click('#home-play'));
+  await enterGame(P);
   await P.waitForSelector('#notes-toggle', { visible: true });
   return { ctx, P };
 }
@@ -1459,7 +1461,7 @@ await step('first-use tip (FR, night): shown once next to the button, never over
   await P.click('#notes-toggle'); await P.click('#notes-toggle');
   assert.equal(await pressed(P), 'true'); assert.equal(await tipShown(P), false);
   await P.reload({ waitUntil: 'load' });
-  await P.click('#home-play');
+  await enterGame(P);
   await P.click('#notes-toggle');
   assert.equal(await pressed(P), 'true'); assert.equal(await tipShown(P), false, 'not shown again after a reload');
   assert.equal(await tipFlag(P), '1');
@@ -1572,6 +1574,31 @@ const overlapping = R => {
   }
   return bad;
 };
+
+await step('the FIRST page is the game with the Daily Challenge of the day, not the calendar (computer + phone, EN + FR); 📅 opens the calendar, Play comes back; once the Daily is done a reload opens a regular game', async () => {
+  for (const [vp, tap] of [[{ width: 1280, height: 800 }, false], [{ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }, true]]) for (const lang of ['en', 'fr']) {
+    const { ctx, P } = await candPage(vp, { lang, tap });
+    const s = await P.evaluate(() => ({ home: document.body.classList.contains('home-open'), booting: document.body.classList.contains('booting'), daily: dailyMode, active: document.getElementById('daily-btn').classList.contains('active'),
+      boardW: document.getElementById('board').getBoundingClientRect().width, calendarShown: getComputedStyle(document.getElementById('home')).display !== 'none', puzzle: JSON.stringify(puzzle),
+      expect: JSON.stringify(generatePuzzleSeeded('medium', mulberry32(strToSeed('sudoku-daily-' + getDailyDateStr()))).puzzle), date: getDailyDateStr() }));
+    assert.deepEqual([s.home, s.booting, s.calendarShown], [false, false, false], `${lang}: the calendar must not be the first page`);
+    assert.ok(s.boardW > 200, 'the grid is on screen');
+    assert.deepEqual([s.daily, s.active, s.puzzle === s.expect, s.date], [true, true, true, utcToday], `${lang}: today's Daily Challenge (UTC) is loaded`);
+    await P.click('#home-btn');                                         // 📅 → calendar
+    assert.equal(await P.evaluate(() => document.body.classList.contains('home-open')), true);
+    await P.click('#home-play');                                        // Play → back to the Daily
+    assert.equal(await P.evaluate(() => [document.body.classList.contains('home-open'), dailyMode]).then(x => x.join()), 'false,true');
+    await ctx.close();
+  }
+  // Daily already done today: a reload opens a regular game (last difficulty: Easy), the Daily button shows its ✓
+  const { ctx, P } = await candPage({ width: 1280, height: 800 }, { lang: 'en' });
+  await P.evaluate(d => localStorage.setItem('sudoku-daily-' + d + '-done', '1'), utcToday);
+  await P.reload({ waitUntil: 'load' });
+  await enterGame(P);
+  const r = await P.evaluate(() => ({ home: document.body.classList.contains('home-open'), daily: dailyMode, diff: difficulty, done: document.getElementById('daily-btn').classList.contains('done'), active: document.querySelector('#diff-btns .diff-btn.active')?.dataset.diff }));
+  assert.deepEqual(r, { home: false, daily: false, diff: 'easy', done: true, active: 'easy' });
+  await ctx.close();
+});
 
 await step('computer 1280×800 (EN + FR): row 1 = logo · 🏆 Share || EN/FR theme, row 2 = difficulty · calendar + daily · New Game, row 3 = Time · Best · Mistakes; exact labels', async () => {
   for (const lang of ['en', 'fr']) {
