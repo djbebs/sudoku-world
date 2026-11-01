@@ -851,7 +851,7 @@ await step('Facebook and WhatsApp links in English and in French (exact text, pu
     assert.equal(fb.searchParams.get('u'), SHARE[lang]);
     assert.deepEqual([...fb.searchParams.keys()], ['u'], 'only the link is passed to Facebook');
     const wa = new URL(st.waHref);
-    assert.equal(wa.origin + wa.pathname, 'https://wa.me/');
+    assert.equal(wa.origin + wa.pathname, 'https://api.whatsapp.com/send');
     assert.equal(wa.searchParams.get('text'), WA_MSG[lang] + SHARE[lang], `${lang} WhatsApp message`);
     assert.ok(!/\d:\d\d|score|time/i.test(wa.searchParams.get('text').replace(/Sudoku World/g, '')), 'no score in the message');
     for (const [t, r] of [[st.fbTarget, st.fbRel], [st.waTarget, st.waRel]]) { assert.equal(t, '_blank'); assert.match(r, /noopener/); }

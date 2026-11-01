@@ -104,7 +104,7 @@ test('the game builds the Facebook / WhatsApp links from the public share pages 
   const g = read('sudoku.html');
   assert.ok(g.includes("en: 'https://djbebs.github.io/sudoku-world/en/'") && g.includes("fr: 'https://djbebs.github.io/sudoku-world/fr/'"));
   assert.ok(g.includes("'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url)"), 'Facebook: public link-share URL');
-  assert.ok(g.includes("'https://wa.me/?text=' + encodeURIComponent(t('shareWaMsg') + url)"), 'WhatsApp: official wa.me link');
+  assert.ok(g.includes("'https://api.whatsapp.com/send?text=' + encodeURIComponent(t('shareWaMsg') + url)"), 'WhatsApp: official send link (wa.me would turn the emoji into �)');
   for (const s of [
     "shareSlogan: 'No ads. Just Sudoku.'", "shareDesc: 'Free Sudoku. Daily challenges. Global leaderboard.'", "shareFb: 'Share on Facebook'", "shareWa: 'Share on WhatsApp'", "shareCopy: 'Copy link'", "shareCopied: 'Link copied!'",
     "shareSlogan: 'Zéro pub. Juste du Sudoku.'", "shareDesc: 'Sudoku gratuit. Défis quotidiens. Classement mondial.'", "shareFb: 'Partager sur Facebook'", "shareWa: 'Partager sur WhatsApp'", "shareCopy: 'Copier le lien'", "shareCopied: 'Lien copié' + NBSP + '!'",
