@@ -410,7 +410,7 @@ const gameSnapshot = page => page.evaluate(() => ({
 for (let i = 1; i <= 22; i++) await seedScore('hard', i, 100 + i * 3, i % 3);   // 22 players already on the Hard ranking
 await seedScore('daily-' + utcToday, 90, 500, 0);
 
-await step('the 🏆 button is at the top right, visible, and the ranking is no longer on the page', async () => {
+await step('the 🏆 button is in the first header row, right of the logo, visible, and the ranking is no longer on the page', async () => {
   Dctx = await browserB.createBrowserContext();
   await Dctx.overridePermissions(`http://localhost:${PORT}`, ['clipboard-read', 'clipboard-write', 'clipboard-sanitized-write']);
   D = await Dctx.newPage();
@@ -424,13 +424,17 @@ await step('the 🏆 button is at the top right, visible, and the ranking is no 
   await D.click('#home-play');
   const g = await D.evaluate(() => {
     const r = s => document.querySelector(s).getBoundingClientRect();
-    const btn = r('#lb-open'), head = r('#header');
+    const btn = r('#lb-open'), head = r('#header'), logo = r('#header h1'), theme = r('#header .theme-toggle');
     const side = document.querySelector('#layout #scoreboard');
-    return { btnVisible: btn.width > 0 && btn.height > 0, btnRight: btn.right, headRight: head.right, btnBottom: btn.bottom, headTop: head.top, side: !!side, hidden: document.getElementById('lb-modal').hidden };
+    return { btnVisible: btn.width > 0 && btn.height > 0, inHeader: document.getElementById('header').contains(document.getElementById('lb-open')),
+      btnLeft: btn.left, logoRight: logo.right, rowGap: Math.abs((btn.top + btn.bottom) / 2 - (logo.top + logo.bottom) / 2),
+      themeRight: theme.right, headRight: head.right, btnBottom: btn.bottom, headTop: head.top, side: !!side, hidden: document.getElementById('lb-modal').hidden };
   });
   assert.ok(g.btnVisible);
-  assert.ok(Math.abs(g.btnRight - g.headRight) <= 1, `button not aligned to the right edge of the game (${g.btnRight} vs ${g.headRight})`);
-  assert.ok(g.btnBottom <= g.headTop + 1, 'button must sit above the game header');
+  assert.ok(g.inHeader, 'the 🏆 button belongs to the header');
+  assert.ok(g.btnLeft > g.logoRight && g.rowGap <= 4, `🏆 must sit right of the logo, on its row (gap ${g.rowGap})`);
+  assert.ok(Math.abs(g.themeRight - g.headRight) <= 1, `the theme button is the last one, at the right edge of the header (${g.themeRight} vs ${g.headRight})`);
+  assert.ok(g.btnBottom > g.headTop, 'the button is part of the header, not above it');
   assert.equal(g.side, false, 'the permanent side ranking must be gone');
   assert.equal(g.hidden, true);
   assert.match(await D.$eval('#lb-open', el => el.textContent), /Leaderboard|Classement/);
@@ -899,19 +903,23 @@ async function clickAndCloseNewTab(ctx, page, selector) {
   await page.bringToFront();
 }
 
-await step('the Share button sits in the top bar, next to 🏆, visible; nothing opens by itself', async () => {
+await step('the Share button sits in the header, right next to 🏆 (icon + text on a computer), visible; nothing opens by itself', async () => {
   const g = await D.evaluate(() => {
     const r = id => document.getElementById(id).getBoundingClientRect();
     const s = r('share-open'), l = r('lb-open'), h = document.getElementById('header').getBoundingClientRect();
+    const txt = document.querySelector('#share-open .lb-text').getBoundingClientRect();
     return { sw: s.width, sh: s.height, sRight: s.right, sLeft: s.left, sTop: s.top, lLeft: l.left, lTop: l.top, lRight: l.right, hLeft: h.left, hRight: h.right, hTop: h.top, sBottom: s.bottom,
-      text: document.querySelector('#share-open span').textContent, open: !document.getElementById('share-modal').hidden };
+      textShown: txt.width > 10 && txt.height > 5, hasIcon: !!document.querySelector('#share-open svg'), aria: document.getElementById('share-open').getAttribute('aria-label'),
+      text: document.querySelector('#share-open .lb-text').textContent, open: !document.getElementById('share-modal').hidden };
   });
   assert.ok(g.sw > 0 && g.sh > 0);
-  assert.ok(g.sRight <= g.lLeft && g.lLeft - g.sRight < 20, `Share must be right next to 🏆 (${g.sRight} → ${g.lLeft})`);
+  assert.ok(g.lRight <= g.sLeft && g.sLeft - g.lRight < 20, `Share must be right next to 🏆 (${g.lRight} → ${g.sLeft})`);
   assert.ok(Math.abs(g.sTop - g.lTop) <= 2, 'same row as 🏆');
-  assert.ok(g.sLeft >= g.hLeft - 1 && g.lRight <= g.hRight + 1, 'inside the width of the game');
-  assert.ok(g.sBottom <= g.hTop + 1, 'above the game header');
+  assert.ok(g.lLeft >= g.hLeft - 1 && g.sRight <= g.hRight + 1, 'inside the width of the header');
+  assert.ok(g.sBottom > g.hTop, 'part of the header, not above it');
+  assert.ok(g.hasIcon && g.textShown, 'icon + text on a computer');
   assert.equal(g.text, 'Share');
+  assert.equal(g.aria, 'Share');
   assert.equal(g.open, false);
 });
 
@@ -1200,7 +1208,7 @@ await step('phone 390 px (EN and FR), touch: buttons fit, popup fits, share and 
   for (const lang of ['en', 'fr']) {
     await setLang(M, lang, true);
     const a = await fits();
-    assert.ok(a.s[0] >= 0 && a.l[1] <= a.vw && a.s[1] <= a.l[0], `top bar buttons overlap or leave the screen (${lang}): ${JSON.stringify(a)}`);
+    assert.ok(a.l[0] >= 0 && a.s[1] <= a.vw && a.l[1] <= a.s[0], `header buttons overlap or leave the screen (${lang}): ${JSON.stringify(a)}`);
     assert.ok(Math.abs(a.row[0] - a.row[1]) <= 2 && a.ox <= 1);
     await openShare(M, true);
     const b = await fits();
@@ -1222,7 +1230,7 @@ await step('phone 390 px (EN and FR), touch: buttons fit, popup fits, share and 
   await M.setViewport({ width: 320, height: 568, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
   await openShare(M, true);
   const small = await fits();
-  assert.ok(small.s[0] >= 0 && small.l[1] <= small.vw && small.s[1] <= small.l[0], `320 px: ${JSON.stringify(small)}`);
+  assert.ok(small.l[0] >= 0 && small.s[1] <= small.vw && small.l[1] <= small.s[0], `320 px: ${JSON.stringify(small)}`);
   assert.ok(small.card.l >= 0 && small.card.r <= small.vw && small.card.b <= small.vh && small.btns.every(x => x.over <= 0), `320 px popup: ${JSON.stringify(small.card)}`);
   await M.touchscreen.tap(6, 6);
   await M.waitForSelector('#share-modal', { hidden: true });
@@ -1537,6 +1545,198 @@ await step('phones 320 / 375 / 390 px, touch, English and French: ≥ 44 px targ
       await ctx.close();
     }
   }
+});
+
+// ═══════════════════════════ header: two rows of controls + the stats row, computer and phone ═══════════════════════════
+console.log('\nHeader layout\n');
+const HEADER_TXT = {
+  en: { lb: 'Leaderboard', share: 'Share', diffs: ['Easy', 'Medium', 'Hard'], daily: 'Daily Challenge', newGame: 'New Game', stats: ['Time', 'Best', 'Mistakes'], theme: 'Toggle theme', cal: 'Calendar', language: 'Language', difficulty: 'Difficulty' },
+  fr: { lb: 'Classement', share: 'Partager', diffs: ['Facile', 'Moyen', 'Difficile'], daily: 'Défi du jour', newGame: 'Nouvelle partie', stats: ['Temps', 'Record', 'Erreurs'], theme: 'Changer de thème', cal: 'Calendrier', language: 'Langue', difficulty: 'Difficulté' },
+};
+// every control of the header and the stats row, in the order they are meant to read on a computer
+const HEADER_CTRL = {
+  logo: '#header h1', lb: '#lb-open', share: '#share-open', langEn: '#header .lang-toggle [data-lang="en"]', langFr: '#header .lang-toggle [data-lang="fr"]', theme: '#header .theme-toggle',
+  easy: '.diff-btn[data-diff="easy"]', medium: '.diff-btn[data-diff="medium"]', hard: '.diff-btn[data-diff="hard"]', cal: '#home-btn', daily: '#daily-btn', newGame: '#newbtn',
+  time: '#stats > :nth-child(1)', best: '#stats > :nth-child(2)', hearts: '#hearts-wrap', board: '#board',
+};
+const headerRects = (P, sels = HEADER_CTRL) => P.evaluate(sels => {
+  const out = {};
+  for (const [k, s] of Object.entries(sels)) { const e = document.querySelector(s), b = e.getBoundingClientRect(); out[k] = { l: b.left, r: b.right, t: b.top, b: b.bottom, w: b.width, h: b.height, cx: (b.left + b.right) / 2, cy: (b.top + b.bottom) / 2 }; }
+  return out;
+}, sels);
+const overlapping = R => {
+  const ks = Object.keys(R).filter(k => k !== 'board'), bad = [];
+  for (let i = 0; i < ks.length; i++) for (let j = i + 1; j < ks.length; j++) {
+    const a = R[ks[i]], b = R[ks[j]];
+    if (a.l < b.r - 0.5 && b.l < a.r - 0.5 && a.t < b.b - 0.5 && b.t < a.b - 0.5) bad.push(`${ks[i]}×${ks[j]}`);
+  }
+  return bad;
+};
+
+await step('computer 1280×800 (EN + FR): row 1 = logo · 🏆 Share || EN/FR theme, row 2 = difficulty · calendar + daily · New Game, row 3 = Time · Best · Mistakes; exact labels', async () => {
+  for (const lang of ['en', 'fr']) {
+    const { ctx, P } = await candPage({ width: 1280, height: 800 }, { lang });
+    const X = HEADER_TXT[lang], R = await headerRects(P);
+    const row1 = ['logo', 'lb', 'share', 'langEn', 'langFr', 'theme'], row2 = ['easy', 'medium', 'hard', 'cal', 'daily', 'newGame'];
+    for (const [row, keys] of [['1', row1], ['2', row2]]) {
+      for (let i = 1; i < keys.length; i++) assert.ok(R[keys[i]].l >= R[keys[i - 1]].r - 0.5, `${lang}: row ${row}: ${keys[i - 1]} → ${keys[i]} out of order`);
+      for (const k of keys) assert.ok(Math.abs(R[k].cy - R[keys[0]].cy) <= 4, `${lang}: ${k} is not on row ${row} (${R[k].cy.toFixed(1)} vs ${R[keys[0]].cy.toFixed(1)})`);
+    }
+    assert.ok(R.easy.t > R.logo.b - 4 && R.easy.t > R.lb.b, `${lang}: row 2 under row 1`);
+    // the two groups of row 1 are told apart by their spacing alone
+    assert.ok(R.langEn.l - R.share.r > (R.share.l - R.lb.r) + 6, `${lang}: 🏆/Share must read as a group apart from EN-FR/theme (gaps ${(R.share.l - R.lb.r).toFixed(1)} vs ${(R.langEn.l - R.share.r).toFixed(1)})`);
+    // calendar and daily touch, difficulty is a separate group, New Game is the last of the row, flush right with the header
+    assert.ok(R.daily.l - R.cal.r <= 6, `${lang}: calendar and daily must be one group`);
+    assert.ok(R.cal.l - R.hard.r > R.daily.l - R.cal.r + 4, `${lang}: difficulty and daily groups must be apart`);
+    const head = await P.$eval('#header', h => h.getBoundingClientRect().right);
+    assert.ok(Math.abs(R.newGame.r - head) <= 3 && Math.abs(R.theme.r - head) <= 3, `${lang}: rows end at the right edge of the header`);
+    // row 3: three boxes, one line, same size, then the grid right under
+    const st = await P.evaluate(() => [...document.querySelectorAll('#stats > *')].map(e => { const b = e.getBoundingClientRect(); return { t: b.top, h: b.height, l: b.left, r: b.right, label: e.querySelector('.slabel, #hearts-label').textContent, bottom: b.bottom }; }));
+    assert.deepEqual(st.map(s => s.label), X.stats);
+    assert.ok(st.every(s => Math.abs(s.t - st[0].t) <= 1 && Math.abs(s.h - st[0].h) <= 1), `${lang}: Time / Best / Mistakes on one line, same height`);
+    assert.ok(st[0].r <= st[1].l && st[1].r <= st[2].l);
+    assert.ok(st[0].t >= R.newGame.b, `${lang}: stats under row 2`);
+    assert.ok(R.board.t - st[0].bottom >= 4 && R.board.t - st[0].bottom <= 24, `${lang}: the grid starts right under the stats (${(R.board.t - st[0].bottom).toFixed(1)} px)`);
+    assert.ok(R.board.t < 230, `${lang}: header + stats must leave room for the grid (grid top at ${R.board.t.toFixed(0)} px)`);
+    assert.deepEqual(overlapping(R), [], `${lang}: controls overlap`);
+    // exact texts and accessible names
+    const t = await P.evaluate(() => {
+      const tx = s => document.querySelector(s).textContent.trim(), ar = (s, a = 'aria-label') => document.querySelector(s).getAttribute(a);
+      return { lb: tx('#lb-open .lb-text'), share: tx('#share-open .lb-text'), diffs: ['easy', 'medium', 'hard'].map(d => tx(`.diff-btn[data-diff="${d}"]`)), daily: tx('#daily-btn'), newGame: tx('#newbtn'),
+        lbAria: ar('#lb-open'), shareAria: ar('#share-open'), themeAria: ar('#header .theme-toggle'), calAria: ar('#home-btn'), langAria: ar('#header .lang-toggle'), diffAria: ar('#diff-btns'), calTitle: document.getElementById('home-btn').title };
+    });
+    assert.deepEqual([t.lb, t.share, t.diffs, t.daily, t.newGame], [X.lb, X.share, X.diffs, X.daily, X.newGame], `${lang}: labels`);
+    assert.deepEqual([t.lbAria, t.shareAria, t.themeAria, t.calAria, t.langAria, t.diffAria, t.calTitle], [X.lb, X.share, X.theme, X.cal, X.language, X.difficulty, X.cal], `${lang}: accessible names`);
+    await ctx.close();
+  }
+});
+
+await step('7 widths (320 375 390 430 768 1024 1440) × EN/FR × Night/Day: no overflow, nothing cut, nothing overlapping, nothing covered; phones: icon-only 🏆/Share, 44 px targets, readable text', async () => {
+  const shot = process.env.E2E_SHOT_DIR;
+  const views = [{ width: 320, height: 568, phone: 1 }, { width: 375, height: 667, phone: 1 }, { width: 390, height: 844, phone: 1 }, { width: 430, height: 932, phone: 1 }, { width: 768, height: 1024 }, { width: 1024, height: 768 }, { width: 1440, height: 900 }];
+  for (const v of views) {
+    const vp = v.phone ? { width: v.width, height: v.height, isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : { width: v.width, height: v.height };
+    for (const lang of ['en', 'fr']) {
+      const { ctx, P } = await candPage(vp, { lang, tap: !!v.phone });
+      for (const theme of ['night', 'day']) {
+        await setTheme(P, theme);
+        const tag = `${v.width}px ${lang} ${theme}`, X = HEADER_TXT[lang];
+        const R = await headerRects(P);
+        const info = await P.evaluate(() => {
+          const px = e => parseFloat(getComputedStyle(e).fontSize) * (e.getBoundingClientRect().width / e.offsetWidth);
+          const covered = [];
+          for (const s of ['#lb-open', '#share-open', '#header .lang-toggle [data-lang="en"]', '#header .lang-toggle [data-lang="fr"]', '#header .theme-toggle', '.diff-btn[data-diff="easy"]', '.diff-btn[data-diff="medium"]', '.diff-btn[data-diff="hard"]', '#home-btn', '#daily-btn', '#newbtn']) {
+            const e = document.querySelector(s), b = e.getBoundingClientRect(), hit = document.elementFromPoint((b.left + b.right) / 2, (b.top + b.bottom) / 2);
+            if (!hit || !(hit === e || e.contains(hit))) covered.push(s);
+          }
+          const txt = document.querySelector('#share-open .lb-text').getBoundingClientRect();
+          return { ox: document.documentElement.scrollWidth - innerWidth, vw: innerWidth, stack: document.body.classList.contains('stack'), covered, textShown: txt.width > 10,
+            fonts: { diff: px(document.querySelector('.diff-btn[data-diff="medium"]')), daily: px(document.getElementById('daily-btn')), newGame: px(document.getElementById('newbtn')), lang: px(document.querySelector('#header .lang-toggle button')), label: px(document.querySelector('#stats .slabel')), val: px(document.querySelector('#timer-el')) },
+            lbName: document.getElementById('lb-open').getAttribute('aria-label'), shareName: document.getElementById('share-open').getAttribute('aria-label'),
+            over: ['#lb-open', '#share-open', '#daily-btn', '#newbtn', '#diff-btns', '.daily-group', '#header .hd-row'].map(s => { const e = document.querySelector(s); return [s, e.scrollWidth - e.clientWidth]; }).filter(x => x[1] > 0) };
+        });
+        assert.ok(info.ox <= 1, `${tag}: horizontal overflow ${info.ox}px`);
+        for (const [k, r] of Object.entries(R)) assert.ok(r.l >= -0.5 && r.r <= info.vw + 0.5 && r.w > 0 && r.h > 0, `${tag}: ${k} is cut or off screen (${r.l.toFixed(1)}–${r.r.toFixed(1)} of ${info.vw})`);
+        assert.deepEqual(overlapping(R), [], `${tag}: controls overlap`);
+        assert.deepEqual(info.covered, [], `${tag}: covered controls`);
+        assert.deepEqual(info.over, [], `${tag}: a label is cut off`);
+        assert.equal(info.stack, !!v.phone, `${tag}: layout mode`);
+        assert.equal(info.lbName, X.lb); assert.equal(info.shareName, X.share);
+        if (v.phone) {
+          assert.equal(info.textShown, false, `${tag}: 🏆 / Share are icon-only on a phone`);
+          for (const k of ['lb', 'share', 'theme']) assert.ok(R[k].w >= 43.5 && R[k].h >= 43.5, `${tag}: ${k} target ${R[k].w.toFixed(1)}×${R[k].h.toFixed(1)}`);
+          for (const k of ['langEn', 'langFr']) assert.ok(R[k].h >= 36 && R[k].w >= 28, `${tag}: ${k} target ${R[k].w.toFixed(1)}×${R[k].h.toFixed(1)}`);
+          assert.ok(R.cal.w >= 38 && R.cal.h >= 27, `${tag}: calendar target ${R.cal.w.toFixed(1)}×${R.cal.h.toFixed(1)}`);
+          for (const k of ['easy', 'medium', 'hard', 'daily', 'newGame']) assert.ok(R[k].h >= 27 && R[k].w >= 40, `${tag}: ${k} target ${R[k].w.toFixed(1)}×${R[k].h.toFixed(1)}`);
+          assert.ok(info.fonts.diff >= 11 && info.fonts.daily >= 10.5 && info.fonts.newGame >= 10.5 && info.fonts.lang >= 11, `${tag}: header text too small on screen ${JSON.stringify(info.fonts)}`);
+          assert.ok(info.fonts.label >= 9 && info.fonts.val >= 15, `${tag}: stats text too small on screen ${JSON.stringify(info.fonts)}`);
+          // New Game sits under the difficulty buttons, the calendar next to the daily button
+          assert.ok(R.newGame.t >= R.easy.b - 0.5 && R.daily.t >= R.easy.b - 0.5, `${tag}: New Game and Daily go under the difficulty buttons`);
+          assert.ok(R.daily.l - R.cal.r <= 6 && Math.abs(R.cal.cy - R.daily.cy) <= 3, `${tag}: calendar next to Daily`);
+        } else {
+          assert.equal(info.textShown, true, `${tag}: 🏆 / Share keep icon + text on a computer`);
+        }
+        // the stats stay on one line
+        assert.ok(Math.abs(R.time.t - R.best.t) <= 1 && Math.abs(R.time.t - R.hearts.t) <= 1, `${tag}: Time / Best / Mistakes on one line`);
+        if (shot && (v.width === 320 || v.width === 390 || v.width === 1024)) await P.screenshot({ path: path.join(shot, `header-${v.width}-${lang}-${theme}.png`) });
+      }
+      await ctx.close();
+    }
+  }
+});
+
+await step('short landscape phones (844×390, 667×375): nothing overflows or overlaps, every control reachable', async () => {
+  for (const [w, h] of [[844, 390], [667, 375]]) for (const lang of ['en', 'fr']) {
+    const { ctx, P } = await candPage({ width: w, height: h, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }, { lang, tap: true });
+    const R = await headerRects(P), ox = await P.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+    assert.ok(ox <= 1, `${w}×${h} ${lang}: horizontal overflow ${ox}`);
+    for (const [k, r] of Object.entries(R)) assert.ok(r.l >= -0.5 && r.r <= w + 0.5 && r.w > 0, `${w}×${h} ${lang}: ${k} cut`);
+    assert.deepEqual(overlapping(R), [], `${w}×${h} ${lang}: overlap`);
+    await ctx.close();
+  }
+});
+
+await step('the controls still do their job: difficulty, calendar, daily (UTC grid), New Game; popups open and close; theme and language keep the game as it is', async () => {
+  const { ctx, P } = await candPage({ width: 1280, height: 800 }, { lang: 'en' });
+  const state = () => P.evaluate(() => ({ difficulty, dailyMode, timerSecs, notesMode, board: JSON.stringify(board), puzzle: JSON.stringify(puzzle), mistakes, home: document.body.classList.contains('home-open'),
+    active: [...document.querySelectorAll('#header .active')].map(e => e.dataset.diff || e.id || e.dataset.lang), clues: puzzle.flat().filter(Boolean).length, day: document.body.classList.contains('day'), lang }));
+  // difficulty buttons pick the right grids
+  const clues = {};
+  for (const d of ['easy', 'medium', 'hard']) { await P.click(`.diff-btn[data-diff="${d}"]`); const s = await state(); assert.equal(s.difficulty, d); assert.equal(s.dailyMode, false); assert.ok(s.active.includes(d) && !s.active.includes('daily-btn'), `${d} highlighted: ${s.active}`); clues[d] = s.clues; }
+  assert.ok(clues.easy > clues.medium && clues.medium > clues.hard, `easy > medium > hard clues: ${JSON.stringify(clues)}`);
+  // daily: the UTC grid of today, exactly as the game computes it
+  await P.click('#daily-btn');
+  const daily = await P.evaluate(() => ({ dailyMode, active: document.getElementById('daily-btn').classList.contains('active'), puzzle: JSON.stringify(puzzle), expect: JSON.stringify(generatePuzzleSeeded('medium', mulberry32(strToSeed('sudoku-daily-' + getDailyDateStr()))).puzzle), date: getDailyDateStr(), anyDiff: !!document.querySelector('#diff-btns .diff-btn.active') }));
+  assert.equal(daily.dailyMode, true); assert.equal(daily.active, true); assert.equal(daily.anyDiff, false);
+  assert.equal(daily.puzzle, daily.expect); assert.equal(daily.date, utcToday);
+  // New Game: leaves the daily, a fresh grid of the chosen level
+  const before = await state();
+  await P.click('#newbtn');
+  const after = await state();
+  assert.equal(after.dailyMode, false); assert.equal(after.timerSecs, 0); assert.notEqual(after.puzzle, before.puzzle); assert.ok(after.active.includes('hard'), 'New Game keeps the chosen level (hard was the last one picked)');
+  // calendar → calendar screen; Play → the daily
+  await P.click('#home-btn');
+  assert.equal((await state()).home, true); assert.equal(await P.$eval('#home', h => getComputedStyle(h).display !== 'none'), true);
+  await P.click('#home-play');
+  assert.equal((await state()).home, false);
+  // popups: Leaderboard and Share open and close normally
+  await P.click('#lb-open'); await P.waitForSelector('#lb-modal:not([hidden])'); await P.keyboard.press('Escape'); await P.waitForSelector('#lb-modal', { hidden: true });
+  await P.click('#share-open'); await P.waitForSelector('#share-modal:not([hidden])'); await P.click('#share-close'); await P.waitForSelector('#share-modal', { hidden: true });
+  // theme + language switches in the middle of a game keep everything
+  await P.click('.diff-btn[data-diff="hard"]');
+  const [r, c, v] = await emptyCell(P);
+  await P.click(`.sd-cell[data-r="${r}"][data-c="${c}"]`); await P.click(`.num-btn[data-v="${v}"]`);
+  await P.click('#notes-toggle');
+  await sleep(1300);
+  const mid = await state();
+  assert.ok(mid.timerSecs >= 1 && mid.notesMode === true);
+  for (const act of [() => P.click('#header .theme-toggle'), () => P.click('#header .lang-toggle [data-lang="fr"]'), () => P.click('#header .theme-toggle'), () => P.click('#header .lang-toggle [data-lang="en"]')]) {
+    await act();
+    const s = await state();
+    assert.equal(s.difficulty, 'hard'); assert.equal(s.board, mid.board); assert.equal(s.puzzle, mid.puzzle); assert.equal(s.notesMode, true); assert.ok(s.timerSecs >= mid.timerSecs, 'the timer keeps running'); assert.equal(s.mistakes, mid.mistakes);
+    assert.ok(s.active.includes('hard'));
+  }
+  await ctx.close();
+});
+
+await step('keyboard: Tab walks the header in reading order, every stop has a visible focus ring, Enter/Space work', async () => {
+  const { ctx, P } = await candPage({ width: 1280, height: 800 }, { lang: 'fr' });
+  await P.evaluate(() => document.getElementById('lb-open').focus());
+  await P.keyboard.down('Shift'); await P.keyboard.press('Tab'); await P.keyboard.up('Shift'); await P.keyboard.press('Tab');   // back on 🏆, by keyboard (so :focus-visible applies)
+  const order = [], rings = [];
+  for (let i = 0; i < 11; i++) {
+    await sleep(260);                                                  // the ring may fade in (transition)
+    const f = await P.evaluate(() => { const e = document.activeElement, s = getComputedStyle(e), fit = +getComputedStyle(document.documentElement).getPropertyValue('--fit'); return { id: e.id || e.dataset.diff || e.dataset.lang || (e.classList.contains('theme-toggle') ? 'theme-toggle' : e.className), ring: s.outlineStyle === 'solid' && parseFloat(s.outlineWidth) * fit >= 1.9 && s.outlineColor === 'rgb(0, 204, 255)' }; });
+    order.push(f.id); rings.push(f.ring);
+    await P.keyboard.press('Tab');
+  }
+  assert.deepEqual(order, ['lb-open', 'share-open', 'en', 'fr', 'theme-toggle', 'easy', 'medium', 'hard', 'home-btn', 'daily-btn', 'newbtn']);
+  assert.ok(rings.every(Boolean), `every control shows a focus ring: ${JSON.stringify(rings)}`);
+  await P.focus('.diff-btn[data-diff="medium"]'); await P.keyboard.press('Enter');
+  assert.equal(await P.evaluate(() => difficulty), 'medium');
+  await P.focus('#home-btn'); await P.keyboard.press('Space');
+  assert.equal(await P.evaluate(() => document.body.classList.contains('home-open')), true);
+  await ctx.close();
 });
 
 await step('hints use the Candidates vocabulary; the keypad row is complete (1-9 + erase) and the old pencil button is gone', async () => {
