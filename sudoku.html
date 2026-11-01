@@ -389,7 +389,9 @@ h1 {
 /* ── NUMBER PAD ── */
 #numpad {
   display: flex;
-  gap: 5px;
+  flex-wrap: wrap;      /* the Candidates button takes a row of its own under the digits */
+  gap: 8px 5px;
+  position: relative;   /* anchor of the first-use tip */
   width: 480px;
   margin-top: 14px;
 }
@@ -412,13 +414,67 @@ h1 {
 .erase-btn { color: rgba(255,0,170,0.75); font-size: 0.95rem; }
 .erase-btn:hover { background: rgba(255,0,170,0.14) !important; border-color: rgba(255,0,170,0.38) !important; color: #ff4dc4; }
 
-#notes-toggle { font-size: 1rem; }
-#notes-toggle.active {
-  background: rgba(255,0,170,0.18);
-  border-color: rgba(255,0,170,0.5);
-  color: #ff00aa;
-  box-shadow: 0 0 12px rgba(255,0,170,0.25);
+/* ── CANDIDATES BUTTON (pencil marks): a real two-state toggle, driven by aria-pressed ── */
+:root { --fit: 1; }   /* scale of the game layout, set by fitScreen(): lets the touch targets keep a true 44 px (and their text 15 px) on a scaled-down phone screen */
+.cand-btn {
+  --cand-focus: #00ccff;
+  flex: 1 0 100%;
+  display: flex; align-items: center; justify-content: center; gap: 0.6em;
+  min-height: max(46px, calc(44px / var(--fit)));
+  padding: 4px 1em;
+  background: #12122a;
+  border: 2px solid rgba(255,255,255,0.16);   /* 2 px in both states: switching it on never changes its size */
+  border-radius: 10px;
+  color: rgba(255,255,255,0.92);
+  font: inherit; font-size: max(0.95rem, calc(15px / var(--fit))); font-weight: 800; letter-spacing: 0.04em;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 0.12s, border-color 0.12s, box-shadow 0.12s, transform 0.08s;
 }
+.cand-ico { font-size: 1.25em; line-height: 1; }
+/* the check box says ON / OFF with its shape (ticked or empty), not only with colour */
+.cand-box {
+  display: grid; place-items: center; flex-shrink: 0;
+  width: 1.45em; height: 1.45em;
+  border: 2px solid rgba(255,255,255,0.6); border-radius: 0.38em;
+  font-size: 0.9em; font-weight: 900; line-height: 1;
+  color: transparent;   /* the tick is there but invisible while OFF: same size in both states */
+}
+.cand-btn:active { transform: scale(0.98); }
+.cand-btn:focus-visible { outline: 3px solid var(--cand-focus); outline-offset: 3px; }
+@media (hover: hover) { .cand-btn:hover { background: rgba(119,0,255,0.2); border-color: rgba(119,0,255,0.55); } }
+.cand-btn[aria-pressed="true"] { background: #9333ff; border-color: #e4d0ff; color: #fff; box-shadow: 0 0 18px rgba(147,51,255,0.55); }
+@media (hover: hover) { .cand-btn[aria-pressed="true"]:hover { background: #9a40ff; border-color: #fff; } }
+.cand-btn[aria-pressed="true"] .cand-box { background: #fff; border-color: #fff; color: #6a00d9; }
+@media (prefers-reduced-motion: reduce) { .cand-btn { transition: none; } }
+
+/* first-use tip, right under the button (so it never covers the digits) */
+#cand-tip {
+  position: absolute; left: 0; right: 0; top: 100%; z-index: 6;
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 12px; padding: 8px 8px 8px 14px;
+  background: #12122a;
+  border: 1px solid rgba(147,51,255,0.7);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.55), 0 0 24px rgba(119,0,255,0.25);
+  color: rgba(255,255,255,0.92);
+  font-size: max(0.8rem, calc(13px / var(--fit))); font-weight: 600; line-height: 1.4;
+}
+#cand-tip::before {   /* the little arrow pointing up at the button */
+  content: ''; position: absolute; top: -7px; left: 50%; width: 12px; height: 12px;
+  background: #12122a; border-left: 1px solid rgba(147,51,255,0.7); border-top: 1px solid rgba(147,51,255,0.7);
+  transform: translateX(-50%) rotate(45deg);
+}
+#cand-tip span { flex: 1; }
+#cand-tip-close {
+  flex-shrink: 0; width: 1.9em; height: 1.9em; padding: 0;
+  display: grid; place-items: center; position: relative;
+  background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-radius: 50%;
+  color: rgba(255,255,255,0.7); font: inherit; font-size: 0.8em; line-height: 1; cursor: pointer;
+}
+#cand-tip-close::after { content: ''; position: absolute; inset: -8px; }   /* bigger touch target than the discreet icon */
+#cand-tip-close:hover { background: rgba(255,255,255,0.14); color: #fff; }
+#cand-tip-close:focus-visible { outline: 3px solid #00ccff; outline-offset: 2px; }
 
 .num-btn.num-selected {
   background: rgba(0,230,118,0.45);
@@ -488,6 +544,17 @@ body.day .diff-btn:hover, body.day .lb-lvl:hover { color: rgba(44,31,14,0.85); }
 body.day .diff-btn.active, body.day .lb-lvl.active { background: linear-gradient(135deg, #7700ff, #ff00aa); border-color: transparent; color: #fff; }
 body.day .num-btn { background: #ddd5c8; border-color: rgba(80,50,20,0.12); color: #2c1f0e; }
 body.day .num-btn:hover { background: rgba(0,180,90,0.15); border-color: rgba(0,180,90,0.35); }
+body.day .cand-btn { --cand-focus: #0077aa; background: #ddd5c8; border-color: rgba(80,50,20,0.3); color: #2c1f0e; }
+body.day .cand-box { border-color: rgba(44,31,14,0.65); }
+@media (hover: hover) { body.day .cand-btn:hover { background: rgba(119,0,255,0.14); border-color: rgba(119,0,255,0.5); } }
+body.day .cand-btn[aria-pressed="true"] { background: #6a00d9; border-color: #2a0766; color: #fff; box-shadow: 0 2px 10px rgba(106,0,217,0.35); }
+@media (hover: hover) { body.day .cand-btn[aria-pressed="true"]:hover { background: #7a1ae8; border-color: #1c044a; } }
+body.day .cand-btn[aria-pressed="true"] .cand-box { border-color: #fff; }
+body.day #cand-tip { background: #ddd5c8; border-color: rgba(106,0,217,0.6); color: #2c1f0e; box-shadow: 0 8px 28px rgba(80,50,20,0.25); }
+body.day #cand-tip::before { background: #ddd5c8; border-left-color: rgba(106,0,217,0.6); border-top-color: rgba(106,0,217,0.6); }
+body.day #cand-tip-close { background: rgba(80,50,20,0.07); border-color: rgba(80,50,20,0.14); color: rgba(44,31,14,0.7); }
+body.day #cand-tip-close:hover { background: rgba(80,50,20,0.14); color: #2c1f0e; }
+body.day #cand-tip-close:focus-visible { outline-color: #0077aa; }
 body.day .sd-cell { border-right-color: rgba(80,50,20,0.22); border-bottom-color: rgba(80,50,20,0.22); }
 body.day .sd-cell[data-c="2"], body.day .sd-cell[data-c="5"] { border-right-color: rgba(44,31,14,0.62); }
 body.day .sd-cell[data-r="2"], body.day .sd-cell[data-r="5"] { border-bottom-color: rgba(44,31,14,0.62); }
@@ -668,7 +735,7 @@ body.stack #layout {
 }
 /* Bigger touch targets: digits on two rows (1-6, then 7-9 + erase + notes) */
 body.stack #numpad { flex-wrap: wrap; gap: 8px 6px; }
-body.stack .num-btn { flex: 1 0 15%; height: 58px; font-size: 1.35rem; }
+body.stack .num-btn { flex: 1 0 15%; height: max(58px, calc(44px / var(--fit))); font-size: 1.35rem; }   /* never below 44 px on screen, even when the layout is scaled down */
 
 /* ── HOME: daily-challenge calendar (first screen; scaled by fitScreen() like #layout) ── */
 body.home-open #layout { display: none; }
@@ -1227,7 +1294,16 @@ body.day #ov-invite-text b { color: #2c1f0e; }
     <button class="num-btn" data-v="8">8</button>
     <button class="num-btn" data-v="9">9</button>
     <button class="num-btn erase-btn" data-v="0">&#10005;</button>
-    <button class="num-btn" id="notes-toggle" data-i18n-title="notes" title="Notes mode (N)">&#9998;</button>
+    <button type="button" class="cand-btn" id="notes-toggle" aria-pressed="false" data-i18n-title="notes" title="Candidates mode (N)">
+      <span class="cand-ico" aria-hidden="true">✏️</span>
+      <span class="cand-label" data-i18n="candidates">Candidates</span>
+      <span class="cand-box" aria-hidden="true">✓</span>
+    </button>
+    <!-- Shown once, the first time the mode is switched on (flag in localStorage); never blocks the game -->
+    <div id="cand-tip" role="status" hidden>
+      <span data-i18n="candTip">Add possible numbers as small notes in cells.</span>
+      <button type="button" id="cand-tip-close" data-i18n-aria="close" data-i18n-title="close" title="Close" aria-label="Close">&#10005;</button>
+    </div>
   </div>
 
   <div id="hint"></div>
@@ -1339,10 +1415,11 @@ const HINT_SEP = ' ' + NBSP + '·' + NBSP + ' ';
 const I18N = {
   en: {
     easy: 'Easy', medium: 'Medium', hard: 'Hard', daily: 'Daily',
-    newGame: 'New Game', theme: 'Toggle theme', notes: 'Notes mode (N)',
+    newGame: 'New Game', theme: 'Toggle theme', notes: 'Candidates mode (N)',
+    candidates: 'Candidates', candTip: 'Add possible numbers as small notes in cells.',
     time: 'Time', best: 'Best', mistakes: 'Mistakes',
-    hint:      ['Click a cell', 'Or pick a number first to sticky-place', '✎ for notes', 'Arrows navigate'].join(HINT_SEP),
-    hintTouch: ['Tap a cell', 'Or pick a number first to place it repeatedly', '✎ for notes'].join(HINT_SEP),
+    hint:      ['Click a cell', 'Or pick a number first to sticky-place', 'N = candidates', 'Arrows navigate'].join(HINT_SEP),
+    hintTouch: ['Tap a cell', 'Or pick a number first to place it repeatedly', 'Candidates = small possible numbers'].join(HINT_SEP),
     sbTitle: 'Leaderboard', sbPlayer: 'Player', sbTime: 'Time',
     sbEmpty: 'No scores yet.<br>Finish a puzzle to get on the board!',
     won: 'You Won!', lost: 'Game Over',
@@ -1392,10 +1469,11 @@ const I18N = {
   },
   fr: {
     easy: 'Facile', medium: 'Moyen', hard: 'Difficile', daily: 'Défi du jour',
-    newGame: 'Nouvelle partie', theme: 'Changer de thème', notes: 'Mode notes (N)',
+    newGame: 'Nouvelle partie', theme: 'Changer de thème', notes: 'Mode candidats (N)',
+    candidates: 'Candidats', candTip: 'Inscris de petits chiffres possibles dans les cases.',
     time: 'Temps', best: 'Record', mistakes: 'Erreurs',
-    hint:      ['Cliquez une case', 'Ou choisissez d’abord un chiffre pour le placer en série', '✎ pour les notes', 'Flèches pour naviguer'].join(HINT_SEP),
-    hintTouch: ['Touchez une case', 'Ou choisissez d’abord un chiffre pour le placer en série', '✎ pour les notes'].join(HINT_SEP),
+    hint:      ['Cliquez une case', 'Ou choisissez d’abord un chiffre pour le placer en série', 'N = candidats', 'Flèches pour naviguer'].join(HINT_SEP),
+    hintTouch: ['Touchez une case', 'Ou choisissez d’abord un chiffre pour le placer en série', 'Candidats = petits chiffres possibles'].join(HINT_SEP),
     sbTitle: 'Classement', sbPlayer: 'Joueur', sbTime: 'Temps',
     sbEmpty: 'Aucun score pour l’instant.<br>Terminez une grille pour entrer au classement' + NBSP + '!',
     won: 'Victoire' + NBSP + '!', lost: 'Perdu' + NBSP + '!',
@@ -1706,7 +1784,7 @@ function newGame() {
   completedDigits = new Set();
   document.querySelectorAll('.num-btn.completed').forEach(b => b.classList.remove('completed'));
 
-  notesBtn.classList.remove('active');
+  syncNotesBtn();
   selectedNum = null;
   updateNumpadHighlight();
   updateHearts();
@@ -2389,11 +2467,36 @@ document.querySelectorAll('.num-btn[data-v]').forEach(btn => {
   });
 });
 
-// Notes toggle
-notesBtn.addEventListener('click', () => {
-  notesMode = !notesMode;
-  notesBtn.classList.toggle('active', notesMode);
-});
+// Candidates toggle (the pencil-marks mode): aria-pressed is the single source of truth for the button's look
+const candTip = document.getElementById('cand-tip');
+const CAND_TIP_KEY = 'sudoku-cand-tip';   // set the first time the tip is shown, so it never comes back by itself
+
+function hideCandTip() { candTip.hidden = true; }
+
+function showCandTipOnce() {
+  try {
+    if (localStorage.getItem(CAND_TIP_KEY)) return;
+    localStorage.setItem(CAND_TIP_KEY, '1');
+  } catch (_) { return; }              // storage blocked: the tip could not be remembered, so it is never shown
+  candTip.hidden = false;
+  if (document.body.classList.contains('stack')) candTip.scrollIntoView({ block: 'nearest', behavior: 'smooth' });   // phone: the page scrolls, keep the tip on screen
+}
+
+function syncNotesBtn() {
+  notesBtn.setAttribute('aria-pressed', String(notesMode));
+  if (!notesMode) hideCandTip();       // the tip is about switching it on: it is pointless once it is off again
+}
+
+function setNotesMode(on) {
+  notesMode = on;
+  syncNotesBtn();
+  if (on) showCandTipOnce();
+}
+
+notesBtn.addEventListener('click', () => setNotesMode(!notesMode));
+document.getElementById('cand-tip-close').addEventListener('click', hideCandTip);
+// a press anywhere else dismisses the tip and still goes through (the player is never blocked)
+document.addEventListener('pointerdown', e => { if (!candTip.hidden && !candTip.contains(e.target)) hideCandTip(); }, true);
 
 // Difficulty buttons
 // [data-diff] only: the Daily button has its own handler and must not reset `difficulty` to undefined
@@ -2454,8 +2557,9 @@ document.addEventListener('keydown', e => {
   } else if (e.key === '0' || e.key === 'Delete' || e.key === 'Backspace') {
     e.preventDefault(); onNumInput(0);
   } else if (e.key === 'n' || e.key === 'N') {
-    notesMode = !notesMode;
-    notesBtn.classList.toggle('active', notesMode);
+    setNotesMode(!notesMode);
+  } else if (e.key === 'Escape' && !candTip.hidden) {
+    hideCandTip();
   } else if (e.key === 'Escape') {
     selected = null; selectedNum = null; updateNumpadHighlight(); updateAllClasses();
   } else if (e.key === 'ArrowUp')    { e.preventDefault(); moveSelection(-1,  0); }
@@ -2495,10 +2599,20 @@ function fitScreen() {
   document.body.classList.toggle('stack', stacked);
   [layoutEl, homeEl].forEach(e => { e.style.zoom = e.style.transform = ''; });
   const el = document.body.classList.contains('home-open') ? homeEl : layoutEl;
-  const w = el.offsetWidth, h = el.offsetHeight;
-  const s = stacked
-    ? Math.min(1, (window.innerWidth - 16) / w)
-    : Math.min(1, (window.innerWidth - 16) / w, (window.innerHeight - 32) / h);
+  const scaleOf = () => {
+    const w = el.offsetWidth, h = el.offsetHeight;
+    return stacked
+      ? Math.min(1, (window.innerWidth - 16) / w)
+      : Math.min(1, (window.innerWidth - 16) / w, (window.innerHeight - 32) / h);
+  };
+  // The touch targets (Candidates button, digits on phones) are sized in SCREEN pixels, so their size depends on the
+  // scale (--fit) and the scale on their size: measure at 1, size them for that first estimate, measure again.
+  const root = document.documentElement.style;
+  root.setProperty('--fit', 1);
+  let s = scaleOf();
+  root.setProperty('--fit', s);
+  s = scaleOf();
+  root.setProperty('--fit', s);
   if (hasZoom) el.style.zoom = s;
   else         el.style.transform = 'scale(' + s + ')';
 }
@@ -2566,7 +2680,7 @@ function startDailyChallenge() {
   timerStarted=false; gameOver=false; won=false;
   completedRows=new Set(); completedCols=new Set(); completedBoxes=new Set(); completedDigits=new Set();
   document.querySelectorAll('.num-btn.completed').forEach(b => b.classList.remove('completed'));
-  notesBtn.classList.remove('active');
+  syncNotesBtn();
   pendingScore=null; ovInfo=null;
   selectedNum=null; updateNumpadHighlight(); updateHearts(); updateTimer(); updateBest(); renderScores(); renderAll();
 }

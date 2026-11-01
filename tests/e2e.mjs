@@ -1046,6 +1046,317 @@ await step('phone 390 px (EN and FR), touch: buttons fit, popup fits, share and 
   await ctx.close();
 });
 
+// ═══════════════════════════ Candidates button (pencil marks): toggle, themes, first-use tip, phones ═══════════════════════════
+console.log('\nCandidates button\n');
+const NO_FIREBASE = "export const firebaseConfig = { apiKey: 'YOUR_API_KEY', authDomain: 'x', projectId: 'YOUR_PROJECT_ID', appId: 'YOUR_APP_ID' }; export const appCheckSiteKey = '';";
+// A fresh player (own context) on the game screen, online features off: these tests are about the keypad only
+async function candPage(viewport, { lang = 'en', tap = false } = {}) {
+  const ctx = await browserB.createBrowserContext();
+  const P = await ctx.newPage();
+  await P.setViewport(viewport);
+  P.on('pageerror', e => problems.push(`[cand] pageerror: ${e.message}`));
+  P.on('console', m => { if (m.type() === 'error' && !/Failed to load resource/i.test(m.text())) problems.push(`[cand] console.error: ${m.text()}`); });
+  await P.setRequestInterception(true);
+  P.on('request', r => (/\/firebase-config\.js$/.test(r.url()) ? r.respond({ status: 200, contentType: 'text/javascript', body: NO_FIREBASE }) : r.continue()));
+  await P.evaluateOnNewDocument(l => { if (!localStorage.getItem('sudoku-lang')) localStorage.setItem('sudoku-lang', l); }, lang);
+  await P.goto(`http://localhost:${PORT}${SUB}sudoku.html`, { waitUntil: 'load' });
+  await (tap ? P.tap('#home-play') : P.click('#home-play'));
+  await P.waitForSelector('#notes-toggle', { visible: true });
+  return { ctx, P };
+}
+const pressed = P => P.$eval('#notes-toggle', b => b.getAttribute('aria-pressed'));
+const tipShown = P => P.$eval('#cand-tip', el => !el.hidden);
+const tipFlag = P => P.evaluate(() => localStorage.getItem('sudoku-cand-tip'));
+const setTheme = async (P, theme) => { if ((await P.$eval('body', b => b.classList.contains('day'))) !== (theme === 'day')) await P.click('#header .theme-toggle'); };
+const setCand = async (P, on) => { if ((await pressed(P)) !== String(on)) await P.click('#notes-toggle'); };
+const emptyCell = P => P.evaluate(() => { for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) if (!puzzle[r][c]) return [r, c, solution[r][c]]; });
+
+// WCAG contrast of computed colours (rgba blended over what is behind them)
+const rgbaOf = s => { const m = (s.match(/[\d.]+/g) || []).map(Number); return { r: m[0], g: m[1], b: m[2], a: m.length > 3 ? m[3] : 1 }; };
+const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
+const lum = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+const contrast = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+const candStyle = P => P.evaluate(() => {
+  const b = document.getElementById('notes-toggle'), cs = getComputedStyle(b), box = getComputedStyle(b.querySelector('.cand-box')), label = getComputedStyle(b.querySelector('.cand-label'));
+  const r = b.getBoundingClientRect();
+  return { bg: cs.backgroundColor, border: cs.borderTopColor, bw: cs.borderTopWidth, fg: label.color, boxBorder: box.borderTopColor, boxBg: box.backgroundColor, tick: box.color, transform: cs.transform,
+    outline: cs.outlineStyle + ' ' + cs.outlineWidth + ' ' + cs.outlineColor, page: getComputedStyle(document.body).backgroundColor, w: r.width, h: r.height, pressed: b.getAttribute('aria-pressed') };
+});
+
+await step('Candidates button: label, real toggle (aria-pressed), same size ON and OFF, ✓ shape, click + N key + Space/Enter', async () => {
+  const { ctx, P } = await candPage({ width: 1280, height: 800 });
+  const txt = await P.$eval('#notes-toggle', b => b.querySelector('.cand-label').textContent);
+  assert.equal(txt, 'Candidates');
+  assert.equal(await P.$eval('#notes-toggle', b => b.tagName + ':' + b.type), 'BUTTON:button');
+  assert.equal(await pressed(P), 'false');
+  const size = async () => P.$eval('#notes-toggle', b => { const r = b.getBoundingClientRect(); return [r.width, r.height]; });
+  const off = await size();
+  const tick = () => P.$eval('#notes-toggle .cand-box', el => getComputedStyle(el).color);
+  const tickOff = await tick();
+  await P.click('#notes-toggle');
+  assert.equal(await pressed(P), 'true');
+  assert.equal(await P.evaluate(() => notesMode), true);
+  assert.deepEqual(await size(), off, 'the button must not change size when switched on');
+  assert.equal(await P.$eval('#notes-toggle .cand-label', e => e.textContent), 'Candidates', 'same label in both states');
+  assert.notEqual(await tick(), tickOff, 'the ✓ shows only when ON');
+  await P.click('#notes-toggle');
+  assert.equal(await pressed(P), 'false'); assert.equal(await P.evaluate(() => notesMode), false);
+  assert.equal(await tick(), tickOff);
+  await P.keyboard.press('n');   assert.equal(await pressed(P), 'true');
+  await P.keyboard.press('N');   assert.equal(await pressed(P), 'false');
+  // keyboard navigation: Tab reaches it, a visible focus ring appears, Space and Enter toggle it
+  await P.evaluate(() => document.activeElement && document.activeElement.blur());
+  let reached = false;
+  for (let i = 0; i < 60 && !reached; i++) { await P.keyboard.press('Tab'); reached = await P.evaluate(() => document.activeElement && document.activeElement.id === 'notes-toggle'); }
+  assert.ok(reached, 'Tab never reached the Candidates button');
+  const ring = await P.$eval('#notes-toggle', b => { const cs = getComputedStyle(b); return { fv: b.matches(':focus-visible'), style: cs.outlineStyle, width: parseFloat(cs.outlineWidth) }; });
+  assert.deepEqual([ring.fv, ring.style], [true, 'solid']); assert.ok(ring.width >= 2, 'visible focus ring');
+  await P.keyboard.press('Space'); assert.equal(await pressed(P), 'true');
+  await P.keyboard.press('Enter'); assert.equal(await pressed(P), 'false');
+  await ctx.close();
+});
+
+await step('Day / Night × ON / OFF: contrast, distinct states, ✓ shape, hover, pressed, focus ring, same size (and screenshots)', async () => {
+  const { ctx, P } = await candPage({ width: 1280, height: 800 });
+  const sizes = [], seen = {}, borders = new Set();
+  for (const theme of ['night', 'day']) {
+    for (const on of [false, true]) {
+      await setTheme(P, theme); await setCand(P, on);
+      await P.mouse.move(5, 5); await sleep(300);
+      const st = await candStyle(P);
+      seen[`${theme}-${on}`] = st; sizes.push([st.w, st.h]);
+      assert.equal(st.pressed, String(on));
+      borders.add(st.bw);   // (the browser snaps it to whole screen pixels when the layout is scaled, so only equality matters)
+      const page = rgbaOf(st.page), bg = over(rgbaOf(st.bg), page), fg = over(rgbaOf(st.fg), bg);
+      assert.ok(contrast(fg, bg) >= 4.5, `${theme}/${on ? 'ON' : 'OFF'} label contrast ${contrast(fg, bg).toFixed(2)}`);
+      const boxBorder = over(rgbaOf(st.boxBorder), bg);
+      if (on) {
+        const boxBg = over(rgbaOf(st.boxBg), bg), tick = over(rgbaOf(st.tick), boxBg);
+        assert.ok(contrast(tick, boxBg) >= 4.5, `${theme} ON ✓ contrast ${contrast(tick, boxBg).toFixed(2)}`);
+        assert.ok(contrast(boxBg, bg) >= 3, `${theme} ON box vs button ${contrast(boxBg, bg).toFixed(2)}`);
+        assert.ok(contrast(over(rgbaOf(st.border), page), bg) >= 3 || contrast(over(rgbaOf(st.border), page), page) >= 3, `${theme} ON accent border`);
+        assert.ok(bg.b > 150 && bg.g < 80 && bg.b > bg.r * 1.4, `${theme} ON background must be violet: ${JSON.stringify(bg)}`);
+        if (theme === 'day') assert.ok(lum(bg) < 0.15, 'day ON background dark enough for white text');
+        assert.ok(st.transform === 'none');
+      } else {
+        assert.ok(contrast(boxBorder, bg) >= 3, `${theme} OFF empty box outline ${contrast(boxBorder, bg).toFixed(2)}`);
+        assert.ok(Math.abs(bg.b - bg.r) < 60, `${theme} OFF must look neutral, not violet: ${JSON.stringify(bg)}`);
+        assert.equal(rgbaOf(st.tick).a === 0 || st.tick === 'rgba(0, 0, 0, 0)', true, '✓ invisible while OFF');
+      }
+      const box = await P.$eval('#numpad', e => { const r = e.getBoundingClientRect(); return { x: r.left - 10, y: r.top - 8, width: r.width + 20, height: r.height + 16 }; });
+      const shot = process.env.E2E_SHOT_DIR;
+      if (shot) await P.screenshot({ path: path.join(shot, `cand-${theme}-${on ? 'on' : 'off'}.png`), clip: box });
+      // hover (a tint that is not the ON look) and pressed (a small press, text still readable), then focus ring
+      await P.hover('#notes-toggle'); await sleep(250);
+      const hv = await candStyle(P);
+      assert.notEqual(hv.bg, st.bg, `${theme}/${on ? 'ON' : 'OFF'} hover must be visible`);
+      assert.ok(contrast(over(rgbaOf(hv.fg), over(rgbaOf(hv.bg), page)), over(rgbaOf(hv.bg), page)) >= 4.5, 'hover contrast');
+      if (!on) assert.equal(hv.pressed, 'false', 'hovering never looks like ON');
+      await P.mouse.down(); await sleep(200);
+      const pr = await candStyle(P);
+      assert.notEqual(pr.transform, 'none', 'pressed feedback');
+      assert.ok(contrast(over(rgbaOf(pr.fg), over(rgbaOf(pr.bg), page)), over(rgbaOf(pr.bg), page)) >= 4.5, 'pressed contrast');
+      await P.mouse.move(5, 5); await P.mouse.up();          // released elsewhere: no click, the state is unchanged
+      assert.equal(await pressed(P), String(on));
+      await P.evaluate(() => document.activeElement && document.activeElement.blur());
+      for (let i = 0; i < 60 && !(await P.evaluate(() => document.activeElement && document.activeElement.id === 'notes-toggle')); i++) await P.keyboard.press('Tab');
+      const fo = await candStyle(P);
+      const ring = fo.outline.match(/^(\w+) ([\d.]+)px (rgb.*)$/);
+      assert.ok(ring && ring[1] === 'solid' && +ring[2] >= 2, `focus ring: ${fo.outline}`);   // 3 px, snapped to whole screen pixels on a scaled layout
+      assert.ok(contrast(over(rgbaOf(ring[3]), page), page) >= 3, `${theme} focus ring contrast ${contrast(over(rgbaOf(ring[3]), page), page).toFixed(2)}`);
+      await P.evaluate(() => document.activeElement.blur());
+    }
+  }
+  assert.ok(sizes.every(s => s[0] === sizes[0][0] && s[1] === sizes[0][1]), `the button keeps its size in the four states: ${JSON.stringify(sizes)}`);
+  assert.equal(borders.size, 1, `the border keeps its width in the four states: ${[...borders]}`);
+  // ON and OFF are clearly different in each theme (not just a hue shift)
+  for (const th of ['night', 'day']) {
+    const a = rgbaOf(seen[`${th}-false`].bg), b = rgbaOf(seen[`${th}-true`].bg);
+    assert.ok(Math.abs(a.r - b.r) + Math.abs(a.g - b.g) + Math.abs(a.b - b.b) > 150, `${th}: ON vs OFF backgrounds too close`);
+  }
+  await ctx.close();
+});
+
+await step('switching Day ⇄ Night while the mode is ON keeps it ON and working', async () => {
+  const { ctx, P } = await candPage({ width: 1280, height: 800 });
+  await setCand(P, true);
+  for (let i = 0; i < 3; i++) {
+    await P.click('#header .theme-toggle');
+    assert.equal(await pressed(P), 'true', `ON must survive theme switch #${i + 1}`);
+    assert.equal(await P.evaluate(() => notesMode), true);
+  }
+  const [r, c] = await emptyCell(P);
+  await P.click(`.sd-cell[data-r="${r}"][data-c="${c}"]`);
+  await P.keyboard.press('4');
+  assert.equal(await P.evaluate((r, c) => notes[r][c].has(4), r, c), true, 'still entering candidates after the theme change');
+  // and OFF stays OFF
+  await setCand(P, false);
+  await P.click('#header .theme-toggle');
+  assert.equal(await pressed(P), 'false');
+  await ctx.close();
+});
+
+await step('candidates: enter and remove them; no final digit is placed, no mistake is counted while the mode is ON', async () => {
+  const { ctx, P } = await candPage({ width: 1280, height: 800 });
+  const [r, c, sol] = await emptyCell(P);
+  const wrong = sol === 7 ? 8 : 7;
+  const cell = `.sd-cell[data-r="${r}"][data-c="${c}"]`;
+  const state = () => P.evaluate((r, c, v) => ({ cand: [...notes[r][c]].sort(), board: board[r][c], mistakes, lost: document.querySelectorAll('.heart.lost').length, vis: cellEls[r][c].querySelectorAll('.note.vis').length, over: gameOver }), r, c);
+  await P.click('#notes-toggle');
+  await P.click(cell);
+  await P.keyboard.press(String(wrong));                               // a wrong digit: only a candidate, no error
+  let s = await state();
+  assert.deepEqual([s.cand, s.board, s.mistakes, s.lost, s.vis], [[wrong], 0, 0, 0, 1]);
+  await P.keyboard.press(String(sol));                                 // the right digit: also only a candidate
+  s = await state();
+  assert.deepEqual([s.cand, s.board, s.vis], [[Math.min(wrong, sol), Math.max(wrong, sol)], 0, 2]);
+  await P.keyboard.press(String(wrong));                               // the same key again removes it
+  s = await state();
+  assert.deepEqual([s.cand, s.vis], [[sol], 1]);
+  await P.keyboard.press('Delete');                                    // erase empties the cell
+  s = await state();
+  assert.deepEqual([s.cand, s.board, s.vis], [[], 0, 0]);
+  // mouse way: pick a digit on the keypad, then the cell
+  await P.click('.num-btn[data-v="2"]'); await P.click(cell);
+  assert.deepEqual((await state()).cand, [2]);
+  await P.click('.num-btn[data-v="2"]');                               // un-pick the digit
+  // switching OFF puts digits back to normal: the right one is placed for good and clears the candidates
+  await P.click('#notes-toggle');
+  if (!(await P.evaluate(() => selected))) await P.click(cell);          // (clicking the selected cell again would deselect it)
+  await P.keyboard.press(String(sol));
+  s = await state();
+  assert.deepEqual([s.board, s.cand, s.mistakes], [sol, [], 0]);
+  await ctx.close();
+});
+
+await step('first-use tip (FR, night): shown once next to the button, never over the digits, game stays playable, remembered', async () => {
+  const { ctx, P } = await candPage({ width: 1280, height: 800 }, { lang: 'fr' });
+  assert.equal(await tipShown(P), false);
+  assert.equal(await tipFlag(P), null);
+  const keysBefore = await P.evaluate(() => Object.keys(localStorage).sort());
+  await P.click('#notes-toggle');
+  assert.equal(await tipShown(P), true);
+  assert.equal(await P.$eval('#cand-tip span', e => e.textContent), 'Inscris de petits chiffres possibles dans les cases.');
+  assert.equal(await P.$eval('#notes-toggle .cand-label', e => e.textContent), 'Candidats');
+  assert.equal(await tipFlag(P), '1');
+  const keysAfter = await P.evaluate(() => Object.keys(localStorage).sort());
+  assert.deepEqual(keysAfter.filter(k => !keysBefore.includes(k)), ['sudoku-cand-tip'], 'only the tip flag is added to localStorage');
+  const g = await P.evaluate(() => {
+    const r = e => e.getBoundingClientRect(), t = r(document.getElementById('cand-tip')), b = r(document.getElementById('notes-toggle'));
+    const digits = [...document.querySelectorAll('.num-btn')].map(r);
+    return { below: t.top >= b.bottom, inside: t.left >= 0 && t.right <= innerWidth && t.bottom <= innerHeight, hitsDigit: digits.some(d => !(t.right < d.left || t.left > d.right || t.bottom < d.top || t.top > d.bottom)),
+      bg: getComputedStyle(document.getElementById('cand-tip')).backgroundColor, fg: getComputedStyle(document.getElementById('cand-tip')).color };
+  });
+  assert.deepEqual([g.below, g.inside, g.hitsDigit], [true, true, false], 'the tip sits under the button and covers no key');
+  assert.ok(contrast(over(rgbaOf(g.fg), rgbaOf(g.bg)), rgbaOf(g.bg)) >= 4.5, 'night tip contrast');
+  // the game is not blocked: a click on the board both works and dismisses the tip
+  const [r, c] = await emptyCell(P);
+  await P.click(`.sd-cell[data-r="${r}"][data-c="${c}"]`);
+  assert.deepEqual(await P.evaluate(() => selected), { r, c });
+  assert.equal(await tipShown(P), false, 'click outside dismisses it');
+  // not shown again: off/on, and after a reload
+  await P.click('#notes-toggle'); await P.click('#notes-toggle');
+  assert.equal(await pressed(P), 'true'); assert.equal(await tipShown(P), false);
+  await P.reload({ waitUntil: 'load' });
+  await P.click('#home-play');
+  await P.click('#notes-toggle');
+  assert.equal(await pressed(P), 'true'); assert.equal(await tipShown(P), false, 'not shown again after a reload');
+  assert.equal(await tipFlag(P), '1');
+  await ctx.close();
+});
+
+await step('first-use tip (EN, day): ✕ closes it, Esc closes it first, key N shows it too, turning the mode off hides it, contrast', async () => {
+  // via the N key, closed with the ✕
+  let { ctx, P } = await candPage({ width: 1280, height: 800 }, { lang: 'en' });
+  await setTheme(P, 'day');
+  await P.keyboard.press('n');
+  assert.equal(await tipShown(P), true);
+  assert.equal(await P.$eval('#cand-tip span', e => e.textContent), 'Add possible numbers as small notes in cells.');
+  assert.equal(await P.$eval('#cand-tip-close', e => e.getAttribute('aria-label')), 'Close');
+  const dayTip = await P.evaluate(() => ({ bg: getComputedStyle(document.getElementById('cand-tip')).backgroundColor, fg: getComputedStyle(document.getElementById('cand-tip')).color }));
+  assert.ok(contrast(over(rgbaOf(dayTip.fg), rgbaOf(dayTip.bg)), rgbaOf(dayTip.bg)) >= 4.5, 'day tip contrast');
+  const shot = process.env.E2E_SHOT_DIR;
+  if (shot) await P.screenshot({ path: path.join(shot, 'cand-day-tip.png'), clip: await P.$eval('#numpad', e => { const r = e.getBoundingClientRect(); return { x: r.left - 10, y: r.top - 8, width: r.width + 20, height: r.height + 80 }; }) });
+  await P.click('#cand-tip-close');
+  assert.equal(await tipShown(P), false); assert.equal(await pressed(P), 'true', 'closing the tip does not change the mode');
+  await ctx.close();
+  // Esc closes the tip before it deselects the cell
+  ({ ctx, P } = await candPage({ width: 1280, height: 800 }, { lang: 'en' }));
+  const [r, c] = await emptyCell(P);
+  await P.click(`.sd-cell[data-r="${r}"][data-c="${c}"]`);
+  await P.keyboard.press('n');
+  assert.equal(await tipShown(P), true);
+  await P.keyboard.press('Escape');
+  assert.deepEqual([await tipShown(P), await P.evaluate(() => selected !== null)], [false, true], 'first Esc: tip only');
+  await P.keyboard.press('Escape');
+  assert.equal(await P.evaluate(() => selected), null, 'second Esc: the usual deselect');
+  await ctx.close();
+  // turning the mode off while the tip is showing hides it
+  ({ ctx, P } = await candPage({ width: 1280, height: 800 }, { lang: 'en' }));
+  await P.click('#notes-toggle'); assert.equal(await tipShown(P), true);
+  await P.keyboard.press('n');
+  assert.deepEqual([await pressed(P), await tipShown(P)], ['false', false]);
+  await ctx.close();
+});
+
+await step('phones 320 / 375 / 390 px, touch, English and French: ≥ 44 px target, label complete, no overflow, aligned, tip on screen', async () => {
+  const shot = process.env.E2E_SHOT_DIR;
+  for (const w of [320, 375, 390]) {
+    for (const lang of ['en', 'fr']) {
+      const { ctx, P } = await candPage({ width: w, height: w === 320 ? 568 : 812, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }, { lang, tap: true });
+      const m = await P.evaluate(() => {
+        const r = e => e.getBoundingClientRect(), b = document.getElementById('notes-toggle'), pad = document.getElementById('numpad'), br = r(b), pr = r(pad);
+        const lab = b.querySelector('.cand-label'), digits = [...document.querySelectorAll('.num-btn[data-v]')].map(r);
+        return { vw: innerWidth, w: br.width, h: br.height, left: br.left, right: br.right, padLeft: pr.left, padRight: pr.right, ox: document.documentElement.scrollWidth - innerWidth,
+          btnOver: b.scrollWidth - b.clientWidth, labOver: lab.scrollWidth - lab.clientWidth, label: lab.textContent, fontPx: parseFloat(getComputedStyle(lab).fontSize) * (r(b).width / b.offsetWidth),
+          dh: Math.min(...digits.map(d => d.height)), dw: Math.min(...digits.map(d => d.width)), nd: digits.length, fit: +getComputedStyle(document.documentElement).getPropertyValue('--fit') };
+      });
+      const tag = `${w}px ${lang}`;
+      assert.equal(m.label, lang === 'fr' ? 'Candidats' : 'Candidates');
+      assert.ok(m.w >= 44 && m.h >= 43.5, `${tag}: touch target ${m.w.toFixed(1)}×${m.h.toFixed(1)}`);
+      assert.ok(m.left >= 0 && m.right <= m.vw && m.ox <= 1, `${tag}: horizontal overflow`);
+      assert.ok(Math.abs(m.left - m.padLeft) <= 1.5 && Math.abs(m.right - m.padRight) <= 1.5, `${tag}: not aligned with the keypad`);
+      assert.ok(m.btnOver <= 0 && m.labOver <= 0, `${tag}: label cut off`);
+      assert.ok(m.fontPx >= 14, `${tag}: label text only ${m.fontPx.toFixed(1)} px on screen`);
+      assert.ok(m.nd === 10 && m.dh >= 43.5 && m.dw >= 40, `${tag}: digit keys ${m.dw.toFixed(1)}×${m.dh.toFixed(1)}`);
+      // tap it: pressed, tip on screen and clear of the keys; tap ✕
+      await P.tap('#notes-toggle');
+      assert.equal(await pressed(P), 'true');
+      await P.waitForFunction(() => !document.getElementById('cand-tip').hidden);
+      await sleep(800);                                                  // smooth scroll into view, if the page scrolls
+      const t = await P.evaluate(() => {
+        const r = e => e.getBoundingClientRect(), tip = r(document.getElementById('cand-tip')), b = r(document.getElementById('notes-toggle'));
+        return { l: tip.left, r: tip.right, top: tip.top, bottom: tip.bottom, vw: innerWidth, vh: innerHeight, below: tip.top >= b.bottom,
+          keys: [...document.querySelectorAll('.num-btn')].some(d => { const x = r(d); return !(tip.right < x.left || tip.left > x.right || tip.bottom < x.top || tip.top > x.bottom); }), over: document.documentElement.scrollWidth - innerWidth };
+      });
+      assert.ok(t.l >= 0 && t.r <= t.vw && t.below && !t.keys && t.over <= 1, `${tag}: tip placement ${JSON.stringify(t)}`);
+      assert.ok(t.top >= 0 && t.bottom <= t.vh + 1, `${tag}: the tip is not visible on screen (${t.top}–${t.bottom} of ${t.vh})`);
+      if (shot && (w === 320 || w === 390)) await P.screenshot({ path: path.join(shot, `cand-phone-${w}-${lang}.png`) });
+      await P.tap('#cand-tip-close');
+      assert.equal(await tipShown(P), false);
+      assert.equal(await pressed(P), 'true');
+      // the keypad still works: a candidate by touch (cell, then a key of the keypad)
+      const [r, c] = await emptyCell(P);
+      await P.tap(`.sd-cell[data-r="${r}"][data-c="${c}"]`);
+      await P.tap('.num-btn[data-v="6"]');
+      await P.tap(`.sd-cell[data-r="${r}"][data-c="${c}"]`);
+      assert.equal(await P.evaluate((r, c) => notes[r][c].has(6) && board[r][c] === 0, r, c), true, `${tag}: candidate by touch`);
+      await ctx.close();
+    }
+  }
+});
+
+await step('hints use the Candidates vocabulary; the keypad row is complete (1-9 + erase) and the old pencil button is gone', async () => {
+  for (const [lang, expect] of [['en', 'N = candidates'], ['fr', 'N = candidats']]) {
+    const { ctx, P } = await candPage({ width: 1280, height: 800 }, { lang });
+    assert.match(await P.$eval('#hint', h => h.textContent), new RegExp(expect));
+    assert.doesNotMatch(await P.$eval('#hint', h => h.textContent) + await P.$eval('#notes-toggle', b => b.title), /notes?\b|pencil|crayon/i);
+    assert.deepEqual(await P.$$eval('#numpad .num-btn', bs => bs.map(b => b.dataset.v)), ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']);
+    assert.equal(await P.$$eval('#numpad .num-btn', bs => bs.some(b => b.textContent.trim() === '✎')), false);
+    await ctx.close();
+  }
+});
+
 await step('nothing was lost: local scores and the worldwide data are intact, no JavaScript error anywhere', async () => {
   const d = await D.evaluate(() => Object.keys(localStorage).filter(k => /^sudoku-scores-/.test(k)));
   assert.ok(d.includes('sudoku-scores-hard'), 'the local score saved by the game is still there');
