@@ -550,7 +550,7 @@ await step('Local ⇄ Worldwide and the four difficulties, without closing; the 
     assert.deepEqual(labels[lvl].active, [lvl]);
     assert.equal(labels[lvl].selected, 1);
   }
-  for (const lvl of ['easy', 'medium', 'hard']) assert.ok(!/easy|medium|hard|facile|moyen|difficile/i.test(labels[lvl].mode), `${lvl}: the difficulty is not repeated above the table (the active pill says it)`);
+  for (const lvl of ['easy', 'medium', 'hard']) assert.ok(!/easy|medium|hard|facile|moyen|expert/i.test(labels[lvl].mode), `${lvl}: the difficulty is not repeated above the table (the active pill says it)`);
   assert.match(labels.daily.mode, new RegExp(utcToday));
   // each pill shows the right worldwide ranking: Hard has the 22 seeded players (top 20 shown), Daily has today's three + seed
   await D.click('.lb-lvl[data-level="hard"]');
@@ -705,7 +705,7 @@ await step('phone 390 px: touch scrolling of the 20 scores keeps the popup open;
 
 await step('English and French: button, titles, tabs, pills and ✕', async () => {
   const expect = {
-    fr: { btn: 'Classement', title: 'Classement', tabs: ['Cet appareil', 'Monde'], pills: ['Facile', 'Moyen', 'Difficile', 'Défi du jour'], close: 'Fermer', refresh: 'Actualiser' },
+    fr: { btn: 'Classement', title: 'Classement', tabs: ['Cet appareil', 'Monde'], pills: ['Facile', 'Moyen', 'Expert', 'Défi du jour'], close: 'Fermer', refresh: 'Actualiser' },
     en: { btn: 'Leaderboard', title: 'Leaderboard', tabs: ['This device', 'Worldwide'], pills: ['Easy', 'Medium', 'Hard', 'Daily'], close: 'Close', refresh: 'Refresh' },
   };
   for (const lang of ['fr', 'en']) {
@@ -757,7 +757,7 @@ await step('subtitles: This device → "My game history", World → "Best score 
         assert.equal(x.text, SUB[lang][tab], where);
         assert.equal(x.listShown, true, `${where}: the list that goes with the subtitle is the one on screen`);
         if (lvl === 'daily') assert.ok(x.dateShown && x.date === `${utcToday} (UTC)`, `${where}: Daily names its UTC day`);
-        else assert.ok(!x.dateShown && x.date === '' && !/easy|medium|hard|facile|moyen|difficile/i.test(x.mode), `${where}: nothing repeats the difficulty`);
+        else assert.ok(!x.dateShown && x.date === '' && !/easy|medium|hard|facile|moyen|expert/i.test(x.mode), `${where}: nothing repeats the difficulty`);
       }
     }
   }
@@ -1553,7 +1553,7 @@ await step('phones 320 / 375 / 390 px, touch, English and French: ≥ 44 px targ
 console.log('\nHeader layout\n');
 const HEADER_TXT = {
   en: { lb: 'Leaderboard', share: 'Share', diffs: ['Easy', 'Medium', 'Hard'], daily: 'Daily Challenge', newGame: 'New Game', stats: ['Time', 'Best', 'Mistakes'], theme: 'Toggle theme', cal: 'Calendar', language: 'Language', difficulty: 'Difficulty' },
-  fr: { lb: 'Classement', share: 'Partager', diffs: ['Facile', 'Moyen', 'Difficile'], daily: 'Défi du jour', newGame: 'Nouvelle partie', stats: ['Temps', 'Record', 'Erreurs'], theme: 'Changer de thème', cal: 'Calendrier', language: 'Langue', difficulty: 'Difficulté' },
+  fr: { lb: 'Classement', share: 'Partager', diffs: ['Facile', 'Moyen', 'Expert'], daily: 'Défi du jour', newGame: 'Nouvelle partie', stats: ['Temps', 'Record', 'Erreurs'], theme: 'Changer de thème', cal: 'Calendrier', language: 'Langue', difficulty: 'Difficulté' },
 };
 // every control of the header and the stats row, in the order they are meant to read on a computer
 const HEADER_CTRL = {
