@@ -550,7 +550,7 @@ await step('Local ⇄ Worldwide and the four difficulties, without closing; the 
     assert.deepEqual(labels[lvl].active, [lvl]);
     assert.equal(labels[lvl].selected, 1);
   }
-  for (const lvl of ['easy', 'medium', 'hard']) assert.ok(!/easy|medium|hard|facile|moyen|expert/i.test(labels[lvl].mode), `${lvl}: the difficulty is not repeated above the table (the active pill says it)`);
+  for (const lvl of ['easy', 'medium', 'hard']) assert.ok(!/easy|medium|hard|facile|moyen|expert|łatwy|średni|ekspert/i.test(labels[lvl].mode), `${lvl}: the difficulty is not repeated above the table (the active pill says it)`);
   assert.match(labels.daily.mode, new RegExp(utcToday));
   // each pill shows the right worldwide ranking: Hard has the 22 seeded players (top 20 shown), Daily has today's three + seed
   await D.click('.lb-lvl[data-level="hard"]');
@@ -703,12 +703,13 @@ await step('phone 390 px: touch scrolling of the 20 scores keeps the popup open;
   await ctx.close();
 });
 
-await step('English and French: button, titles, tabs, pills and ✕', async () => {
+await step('English, French and Polish: button, titles, tabs, pills and ✕', async () => {
   const expect = {
     fr: { btn: 'Classement', title: 'Classement', tabs: ['Cet appareil', 'Monde'], pills: ['Facile', 'Moyen', 'Expert', 'Défi du jour'], close: 'Fermer', refresh: 'Actualiser' },
     en: { btn: 'Leaderboard', title: 'Leaderboard', tabs: ['This device', 'Worldwide'], pills: ['Easy', 'Medium', 'Hard', 'Daily'], close: 'Close', refresh: 'Refresh' },
+    pl: { btn: 'Ranking', title: 'Ranking', tabs: ['To urządzenie', 'Świat'], pills: ['Łatwy', 'Średni', 'Ekspert', 'Wyzwanie dnia'], close: 'Zamknij', refresh: 'Odśwież' },
   };
-  for (const lang of ['fr', 'en']) {
+  for (const lang of ['fr', 'pl', 'en']) {
     await D.click(`#header .lang-toggle button[data-lang="${lang}"]`);
     const e = expect[lang];
     assert.equal(await D.$eval('#lb-open', el => el.textContent.replace(/\s+/g, ' ').trim()), '🏆 ' + e.btn);
@@ -738,11 +739,11 @@ await step('day theme: the popup follows the theme', async () => {
   await D.click('#header .theme-toggle');
 });
 
-await step('subtitles: This device → "My game history", World → "Best score per player" (EN / FR), immediate, difficulty not repeated, game untouched', async () => {
-  const SUB = { en: { local: 'My game history', world: 'Best score per player' }, fr: { local: 'Historique de mes parties', world: 'Meilleur score par joueur' } };
+await step('subtitles: This device → "My game history", World → "Best score per player" (EN / FR / PL), immediate, difficulty not repeated, game untouched', async () => {
+  const SUB = { en: { local: 'My game history', world: 'Best score per player' }, fr: { local: 'Historique de mes parties', world: 'Meilleur score par joueur' }, pl: { local: 'Historia moich gier', world: 'Najlepszy wynik każdego gracza' } };
   const game = await gameSnapshot(D);
   await openLb(D, 'easy');
-  for (const lang of ['en', 'fr']) {
+  for (const lang of ['en', 'fr', 'pl']) {
     await D.evaluate(l => document.querySelector(`#header .lang-toggle button[data-lang="${l}"]`).click(), lang);   // the language changes while the popup is open
     for (const lvl of ['easy', 'medium', 'hard', 'daily']) {
       await D.click(`.lb-lvl[data-level="${lvl}"]`);
@@ -757,7 +758,7 @@ await step('subtitles: This device → "My game history", World → "Best score 
         assert.equal(x.text, SUB[lang][tab], where);
         assert.equal(x.listShown, true, `${where}: the list that goes with the subtitle is the one on screen`);
         if (lvl === 'daily') assert.ok(x.dateShown && x.date === `${utcToday} (UTC)`, `${where}: Daily names its UTC day`);
-        else assert.ok(!x.dateShown && x.date === '' && !/easy|medium|hard|facile|moyen|expert/i.test(x.mode), `${where}: nothing repeats the difficulty`);
+        else assert.ok(!x.dateShown && x.date === '' && !/easy|medium|hard|facile|moyen|expert|łatwy|średni|ekspert/i.test(x.mode), `${where}: nothing repeats the difficulty`);
       }
     }
   }
@@ -792,7 +793,7 @@ await step('subtitle colours: readable (≥ 4.5:1) on the card in the Night and 
   await closeLb(D);
 });
 
-await step('subtitles fit on 320 / 375 / 390 / 430 / 768 px (EN and FR, both tabs, Daily = longest): no overflow, card on screen, tabs and pills still usable', async () => {
+await step('subtitles fit on 320 / 375 / 390 / 430 / 768 px (EN, FR and PL, both tabs, Daily = longest): no overflow, card on screen, tabs and pills still usable', async () => {
   const ctx = await browserB.createBrowserContext();
   const M = await ctx.newPage();
   M.on('pageerror', e => problems.push(`[Msub] pageerror: ${e.message}`));
@@ -807,7 +808,7 @@ await step('subtitles fit on 320 / 375 / 390 / 430 / 768 px (EN and FR, both tab
   for (const [w, h] of [[320, 568], [375, 812], [390, 844], [430, 932], [768, 1024]]) {
     await M.setViewport({ width: w, height: h, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
     await sleep(250);
-    for (const lang of ['en', 'fr']) {
+    for (const lang of ['en', 'fr', 'pl']) {
       await M.evaluate(l => document.querySelector(`#header .lang-toggle button[data-lang="${l}"]`).click(), lang);
       for (const tab of ['local', 'world']) {
         await M.tap(`#sb-tab-${tab}`);
@@ -860,14 +861,16 @@ await step('same player, several games: "This device" lists each one (times, hea
 
 // ═══════════════════════════ sharing (Share button, popup, win invitation) ═══════════════════════════
 console.log('\nSharing\n');
-const SHARE = { en: 'https://djbebs.github.io/sudoku-world/en/', fr: 'https://djbebs.github.io/sudoku-world/fr/' };
+const SHARE = { en: 'https://djbebs.github.io/sudoku-world/en/', fr: 'https://djbebs.github.io/sudoku-world/fr/', pl: 'https://djbebs.github.io/sudoku-world/pl/' };
 const WA_MSG = {
   en: '🧩 No ads. Just Sudoku.\n\nPlay for free and challenge me on the global leaderboard!\n\n',
   fr: '🧩 Zéro pub. Juste du Sudoku.\n\nJoue gratuitement et défie-moi au classement mondial !\n\n',
+  pl: '🧩 Bez reklam. Tylko Sudoku.\n\nGraj za darmo i zmierz się ze mną w światowym rankingu!\n\n',
 };
 const TXT = {
   en: { btn: 'Share', title: 'Sudoku World', slogan: 'No ads. Just Sudoku.', desc: 'Free Sudoku. Daily challenges. Global leaderboard.', fb: 'Share on Facebook', ms: 'Share on Messenger', wa: 'Share on WhatsApp', copy: 'Copy link', copied: 'Link copied!', msCopied: 'Link copied. Paste it in Messenger.', msMissing: "Couldn't open Messenger. Link copied.", bravo: '🏆 Well done!', invite: 'Challenge your friends!' },
   fr: { btn: 'Partager', title: 'Sudoku World', slogan: 'Zéro pub. Juste du Sudoku.', desc: 'Sudoku gratuit. Défis quotidiens. Classement mondial.', fb: 'Partager sur Facebook', ms: 'Partager sur Messenger', wa: 'Partager sur WhatsApp', copy: 'Copier le lien', copied: 'Lien copié !', msCopied: 'Lien copié. Colle-le dans Messenger.', msMissing: "Impossible d'ouvrir Messenger. Lien copié.", bravo: '🏆 Bravo !', invite: 'Défie tes amis !' },
+  pl: { btn: 'Udostępnij', title: 'Sudoku World', slogan: 'Bez reklam. Tylko Sudoku.', desc: 'Darmowe Sudoku. Codzienne wyzwania. Światowy ranking.', fb: 'Udostępnij na Facebooku', ms: 'Udostępnij w Messengerze', wa: 'Udostępnij na WhatsAppie', copy: 'Kopiuj link', copied: 'Link skopiowany!', msCopied: 'Link skopiowany. Wklej go w Messengerze.', msMissing: 'Nie udało się otworzyć Messengera. Link skopiowany.', bravo: '🏆 Brawo!', invite: 'Rzuć wyzwanie znajomym!' },
 };
 const norm = s => s.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();   // the no-break space before "!" is typography, not content
 const shareIsOpen = page => page.$eval('#share-modal', el => !el.hidden);
@@ -969,8 +972,8 @@ await step('closing: outside, passive spot inside, ✕, Esc — and the share bu
   await D.keyboard.press('Escape');                                     assert.equal(await open(), false);
 });
 
-await step('Facebook, Messenger and WhatsApp links in English and in French (exact text, public share page, new tab)', async () => {
-  for (const lang of ['en', 'fr']) {
+await step('Facebook, Messenger and WhatsApp links in English, French and Polish (exact text, public share page, new tab)', async () => {
+  for (const lang of ['en', 'pl', 'fr']) {
     await setLang(D, lang);
     await openShare(D);
     const st = await readShare(D);
@@ -993,7 +996,7 @@ await step('Facebook, Messenger and WhatsApp links in English and in French (exa
 });
 
 await step('Copy link: the public share page of the current language lands in the clipboard, with a discreet confirmation', async () => {
-  for (const lang of ['en', 'fr']) {
+  for (const lang of ['en', 'pl', 'fr']) {
     await setLang(D, lang);
     await openShare(D);
     await D.bringToFront();
@@ -1046,8 +1049,8 @@ await step('Copy link fallbacks: no Clipboard API → execCommand; permission re
   await closeShare(D);
 });
 
-await step('Messenger on a computer: messenger.com opens in a new tab, the share link is copied, and the instruction stays up (EN and FR)', async () => {
-  for (const lang of ['en', 'fr']) {
+await step('Messenger on a computer: messenger.com opens in a new tab, the share link is copied, and the instruction stays up (EN, FR and PL)', async () => {
+  for (const lang of ['en', 'pl', 'fr']) {
     await setLang(D, lang);
     await openShare(D);
     await D.bringToFront();
@@ -1067,7 +1070,7 @@ await step('Messenger on a computer: messenger.com opens in a new tab, the share
   await setLang(D, 'en');
 });
 
-await step('Messenger on a phone: its own link opens the app; when nothing opens the link is copied and the player is told (EN and FR)', async () => {
+await step('Messenger on a phone: its own link opens the app; when nothing opens the link is copied and the player is told (EN, FR and PL)', async () => {
   const ctx = await browserB.createBrowserContext();
   await ctx.overridePermissions(`http://localhost:${PORT}`, ['clipboard-read', 'clipboard-write', 'clipboard-sanitized-write']);
   const M = await ctx.newPage();
@@ -1079,7 +1082,7 @@ await step('Messenger on a phone: its own link opens the app; when nothing opens
   await M.waitForSelector('#nick-modal:not([hidden])');
   await M.tap('#nick-cancel');
   await enterGame(M);
-  for (const lang of ['en', 'fr']) {
+  for (const lang of ['en', 'pl', 'fr']) {
     await setLang(M, lang, true);
     await openShare(M, true);
     await M.bringToFront();
@@ -1117,7 +1120,7 @@ await step('Messenger on a phone: its own link opens the app; when nothing opens
   await ctx.close();
 });
 
-await step('a shared link opens the game in its language (?lang=) without overriding the saved choice; static FR / EN pages redirect there', async () => {
+await step('a shared link opens the game in its language (?lang=) without overriding the saved choice; static FR / EN / PL pages redirect there; the browser language picks Polish by default', async () => {
   const origin = `http://localhost:${PORT}${SUB}`;
   const ctx = await browserB.createBrowserContext();
   const noFirebase = page => page.setRequestInterception(true).then(() => page.on('request', r => (/\/firebase-config\.js$/.test(r.url())
@@ -1127,7 +1130,7 @@ await step('a shared link opens the game in its language (?lang=) without overri
   const P = await ctx.newPage();
   P.on('pageerror', e => problems.push(`[lang] pageerror: ${e.message}`));
   await noFirebase(P);
-  for (const lang of ['fr', 'en']) {
+  for (const lang of ['fr', 'pl', 'en']) {
     await P.goto(`${origin}${lang}/`, { waitUntil: 'load' });           // the static page, then the redirect
     await P.waitForFunction(() => /sudoku\.html/.test(location.pathname), { timeout: 10000 });
     const i = await info(P);
@@ -1144,7 +1147,17 @@ await step('a shared link opens the game in its language (?lang=) without overri
   assert.equal(after.lang, 'en'); assert.equal(after.saved, 'en');
   assert.ok(!/lang=/.test(after.search) && /x=1/.test(after.search), `the link's language is dropped once the player chooses (${after.search})`);
   await P.goto(`${origin}sudoku.html?lang=xx`, { waitUntil: 'load' });
-  assert.ok(['en', 'fr'].includes((await info(P)).lang), 'an unknown language is ignored');
+  assert.ok(['en', 'fr', 'pl'].includes((await info(P)).lang), 'an unknown language is ignored');
+  // no link, nothing saved: the browser language decides (Polish → PL, anything unknown → EN)
+  for (const [nav, want] of [['pl-PL', 'pl'], ['fr-CA', 'fr'], ['de-DE', 'en']]) {
+    const C = await browserB.createBrowserContext();                    // fresh storage: no saved choice
+    const Q = await C.newPage();
+    await noFirebase(Q);
+    await Q.evaluateOnNewDocument(l => Object.defineProperty(navigator, 'language', { get: () => l }), nav);
+    await Q.goto(`${origin}sudoku.html`, { waitUntil: 'load' });
+    assert.equal((await info(Q)).lang, want, `browser language ${nav}`);
+    await C.close();
+  }
   await P.goto(`${origin}?x=1`, { waitUntil: 'load' });                  // the existing bare address still works
   await P.waitForFunction(() => /sudoku\.html/.test(location.pathname), { timeout: 10000 });
   await ctx.close();
@@ -1188,7 +1201,7 @@ await step('win screen: a discreet invitation to share; it never opens by itself
   await D.click('#ov-newgame');
 });
 
-await step('phone 390 px (EN and FR), touch: buttons fit, popup fits, share and copy work; also 320 px and landscape', async () => {
+await step('phone 390 px (EN, FR and PL), touch: buttons fit, popup fits, share and copy work; also 320 px and landscape', async () => {
   const ctx = await browserB.createBrowserContext();
   await ctx.overridePermissions(`http://localhost:${PORT}`, ['clipboard-read', 'clipboard-write', 'clipboard-sanitized-write']);
   const M = await ctx.newPage();
@@ -1207,7 +1220,7 @@ await step('phone 390 px (EN and FR), touch: buttons fit, popup fits, share and 
       card: { l: card.left, r: card.right, t: card.top, b: card.bottom, sh: document.getElementById('share-card').scrollHeight, ch: document.getElementById('share-card').clientHeight }, btns,
       slogan: document.getElementById('share-slogan').scrollWidth - document.getElementById('share-slogan').clientWidth };
   });
-  for (const lang of ['en', 'fr']) {
+  for (const lang of ['en', 'fr', 'pl']) {
     await setLang(M, lang, true);
     const a = await fits();
     assert.ok(a.l[0] >= 0 && a.s[1] <= a.vw && a.l[1] <= a.s[0], `header buttons overlap or leave the screen (${lang}): ${JSON.stringify(a)}`);
@@ -1502,10 +1515,10 @@ await step('first-use tip (EN, day): ✕ closes it, Esc closes it first, key N s
   await ctx.close();
 });
 
-await step('phones 320 / 375 / 390 px, touch, English and French: ≥ 44 px target, label complete, no overflow, aligned, tip on screen', async () => {
+await step('phones 320 / 375 / 390 px, touch, English, French and Polish: ≥ 44 px target, label complete, no overflow, aligned, tip on screen', async () => {
   const shot = process.env.E2E_SHOT_DIR;
   for (const w of [320, 375, 390]) {
-    for (const lang of ['en', 'fr']) {
+    for (const lang of ['en', 'fr', 'pl']) {
       const { ctx, P } = await candPage({ width: w, height: w === 320 ? 568 : 812, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }, { lang, tap: true });
       const m = await P.evaluate(() => {
         const r = e => e.getBoundingClientRect(), b = document.getElementById('notes-toggle'), pad = document.getElementById('numpad'), br = r(b), pr = r(pad);
@@ -1515,7 +1528,7 @@ await step('phones 320 / 375 / 390 px, touch, English and French: ≥ 44 px targ
           dh: Math.min(...digits.map(d => d.height)), dw: Math.min(...digits.map(d => d.width)), nd: digits.length, fit: +getComputedStyle(document.documentElement).getPropertyValue('--fit') };
       });
       const tag = `${w}px ${lang}`;
-      assert.equal(m.label, lang === 'fr' ? 'Candidats' : 'Candidates');
+      assert.equal(m.label, { en: 'Candidates', fr: 'Candidats', pl: 'Notatki' }[lang]);
       assert.ok(m.w >= 44 && m.h >= 43.5, `${tag}: touch target ${m.w.toFixed(1)}×${m.h.toFixed(1)}`);
       assert.ok(m.left >= 0 && m.right <= m.vw && m.ox <= 1, `${tag}: horizontal overflow`);
       assert.ok(Math.abs(m.left - m.padLeft) <= 1.5 && Math.abs(m.right - m.padRight) <= 1.5, `${tag}: not aligned with the keypad`);
@@ -1554,10 +1567,11 @@ console.log('\nHeader layout\n');
 const HEADER_TXT = {
   en: { lb: 'Leaderboard', share: 'Share', diffs: ['Easy', 'Medium', 'Hard'], daily: 'Daily Challenge', newGame: 'New Game', stats: ['Time', 'Best', 'Mistakes'], theme: 'Toggle theme', cal: 'Calendar', language: 'Language', difficulty: 'Difficulty' },
   fr: { lb: 'Classement', share: 'Partager', diffs: ['Facile', 'Moyen', 'Expert'], daily: 'Défi du jour', newGame: 'Nouvelle partie', stats: ['Temps', 'Record', 'Erreurs'], theme: 'Changer de thème', cal: 'Calendrier', language: 'Langue', difficulty: 'Difficulté' },
+  pl: { lb: 'Ranking', share: 'Udostępnij', diffs: ['Łatwy', 'Średni', 'Ekspert'], daily: 'Wyzwanie dnia', newGame: 'Nowa gra', stats: ['Czas', 'Rekord', 'Błędy'], theme: 'Zmień motyw', cal: 'Kalendarz', language: 'Język', difficulty: 'Poziom trudności' },
 };
 // every control of the header and the stats row, in the order they are meant to read on a computer
 const HEADER_CTRL = {
-  logo: '#header h1', lb: '#lb-open', share: '#share-open', langEn: '#header .lang-toggle [data-lang="en"]', langFr: '#header .lang-toggle [data-lang="fr"]', theme: '#header .theme-toggle',
+  logo: '#header h1', lb: '#lb-open', share: '#share-open', langEn: '#header .lang-toggle [data-lang="en"]', langFr: '#header .lang-toggle [data-lang="fr"]', langPl: '#header .lang-toggle [data-lang="pl"]', theme: '#header .theme-toggle',
   easy: '.diff-btn[data-diff="easy"]', medium: '.diff-btn[data-diff="medium"]', hard: '.diff-btn[data-diff="hard"]', cal: '#home-btn', daily: '#daily-btn', newGame: '#newbtn',
   time: '#stats > :nth-child(1)', best: '#stats > :nth-child(2)', hearts: '#hearts-wrap', board: '#board',
 };
@@ -1575,8 +1589,8 @@ const overlapping = R => {
   return bad;
 };
 
-await step('the FIRST page is the game with the Daily Challenge of the day, not the calendar (computer + phone, EN + FR); 📅 opens the calendar, Play comes back; once the Daily is done a reload opens a regular game', async () => {
-  for (const [vp, tap] of [[{ width: 1280, height: 800 }, false], [{ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }, true]]) for (const lang of ['en', 'fr']) {
+await step('the FIRST page is the game with the Daily Challenge of the day, not the calendar (computer + phone, EN + FR + PL); 📅 opens the calendar, Play comes back; once the Daily is done a reload opens a regular game', async () => {
+  for (const [vp, tap] of [[{ width: 1280, height: 800 }, false], [{ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }, true]]) for (const lang of ['en', 'fr', 'pl']) {
     const { ctx, P } = await candPage(vp, { lang, tap });
     const s = await P.evaluate(() => ({ home: document.body.classList.contains('home-open'), booting: document.body.classList.contains('booting'), daily: dailyMode, active: document.getElementById('daily-btn').classList.contains('active'),
       boardW: document.getElementById('board').getBoundingClientRect().width, calendarShown: getComputedStyle(document.getElementById('home')).display !== 'none', puzzle: JSON.stringify(puzzle),
@@ -1600,18 +1614,18 @@ await step('the FIRST page is the game with the Daily Challenge of the day, not 
   await ctx.close();
 });
 
-await step('computer 1280×800 (EN + FR): row 1 = logo · 🏆 Share || EN/FR theme, row 2 = difficulty · calendar + daily · New Game, row 3 = Time · Best · Mistakes; exact labels', async () => {
-  for (const lang of ['en', 'fr']) {
+await step('computer 1280×800 (EN + FR + PL): row 1 = logo · 🏆 Share || EN/FR/PL theme, row 2 = difficulty · calendar + daily · New Game, row 3 = Time · Best · Mistakes; exact labels', async () => {
+  for (const lang of ['en', 'fr', 'pl']) {
     const { ctx, P } = await candPage({ width: 1280, height: 800 }, { lang });
     const X = HEADER_TXT[lang], R = await headerRects(P);
-    const row1 = ['logo', 'lb', 'share', 'langEn', 'langFr', 'theme'], row2 = ['easy', 'medium', 'hard', 'cal', 'daily', 'newGame'];
+    const row1 = ['logo', 'lb', 'share', 'langEn', 'langFr', 'langPl', 'theme'], row2 = ['easy', 'medium', 'hard', 'cal', 'daily', 'newGame'];
     for (const [row, keys] of [['1', row1], ['2', row2]]) {
       for (let i = 1; i < keys.length; i++) assert.ok(R[keys[i]].l >= R[keys[i - 1]].r - 0.5, `${lang}: row ${row}: ${keys[i - 1]} → ${keys[i]} out of order`);
       for (const k of keys) assert.ok(Math.abs(R[k].cy - R[keys[0]].cy) <= 4, `${lang}: ${k} is not on row ${row} (${R[k].cy.toFixed(1)} vs ${R[keys[0]].cy.toFixed(1)})`);
     }
     assert.ok(R.easy.t > R.logo.b - 4 && R.easy.t > R.lb.b, `${lang}: row 2 under row 1`);
     // the two groups of row 1 are told apart by their spacing alone
-    assert.ok(R.langEn.l - R.share.r > (R.share.l - R.lb.r) + 6, `${lang}: 🏆/Share must read as a group apart from EN-FR/theme (gaps ${(R.share.l - R.lb.r).toFixed(1)} vs ${(R.langEn.l - R.share.r).toFixed(1)})`);
+    assert.ok(R.langEn.l - R.share.r > (R.share.l - R.lb.r) + 6, `${lang}: 🏆/Share must read as a group apart from EN-FR-PL/theme (gaps ${(R.share.l - R.lb.r).toFixed(1)} vs ${(R.langEn.l - R.share.r).toFixed(1)})`);
     // calendar and daily touch, difficulty is a separate group, New Game is the last of the row, flush right with the header
     assert.ok(R.daily.l - R.cal.r <= 6, `${lang}: calendar and daily must be one group`);
     assert.ok(R.cal.l - R.hard.r > R.daily.l - R.cal.r + 4, `${lang}: difficulty and daily groups must be apart`);
@@ -1638,7 +1652,7 @@ await step('computer 1280×800 (EN + FR): row 1 = logo · 🏆 Share || EN/FR th
   }
 });
 
-await step('the browser tab says exactly "Sudoku": calendar screen, game, both languages, popups open; the entry pages too', async () => {
+await step('the browser tab says exactly "Sudoku": calendar screen, game, every language, popups open; the entry pages too', async () => {
   const { ctx, P } = await candPage({ width: 1280, height: 800 }, { lang: 'en' });
   assert.equal(await P.title(), 'Sudoku');
   await P.click('#home-btn');                                           // the calendar screen
@@ -1649,19 +1663,19 @@ await step('the browser tab says exactly "Sudoku": calendar screen, game, both l
   await P.click('#lb-open'); await P.waitForSelector('#lb-modal:not([hidden])');
   assert.equal(await P.title(), 'Sudoku');
   await P.keyboard.press('Escape');
-  for (const url of ['', 'en/', 'fr/']) {
+  for (const url of ['', 'en/', 'fr/', 'pl/']) {
     const r = await fetch(`http://localhost:${PORT}${SUB}${url}`);
     assert.match(await r.text(), /<title>Sudoku<\/title>/, `entry page /${url}`);
   }
   await ctx.close();
 });
 
-await step('7 widths (320 375 390 430 768 1024 1440) × EN/FR × Night/Day: no overflow, nothing cut, nothing overlapping, nothing covered; phones: icon-only 🏆/Share, 44 px targets, readable text', async () => {
+await step('7 widths (320 375 390 430 768 1024 1440) × EN/FR/PL × Night/Day: no overflow, nothing cut, nothing overlapping, nothing covered; phones: icon-only 🏆/Share, 44 px targets, readable text', async () => {
   const shot = process.env.E2E_SHOT_DIR;
   const views = [{ width: 320, height: 568, phone: 1 }, { width: 375, height: 667, phone: 1 }, { width: 390, height: 844, phone: 1 }, { width: 430, height: 932, phone: 1 }, { width: 768, height: 1024 }, { width: 1024, height: 768 }, { width: 1440, height: 900 }];
   for (const v of views) {
     const vp = v.phone ? { width: v.width, height: v.height, isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : { width: v.width, height: v.height };
-    for (const lang of ['en', 'fr']) {
+    for (const lang of ['en', 'fr', 'pl']) {
       const { ctx, P } = await candPage(vp, { lang, tap: !!v.phone });
       for (const theme of ['night', 'day']) {
         await setTheme(P, theme);
@@ -1670,7 +1684,7 @@ await step('7 widths (320 375 390 430 768 1024 1440) × EN/FR × Night/Day: no o
         const info = await P.evaluate(() => {
           const px = e => parseFloat(getComputedStyle(e).fontSize) * (e.getBoundingClientRect().width / e.offsetWidth);
           const covered = [];
-          for (const s of ['#lb-open', '#share-open', '#header .lang-toggle [data-lang="en"]', '#header .lang-toggle [data-lang="fr"]', '#header .theme-toggle', '.diff-btn[data-diff="easy"]', '.diff-btn[data-diff="medium"]', '.diff-btn[data-diff="hard"]', '#home-btn', '#daily-btn', '#newbtn']) {
+          for (const s of ['#lb-open', '#share-open', '#header .lang-toggle [data-lang="en"]', '#header .lang-toggle [data-lang="fr"]', '#header .lang-toggle [data-lang="pl"]', '#header .theme-toggle', '.diff-btn[data-diff="easy"]', '.diff-btn[data-diff="medium"]', '.diff-btn[data-diff="hard"]', '#home-btn', '#daily-btn', '#newbtn']) {
             const e = document.querySelector(s), b = e.getBoundingClientRect(), hit = document.elementFromPoint((b.left + b.right) / 2, (b.top + b.bottom) / 2);
             if (!hit || !(hit === e || e.contains(hit))) covered.push(s);
           }
@@ -1690,7 +1704,7 @@ await step('7 widths (320 375 390 430 768 1024 1440) × EN/FR × Night/Day: no o
         if (v.phone) {
           assert.equal(info.textShown, false, `${tag}: 🏆 / Share are icon-only on a phone`);
           for (const k of ['lb', 'share', 'theme']) assert.ok(R[k].w >= 43.5 && R[k].h >= 43.5, `${tag}: ${k} target ${R[k].w.toFixed(1)}×${R[k].h.toFixed(1)}`);
-          for (const k of ['langEn', 'langFr']) assert.ok(R[k].h >= 36 && R[k].w >= 28, `${tag}: ${k} target ${R[k].w.toFixed(1)}×${R[k].h.toFixed(1)}`);
+          for (const k of ['langEn', 'langFr', 'langPl']) assert.ok(R[k].h >= 35.5 && R[k].w >= 27.5, `${tag}: ${k} target ${R[k].w.toFixed(1)}×${R[k].h.toFixed(1)}`);
           assert.ok(R.cal.w >= 38 && R.cal.h >= 27, `${tag}: calendar target ${R.cal.w.toFixed(1)}×${R.cal.h.toFixed(1)}`);
           for (const k of ['easy', 'medium', 'hard', 'daily', 'newGame']) assert.ok(R[k].h >= 27 && R[k].w >= 40, `${tag}: ${k} target ${R[k].w.toFixed(1)}×${R[k].h.toFixed(1)}`);
           assert.ok(info.fonts.diff >= 11 && info.fonts.daily >= 10.5 && info.fonts.newGame >= 10.5 && info.fonts.lang >= 11, `${tag}: header text too small on screen ${JSON.stringify(info.fonts)}`);
@@ -1711,7 +1725,7 @@ await step('7 widths (320 375 390 430 768 1024 1440) × EN/FR × Night/Day: no o
 });
 
 await step('short landscape phones (844×390, 667×375): nothing overflows or overlaps, every control reachable', async () => {
-  for (const [w, h] of [[844, 390], [667, 375]]) for (const lang of ['en', 'fr']) {
+  for (const [w, h] of [[844, 390], [667, 375]]) for (const lang of ['en', 'fr', 'pl']) {
     const { ctx, P } = await candPage({ width: w, height: h, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }, { lang, tap: true });
     const R = await headerRects(P), ox = await P.evaluate(() => document.documentElement.scrollWidth - innerWidth);
     assert.ok(ox <= 1, `${w}×${h} ${lang}: horizontal overflow ${ox}`);
@@ -1769,13 +1783,13 @@ await step('keyboard: Tab walks the header in reading order, every stop has a vi
   await P.evaluate(() => document.getElementById('lb-open').focus());
   await P.keyboard.down('Shift'); await P.keyboard.press('Tab'); await P.keyboard.up('Shift'); await P.keyboard.press('Tab');   // back on 🏆, by keyboard (so :focus-visible applies)
   const order = [], rings = [];
-  for (let i = 0; i < 11; i++) {
+  for (let i = 0; i < 12; i++) {
     await sleep(260);                                                  // the ring may fade in (transition)
     const f = await P.evaluate(() => { const e = document.activeElement, s = getComputedStyle(e), fit = +getComputedStyle(document.documentElement).getPropertyValue('--fit'); return { id: e.id || e.dataset.diff || e.dataset.lang || (e.classList.contains('theme-toggle') ? 'theme-toggle' : e.className), ring: s.outlineStyle === 'solid' && parseFloat(s.outlineWidth) * fit >= 1.9 && s.outlineColor === 'rgb(0, 204, 255)' }; });
     order.push(f.id); rings.push(f.ring);
     await P.keyboard.press('Tab');
   }
-  assert.deepEqual(order, ['lb-open', 'share-open', 'en', 'fr', 'theme-toggle', 'easy', 'medium', 'hard', 'home-btn', 'daily-btn', 'newbtn']);
+  assert.deepEqual(order, ['lb-open', 'share-open', 'en', 'fr', 'pl', 'theme-toggle', 'easy', 'medium', 'hard', 'home-btn', 'daily-btn', 'newbtn']);
   assert.ok(rings.every(Boolean), `every control shows a focus ring: ${JSON.stringify(rings)}`);
   await P.focus('.diff-btn[data-diff="medium"]'); await P.keyboard.press('Enter');
   assert.equal(await P.evaluate(() => difficulty), 'medium');

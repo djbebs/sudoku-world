@@ -23,13 +23,16 @@
 !/spectrum-flux.html
 !/tictactoe.html
 
-# Share pages (French / English): their own link-preview tags, then they open the game
+# Share pages (French / English / Polish): their own link-preview tags, then they open the game
 !/fr/
 /fr/*
 !/fr/index.html
 !/en/
 /en/*
 !/en/index.html
+!/pl/
+/pl/*
+!/pl/index.html
 
 # Link-preview image + favicons (the editable source in assets-src/ stays local)
 !/assets/
@@ -37,6 +40,7 @@
 !/assets/og-sudoku-world-v2.jpg
 !/assets/og-sudoku-en.jpg
 !/assets/og-sudoku-fr.jpg
+!/assets/og-sudoku-pl.jpg
 !/assets/logo-sudoku.png
 !/assets/favicon-32.png
 !/assets/favicon-192.png

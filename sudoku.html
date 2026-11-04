@@ -18,6 +18,7 @@
 <meta property="og:url" content="https://djbebs.github.io/sudoku-world/sudoku.html">
 <meta property="og:locale" content="en_US">
 <meta property="og:locale:alternate" content="fr_FR">
+<meta property="og:locale:alternate" content="pl_PL">
 <meta property="og:image" content="https://djbebs.github.io/sudoku-world/assets/og-sudoku-en.jpg">
 <meta property="og:image:secure_url" content="https://djbebs.github.io/sudoku-world/assets/og-sudoku-en.jpg">
 <meta property="og:image:type" content="image/jpeg">
@@ -132,7 +133,7 @@ h1 {
   color: #fff;
 }
 
-/* Difficulty: one segmented group (the same track as the EN | FR switch), the chosen level in the violet/pink gradient */
+/* Difficulty: one segmented group (the same track as the EN | FR | PL switch), the chosen level in the violet/pink gradient */
 #diff-btns {
   display: flex;
   flex-shrink: 0;
@@ -546,7 +547,7 @@ h1 {
 }
 .icon-btn:hover { background: rgba(255,255,255,0.13); }
 
-/* ── LANGUAGE TOGGLE (EN | FR) ── */
+/* ── LANGUAGE TOGGLE (EN | FR | PL) ── */
 .lang-toggle {
   display: flex;
   flex-shrink: 0;
@@ -797,7 +798,7 @@ body.stack .hd-row { gap: calc(5 * var(--u)); }
 body.stack .hd-tools { gap: calc(10 * var(--u)); }
 body.stack .hd-group { gap: calc(4 * var(--u)); }
 
-/* row 1: logo, then 🏆 · Share · EN | FR · theme. 44 x 44 screen px each; 🏆 and Share are icon-only (their text stays for screen readers) */
+/* row 1: logo, then 🏆 · Share · EN | FR | PL · theme. 44 x 44 screen px each; 🏆 and Share are icon-only (their text stays for screen readers) */
 body.stack .lb-btn { width: calc(44 * var(--u)); height: calc(44 * var(--u)); padding: 0; justify-content: center; border-radius: calc(11 * var(--u)); }
 body.stack .lb-btn .lb-text { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 body.stack .lb-btn > .lb-ico { font-size: calc(22 * var(--u)); }
@@ -816,11 +817,14 @@ body.stack .daily-group #home-btn { min-width: calc(44 * var(--u)); border-radiu
 body.stack .daily-group .diff-btn.daily-btn { flex: 1 1 auto; min-height: calc(30 * var(--u)); padding: 0 calc(8 * var(--u)); font-size: max(0.72rem, calc(12 * var(--u))); letter-spacing: 0.04em; border-radius: calc(16 * var(--u)); }
 body.stack #newbtn { flex: 1 1 auto; margin-left: 0; min-height: calc(36 * var(--u)); padding: 0 calc(14 * var(--u)); font-size: max(0.72rem, calc(12 * var(--u))); border-radius: calc(18 * var(--u)); }
 
-/* a very narrow phone (320-359px): a slightly smaller logo and tighter EN | FR so row 1 keeps its four 44px buttons */
-@media (max-width: 359px) {
-  body.stack h1 { font-size: 1.8rem; }
-  body.stack .hd-tools { gap: calc(6 * var(--u)); }
+/* a narrow phone (below 390px): the three language buttons (EN | FR | PL) get tighter so row 1 keeps its four 44px buttons */
+@media (max-width: 389px) {
   body.stack #header .lang-toggle button { min-width: calc(28 * var(--u)); padding: 0 calc(4 * var(--u)); }
+}
+/* a very narrow phone (320-359px): a slightly smaller logo as well */
+@media (max-width: 359px) {
+  body.stack h1 { font-size: 1.5rem; }
+  body.stack .hd-tools { gap: calc(4 * var(--u)); }
   /* so that "Défi du jour" and "Nouvelle partie" still share one line (11px text, still readable) */
   body.stack .daily-group #home-btn { min-width: calc(40 * var(--u)); }
   body.stack .daily-group .diff-btn.daily-btn, body.stack #newbtn { font-size: max(0.68rem, calc(11 * var(--u))); letter-spacing: 0.02em; padding: 0 calc(8 * var(--u)); }
@@ -1150,7 +1154,7 @@ body.day #nick-id { color: rgba(44,31,14,0.5); }
 body.day .lb-btn { color: rgba(44,31,14,0.8); }
 body.day .lb-btn:hover { color: #2c1f0e; }
 
-/* EN | FR and theme: the same 34px height as the buttons next to them */
+/* EN | FR | PL and theme: the same 34px height as the buttons next to them */
 #header .lang-toggle { height: 34px; align-items: stretch; }
 #header .lang-toggle button { padding: 0 10px; }
 #header .theme-toggle { width: 34px; height: 34px; padding: 0; line-height: 1; }
@@ -1282,6 +1286,7 @@ body.day #ov-invite-text b { color: #2c1f0e; }
     <div class="lang-toggle" role="group" data-i18n-aria="language" aria-label="Language">
       <button type="button" data-lang="en">EN</button>
       <button type="button" data-lang="fr">FR</button>
+      <button type="button" data-lang="pl">PL</button>
     </div>
     <button type="button" class="icon-btn" id="home-nick" data-i18n-title="nickTitle" title="Your nickname" hidden>👤</button>
     <button type="button" class="icon-btn theme-toggle" data-i18n-title="theme" data-i18n-aria="theme" title="Toggle theme" aria-label="Toggle theme">☀️</button>
@@ -1345,6 +1350,7 @@ body.day #ov-invite-text b { color: #2c1f0e; }
           <div class="lang-toggle" role="group" data-i18n-aria="language" aria-label="Language">
             <button type="button" data-lang="en">EN</button>
             <button type="button" data-lang="fr">FR</button>
+            <button type="button" data-lang="pl">PL</button>
           </div>
           <button type="button" class="icon-btn theme-toggle" data-i18n-title="theme" data-i18n-aria="theme" title="Toggle theme" aria-label="Toggle theme">☀️</button>
         </div>
@@ -1536,12 +1542,14 @@ const DIGIT_SPLAT = {
 const TARGET_CLUES = { easy:37, medium:29, hard:23 };
 
 // ══════════════════════════════════════════════════════════════
-// LANGUAGE  (EN / FR — saved in localStorage, defaults to the browser language)
+// LANGUAGE  (EN / FR / PL — saved in localStorage, defaults to the browser language)
 // Static text is tagged data-i18n / data-i18n-html / data-i18n-title in the HTML;
 // dynamic text (overlay, scoreboard) goes through t() directly.
 // ══════════════════════════════════════════════════════════════
 const NBSP = ' ';
 const HINT_SEP = ' ' + NBSP + '·' + NBSP + ' ';
+// Polish has three plural forms: 1 wyzwanie · 2-4 wyzwania · 5-21 wyzwań · 22-24 wyzwania …
+const plPlural = (n, one, few, many) => n === 1 ? one : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? few : many;
 const I18N = {
   en: {
     easy: 'Easy', medium: 'Medium', hard: 'Hard', daily: 'Daily', dailyChallenge: 'Daily Challenge',
@@ -1653,12 +1661,68 @@ const I18N = {
     ovQueued: '🌍 Classement mondial injoignable — votre score sera envoyé automatiquement plus tard.',
     ovDenied: '🌍 Le classement mondial a refusé ce résultat.',
   },
+  pl: {
+    easy: 'Łatwy', medium: 'Średni', hard: 'Ekspert', daily: 'Wyzwanie dnia', dailyChallenge: 'Wyzwanie dnia',
+    newGame: 'Nowa gra', theme: 'Zmień motyw', language: 'Język', notes: 'Tryb notatek (N)',
+    candidates: 'Notatki', candTip: 'Wpisuj możliwe cyfry jako małe notatki w polach.',
+    time: 'Czas', best: 'Rekord', mistakes: 'Błędy',
+    hint:      ['Kliknij pole', 'Albo najpierw wybierz cyfrę, by wstawiać ją wielokrotnie', 'N = notatki', 'Strzałki do nawigacji'].join(HINT_SEP),
+    hintTouch: ['Dotknij pole', 'Albo najpierw wybierz cyfrę, by wstawiać ją wielokrotnie', 'Notatki = małe możliwe cyfry'].join(HINT_SEP),
+    sbTitle: 'Ranking', sbPlayer: 'Gracz', sbTime: 'Czas',
+    sbEmpty: 'Brak wyników.<br>Ukończ planszę, aby trafić do rankingu!',
+    won: 'Wygrana!', lost: 'Koniec gry',
+    winMsg: (time, m) => 'Czas: ' + time + '  ·  Błędy: ' + m,
+    newBest: 'Nowy rekord!',
+    loseMsg: '3 błędy — następnym razem pójdzie lepiej!',
+    yourName: 'Twoja nazwa', save: 'Zapisz wynik', anonymous: 'Anonim',
+    savedTop:  n => '✓ Zapisano — jesteś #' + n + '!',
+    savedRank: n => '✓ Zapisano — miejsce #' + n,
+    // home (calendar)
+    homeTag: 'Sudoku · Wyzwanie dnia', play: 'Graj', resume: 'Kontynuuj', replay: 'Zagraj ponownie',
+    allGames: 'Wszystkie gry', calendar: 'Kalendarz', prevMonth: 'Poprzedni miesiąc', nextMonth: 'Następny miesiąc',
+    totalTip: 'Ukończone wyzwania dnia',
+    weekdays: ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So'],
+    dayDone:    (label, today) => label + ', ukończone' + (today ? ' (dziś)' : ''),
+    dayToday:   label => label + ', dziś: zagraj w wyzwanie dnia',
+    monthCount: (n, total) => n + ' z ' + total + ' w tym miesiącu',
+    totalCount: n => 'Łącznie ukończono ' + n + ' ' + plPlural(n, 'wyzwanie', 'wyzwania', 'wyzwań'),
+    // worldwide leaderboard
+    tabLocal: 'To urządzenie', tabWorld: 'Świat', subLocal: 'Historia moich gier', subWorld: 'Najlepszy wynik każdego gracza', refresh: 'Odśwież',
+    close: 'Zamknij', lbLevels: 'Poziom trudności',
+    // sharing
+    share: 'Udostępnij', shareTitle: 'Sudoku World',
+    shareSlogan: 'Bez reklam. Tylko Sudoku.',
+    shareDesc: 'Darmowe Sudoku. Codzienne wyzwania. Światowy ranking.',
+    shareFb: 'Udostępnij na Facebooku', shareMs: 'Udostępnij w Messengerze', shareWa: 'Udostępnij na WhatsAppie', shareCopy: 'Kopiuj link',
+    shareCopied: 'Link skopiowany!', shareManual: 'Skopiuj poniższy link',
+    shareMsCopied: 'Link skopiowany. Wklej go w Messengerze.', shareMsMissing: 'Nie udało się otworzyć Messengera. Link skopiowany.',
+    inviteBravo: '🏆 Brawo!', inviteText: 'Rzuć wyzwanie znajomym!',
+    shareWaMsg: '🧩 Bez reklam. Tylko Sudoku.\n\nGraj za darmo i zmierz się ze mną w światowym rankingu!\n\n',
+    olLoading: 'Ładowanie rankingu światowego…',
+    olEmpty: 'Nie ma jeszcze wyników online.<br>Bądź pierwszy!',
+    olOffline: 'Jesteś offline — ranking światowy jest niedostępny. Gra nadal działa.',
+    olError: 'Ranking online jest teraz niedostępny. Spróbuj ponownie za chwilę.',
+    olSlow: 'Nie można połączyć się z rankingiem online. Sprawdź połączenie.',
+    olRandomNote: 'Różne plansze tego samego poziomu — porównuj ostrożnie.',
+    olPlaying: n => 'Gracz: ' + n + '  ✎', olNoNick: 'Wybierz pseudonim  ✎',
+    olYourRank: r => 'Twój najlepszy · #' + r,
+    nickTitle: 'Twój pseudonim', cancel: 'Anuluj', saveNick: 'Zapisz',
+    nickHelp: 'Wyświetlany w rankingu światowym (maks. 14 znaków). Identyfikuje Cię anonimowy identyfikator zapisany w tej przeglądarce: wyczyszczenie danych przeglądarki może go zresetować, a Twoje dotychczasowe wyniki pozostaną przypisane do starej tożsamości.',
+    nickId: id => 'Anonimowy identyfikator: …' + id,
+    ovSending: 'Wysyłanie do rankingu światowego…',
+    ovRank: r => '🌍 Świat: #' + r,
+    ovSent: '🌍 Wysłano do rankingu światowego ✓',
+    ovKept: t => '🌍 To nie jest Twój rekord online (Twój: ' + t + ')',
+    ovQueued: '🌍 Brak połączenia z rankingiem światowym — wynik zostanie wysłany automatycznie później.',
+    ovDenied: '🌍 Ranking światowy odrzucił ten wynik.',
+  },
 };
 
-// A shared link (…/fr/ or …/en/ → sudoku.html?lang=fr) opens the game in that language, for this visit only
+// A shared link (…/fr/, …/en/ or …/pl/ → sudoku.html?lang=pl) opens the game in that language, for this visit only
+const LANGS = Object.keys(I18N);
 const urlLang = new URLSearchParams(location.search).get('lang');
-let lang = urlLang === 'en' || urlLang === 'fr' ? urlLang : localStorage.getItem('sudoku-lang');
-if (lang !== 'en' && lang !== 'fr') lang = /^fr/i.test(navigator.language || '') ? 'fr' : 'en';
+let lang = LANGS.includes(urlLang) ? urlLang : localStorage.getItem('sudoku-lang');
+if (!LANGS.includes(lang)) lang = LANGS.find(l => new RegExp('^' + l, 'i').test(navigator.language || '')) || 'en';
 function t(key) { return I18N[lang][key]; }
 
 // Touch-only device (phone/tablet): different hint text, no text pre-selection on the name field
@@ -3239,8 +3303,8 @@ document.querySelectorAll('#sb-levels button').forEach(b => b.addEventListener('
 
 // ── share popup ──
 // Facebook and WhatsApp do not run JavaScript when they build a link preview: they read the Open Graph tags of the
-// page that is shared. So each language has its own static page (fr/index.html, en/index.html) and that is the link we share.
-const SHARE_URL = { en: 'https://djbebs.github.io/sudoku-world/en/', fr: 'https://djbebs.github.io/sudoku-world/fr/' };
+// page that is shared. So each language has its own static page (en/, fr/, pl/index.html) and that is the link we share.
+const SHARE_URL = { en: 'https://djbebs.github.io/sudoku-world/en/', fr: 'https://djbebs.github.io/sudoku-world/fr/', pl: 'https://djbebs.github.io/sudoku-world/pl/' };
 let shareStatusTimer = null;
 
 function renderShare() {

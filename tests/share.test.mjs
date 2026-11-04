@@ -1,4 +1,4 @@
-// Static checks of the sharing setup: the link-preview (Open Graph / Twitter) tags, the share images, the FR / EN share
+// Static checks of the sharing setup: the link-preview (Open Graph / Twitter) tags, the share images, the FR / EN / PL share
 // pages and the "no ads, no tracking" promise. Facebook and WhatsApp do not run JavaScript when they build a preview,
 // so everything here is read straight from the HTML files, exactly as their robots read it. Run: npm run test:share
 import test from 'node:test';
@@ -29,19 +29,21 @@ function jpegSize(buf) {
   throw new Error('no size in JPEG');
 }
 
-const EN = { locale: 'en_US', alt: 'fr_FR', image: 'assets/og-sudoku-en.jpg', title: 'Sudoku World – No ads. Just Sudoku.', desc: 'Free Sudoku. Daily challenges. Global leaderboard.' };
-const FR = { locale: 'fr_FR', alt: 'en_US', image: 'assets/og-sudoku-fr.jpg', title: 'Sudoku World – Zéro pub. Juste du Sudoku.', desc: 'Sudoku gratuit. Défis quotidiens. Classement mondial.' };
+const EN = { locale: 'en_US', alt: ['fr_FR', 'pl_PL'], image: 'assets/og-sudoku-en.jpg', title: 'Sudoku World – No ads. Just Sudoku.', desc: 'Free Sudoku. Daily challenges. Global leaderboard.' };
+const FR = { locale: 'fr_FR', alt: ['en_US', 'pl_PL'], image: 'assets/og-sudoku-fr.jpg', title: 'Sudoku World – Zéro pub. Juste du Sudoku.', desc: 'Sudoku gratuit. Défis quotidiens. Classement mondial.' };
+const PL = { locale: 'pl_PL', alt: ['en_US', 'fr_FR'], image: 'assets/og-sudoku-pl.jpg', title: 'Sudoku World – Bez reklam. Tylko Sudoku.', desc: 'Darmowe Sudoku. Codzienne wyzwania. Światowy ranking.' };
 const PAGES = [
   { file: 'index.html', url: SITE, ...EN },
   { file: 'sudoku.html', url: SITE + 'sudoku.html', ...EN },
   { file: 'en/index.html', url: SITE + 'en/', ...EN },
   { file: 'fr/index.html', url: SITE + 'fr/', ...FR },
+  { file: 'pl/index.html', url: SITE + 'pl/', ...PL },
 ];
 
 // The name shown in the browser tab is exactly "Sudoku" (not "Sudoku World", not "Sudoku Enhanced"), on the game and on
 // the three pages that open it. Link previews keep their own Open Graph title (checked below); the logo is untouched.
-test('the browser-tab title is exactly "Sudoku" on the game and on its three entry pages; the SUDOKU logo is unchanged', () => {
-  for (const f of ['sudoku.html', 'index.html', 'en/index.html', 'fr/index.html']) {
+test('the browser-tab title is exactly "Sudoku" on the game and on its four entry pages; the SUDOKU logo is unchanged', () => {
+  for (const f of ['sudoku.html', 'index.html', 'en/index.html', 'fr/index.html', 'pl/index.html']) {
     const titles = [...read(f).matchAll(/<title>([^<]*)<\/title>/g)].map(m => m[1]);
     assert.deepEqual(titles, ['Sudoku'], `${f}: <title>`);
   }
@@ -59,7 +61,7 @@ for (const p of PAGES) {
     assert.equal(one('og:url'), p.url);
     assert.equal(one('og:type'), 'website');
     assert.equal(one('og:locale'), p.locale);
-    assert.deepEqual(m['og:locale:alternate'], [p.alt]);
+    assert.deepEqual(m['og:locale:alternate'], p.alt);
     assert.equal(one('og:site_name'), 'Sudoku World');
     assert.equal(one('og:image'), SITE + p.image);
     assert.equal(one('og:image:secure_url'), SITE + p.image);
@@ -75,7 +77,7 @@ for (const p of PAGES) {
   });
 }
 
-for (const [name, file] of [['English', 'assets/og-sudoku-en.jpg'], ['French', 'assets/og-sudoku-fr.jpg']]) {
+for (const [name, file] of [['English', 'assets/og-sudoku-en.jpg'], ['French', 'assets/og-sudoku-fr.jpg'], ['Polish', 'assets/og-sudoku-pl.jpg']]) {
   test(`${name} share image: a real 1200×630 JPEG under WhatsApp's ~300 KB limit`, () => {
     const buf = fs.readFileSync(path.join(ROOT, file));
     assert.deepEqual(jpegSize(buf), { w: 1200, h: 630 });
@@ -90,12 +92,12 @@ test('the logo shown in the share popup and on the share pages is published', ()
   assert.ok(buf.length < 200 * 1024);
 });
 
-test('the English / French share pages: own language, canonical + hreflang, redirect by JavaScript only', () => {
-  for (const [file, lang, url] of [['fr/index.html', 'fr', SITE + 'fr/'], ['en/index.html', 'en', SITE + 'en/']]) {
+test('the English / French / Polish share pages: own language, canonical + hreflang, redirect by JavaScript only', () => {
+  for (const [file, lang, url] of [['fr/index.html', 'fr', SITE + 'fr/'], ['en/index.html', 'en', SITE + 'en/'], ['pl/index.html', 'pl', SITE + 'pl/']]) {
     const html = read(file);
     assert.match(html, new RegExp(`<html lang="${lang}">`));
     assert.ok(html.includes(`<link rel="canonical" href="${url}">`));
-    for (const h of [`hreflang="fr" href="${SITE}fr/"`, `hreflang="en" href="${SITE}en/"`, `hreflang="x-default" href="${SITE}"`]) assert.ok(html.includes(h), h);
+    for (const h of [`hreflang="fr" href="${SITE}fr/"`, `hreflang="en" href="${SITE}en/"`, `hreflang="pl" href="${SITE}pl/"`, `hreflang="x-default" href="${SITE}"`]) assert.ok(html.includes(h), h);
     // robots must keep reading THIS page: no meta refresh (a robot might follow it to the English default page)
     assert.ok(!/http-equiv\s*=\s*["']?refresh/i.test(html), 'no meta refresh on the language pages');
     assert.ok(html.includes(`location.replace('../sudoku.html?lang=${lang}'`), 'humans are sent to the game in their language');
@@ -104,17 +106,18 @@ test('the English / French share pages: own language, canonical + hreflang, redi
   }
   assert.ok(read('fr/index.html').includes('Zéro pub. Juste du Sudoku.'));
   assert.ok(read('en/index.html').includes('No ads. Just Sudoku.'));
+  assert.ok(read('pl/index.html').includes('Bez reklam. Tylko Sudoku.'));
 });
 
 test('the existing addresses still work: index.html keeps its redirect to the game', () => {
   const html = read('index.html');
   assert.ok(html.includes("location.replace('sudoku.html'"));
-  assert.ok(html.includes('hreflang="fr"') && html.includes('hreflang="en"'));
+  assert.ok(html.includes('hreflang="fr"') && html.includes('hreflang="en"') && html.includes('hreflang="pl"'));
 });
 
-test('the game builds the Facebook / WhatsApp links from the public share pages and its own (FR / EN) texts', () => {
+test('the game builds the Facebook / WhatsApp links from the public share pages and its own (EN / FR / PL) texts', () => {
   const g = read('sudoku.html');
-  assert.ok(g.includes("en: 'https://djbebs.github.io/sudoku-world/en/'") && g.includes("fr: 'https://djbebs.github.io/sudoku-world/fr/'"));
+  assert.ok(g.includes("en: 'https://djbebs.github.io/sudoku-world/en/'") && g.includes("fr: 'https://djbebs.github.io/sudoku-world/fr/'") && g.includes("pl: 'https://djbebs.github.io/sudoku-world/pl/'"));
   assert.ok(g.includes("'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url)"), 'Facebook: public link-share URL');
   assert.ok(g.includes("'https://api.whatsapp.com/send?text=' + encodeURIComponent(t('shareWaMsg') + url)"), 'WhatsApp: official send link (wa.me would turn the emoji into �)');
   // Messenger: the app's own share link on a phone, messenger.com on a computer — never Facebook's "Send dialog", which needs an app id
@@ -129,16 +132,20 @@ test('the game builds the Facebook / WhatsApp links from the public share pages 
     "inviteBravo: '🏆 Well done!'", "inviteText: 'Challenge your friends!'", "inviteBravo: '🏆 Bravo' + NBSP + '!'", "inviteText: 'Défie tes amis' + NBSP + '!'",
     'shareWaMsg: \'🧩 No ads. Just Sudoku.\\n\\nPlay for free and challenge me on the global leaderboard!\\n\\n\'',
     'shareWaMsg: \'🧩 Zéro pub. Juste du Sudoku.\\n\\nJoue gratuitement et défie-moi au classement mondial !\\n\\n\'',
+    "shareMs: 'Udostępnij w Messengerze'", "shareMsCopied: 'Link skopiowany. Wklej go w Messengerze.'", "shareMsMissing: 'Nie udało się otworzyć Messengera. Link skopiowany.'",
+    "shareSlogan: 'Bez reklam. Tylko Sudoku.'", "shareDesc: 'Darmowe Sudoku. Codzienne wyzwania. Światowy ranking.'", "shareFb: 'Udostępnij na Facebooku'", "shareWa: 'Udostępnij na WhatsAppie'", "shareCopy: 'Kopiuj link'", "shareCopied: 'Link skopiowany!'",
+    "inviteBravo: '🏆 Brawo!'", "inviteText: 'Rzuć wyzwanie znajomym!'",
+    'shareWaMsg: \'🧩 Bez reklam. Tylko Sudoku.\\n\\nGraj za darmo i zmierz się ze mną w światowym rankingu!\\n\\n\'',
   ]) assert.ok(g.includes(s), `missing: ${s}`);
 });
 
 test('no ads, no tracking: no pixel, no analytics, no ad SDK, no Facebook SDK in any published page', () => {
-  const files = [...fs.readdirSync(ROOT).filter(f => f.endsWith('.html')), 'fr/index.html', 'en/index.html'];
-  assert.ok(files.length >= 8);
+  const files = [...fs.readdirSync(ROOT).filter(f => f.endsWith('.html')), 'fr/index.html', 'en/index.html', 'pl/index.html'];
+  assert.ok(files.length >= 9);
   const banned = /fbq\s*\(|connect\.facebook\.net|facebook\.com\/tr\b|FB\.init|fb-root|googletagmanager|google-analytics|gtag\s*\(|adsbygoogle|googlesyndication|doubleclick|adservice|hotjar|clarity\.ms|mixpanel|segment\.com|sentry|plausible|matomo/i;
   for (const f of files) assert.ok(!banned.test(read(f)), `${f} contains an ad / tracking reference`);
   // the game's only script files are its own; the single third-party code is the Firebase SDK (loaded by online.js for the leaderboard)
-  for (const f of ['sudoku.html', 'index.html', 'fr/index.html', 'en/index.html']) {
+  for (const f of ['sudoku.html', 'index.html', 'fr/index.html', 'en/index.html', 'pl/index.html']) {
     const external = [...read(f).matchAll(/<script[^>]+src="([^"]+)"/g)].map(m => m[1]);
     assert.ok(external.every(src => !/^(https?:)?\/\//.test(src)), `${f} loads an external script: ${external}`);
   }
@@ -149,7 +156,7 @@ test('no ads, no tracking: no pixel, no analytics, no ad SDK, no Facebook SDK in
 
 test('the new files are on the publication allow-list (.gitignore)', () => {
   const gi = read('.gitignore');
-  for (const line of ['!/fr/', '!/fr/index.html', '!/en/', '!/en/index.html', '!/assets/og-sudoku-en.jpg', '!/assets/og-sudoku-fr.jpg', '!/assets/logo-sudoku.png', '!/tests/share.test.mjs']) {
+  for (const line of ['!/fr/', '!/fr/index.html', '!/en/', '!/en/index.html', '!/pl/', '!/pl/index.html', '!/assets/og-sudoku-en.jpg', '!/assets/og-sudoku-fr.jpg', '!/assets/og-sudoku-pl.jpg', '!/assets/logo-sudoku.png', '!/tests/share.test.mjs']) {
     assert.ok(gi.split('\n').includes(line), `${line} missing from .gitignore`);
   }
 });
