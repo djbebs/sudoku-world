@@ -573,6 +573,18 @@ h1 {
   background: linear-gradient(135deg, #7700ff, #ff00aa);
   color: #fff;
 }
+/* "NEW" tag on the PL button (class set by syncPlNew()): a small amber pill straddling the top edge, above the button's own width so it never touches its neighbours.
+   Decorative only: the empty alternative text keeps screen readers from reading it, and clicks go through to the button */
+.lang-toggle button { position: relative; }
+.lang-toggle button.is-new::after {
+  content: 'NEW'; content: 'NEW' / '';
+  position: absolute; top: -7px; left: 50%; transform: translateX(-50%);
+  padding: 1px 4px; border-radius: 6px;
+  background: linear-gradient(135deg, #ffb300, #ffd54a); color: #2a1500;
+  font-size: 0.55rem; font-weight: 800; letter-spacing: 0.04em; line-height: 1.25;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  pointer-events: none;
+}
 
 /* ── DAY MODE ── */
 body.day {
@@ -752,6 +764,7 @@ body.day #ov-saved { color: #007a3d; }
 body.day .lang-toggle { background: rgba(80,50,20,0.07); border-color: rgba(80,50,20,0.14); }
 body.day .lang-toggle button { color: rgba(44,31,14,0.55); }
 body.day .lang-toggle button.active { color: #fff; }
+body.day .lang-toggle button.is-new::after { box-shadow: 0 1px 4px rgba(80,50,20,0.35); }
 
 /* day theme: the new header groups (same beige tints as the pills they replace) */
 body.day #diff-btns { background: rgba(80,50,20,0.07); border-color: rgba(80,50,20,0.14); }
@@ -806,6 +819,7 @@ body.stack .lb-btn > svg { width: calc(22 * var(--u)); height: calc(22 * var(--u
 body.stack #header .theme-toggle { width: calc(44 * var(--u)); height: calc(44 * var(--u)); font-size: calc(20 * var(--u)); border-radius: calc(11 * var(--u)); }
 body.stack #header .lang-toggle { height: calc(44 * var(--u)); padding: calc(3 * var(--u)); border-radius: calc(11 * var(--u)); }
 body.stack #header .lang-toggle button { min-width: calc(34 * var(--u)); padding: 0 calc(6 * var(--u)); font-size: max(0.72rem, calc(12 * var(--u))); border-radius: calc(8 * var(--u)); }
+body.stack #header .lang-toggle button.is-new::after { top: calc(-7 * var(--u)); padding: calc(1 * var(--u)) calc(4 * var(--u)); border-radius: calc(6 * var(--u)); font-size: max(0.5rem, calc(9 * var(--u))); }
 
 /* row 2 = the three difficulty buttons, filling the width. Row 3 = the daily-challenge group + New Game, under the difficulty buttons:
    they share the line while both fit and New Game drops to a full-width line of its own when they do not (a narrow phone, a long language) */
@@ -2825,6 +2839,20 @@ function scrollToTopIfStacked() {
   if (document.body.classList.contains('stack') && window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// "NEW" tag on the PL buttons (CSS: .is-new). Polish launched on 2026-11-04: the tag stays until the player has used Polish
+// (picked it, or opened a link / browser in Polish) and in any case for a month, so it never becomes permanent wallpaper
+const PL_NEW_KEY = 'sudoku-pl-new-seen';
+const PL_NEW_UNTIL = Date.UTC(2026, 11, 4);   // 4 December 2026 (months count from 0)
+function syncPlNew() {
+  let seen = lang === 'pl';
+  try {
+    if (seen) localStorage.setItem(PL_NEW_KEY, '1');
+    else seen = !!localStorage.getItem(PL_NEW_KEY);
+  } catch (_) {}                                // storage blocked: the tag simply follows the current language
+  const show = !seen && Date.now() < PL_NEW_UNTIL;
+  document.querySelectorAll('.lang-toggle button[data-lang="pl"]').forEach(b => b.classList.toggle('is-new', show));
+}
+
 // Writes every language-dependent string (static text via data-i18n*, hint, overlay, scoreboard)
 function applyLang() {
   document.documentElement.lang = lang;
@@ -2836,6 +2864,7 @@ function applyLang() {
   ovName.setAttribute('aria-label', t('yourName'));
   hintEl.textContent = t(isTouch ? 'hintTouch' : 'hint');
   document.querySelectorAll('.lang-toggle button').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+  syncPlNew();
   renderOverlay();
   renderScores(sbHighlight);
   renderOnline();

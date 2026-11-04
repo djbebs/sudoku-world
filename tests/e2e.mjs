@@ -1652,6 +1652,63 @@ await step('computer 1280×800 (EN + FR + PL): row 1 = logo · 🏆 Share || EN/
   }
 });
 
+await step('"NEW" tag on the PL button (game header and calendar screen): shown to a player who has not used Polish, purely decorative and never moves the header; gone for good once Polish is used, and after a month', async () => {
+  const PL = '#header .lang-toggle [data-lang="pl"]';
+  const tags = P => P.evaluate(() => [...document.querySelectorAll('.lang-toggle button[data-lang="pl"]')].map(b => {
+    const cs = getComputedStyle(b, '::after');
+    return { is: b.classList.contains('is-new'), text: b.textContent.trim(), content: cs.content, events: cs.pointerEvents, aria: b.getAttribute('aria-label') };
+  }));
+  const seen = P => P.evaluate(() => localStorage.getItem('sudoku-pl-new-seen'));
+  for (const [vp, where] of [[{ width: 1280, height: 800 }, 'computer'], [{ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }, 'phone'], [{ width: 320, height: 568, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }, 'narrow phone']]) {
+    const { ctx, P } = await candPage(vp, { lang: 'fr' });
+    const T = await tags(P);
+    assert.equal(T.length, 2, `${where}: one PL button in the game header, one on the calendar screen`);
+    for (const x of T) {
+      assert.ok(x.is && /NEW/.test(x.content), `${where}: the tag is shown (${x.content})`);
+      assert.equal(x.text, 'PL', `${where}: the tag adds no text to the button`);
+      assert.equal(x.events, 'none', `${where}: clicks go through the tag`);
+      assert.equal(x.aria, null, `${where}: the button keeps its own name`);
+    }
+    // it floats: taking it away moves nothing and adds no scrolling
+    const keys = ['logo', 'lb', 'share', 'langEn', 'langFr', 'langPl', 'theme', 'easy', 'medium', 'hard', 'cal', 'daily', 'newGame'];
+    const sels = Object.fromEntries(keys.map(k => [k, HEADER_CTRL[k]]));
+    const withTag = await headerRects(P, sels), ox = await P.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+    await P.evaluate(() => document.querySelectorAll('.lang-toggle button').forEach(b => b.classList.remove('is-new')));
+    assert.deepEqual(await headerRects(P, sels), withTag, `${where}: the tag must not move any control`);
+    assert.ok(ox <= 0, `${where}: the tag must not make the page scroll sideways (${ox} px)`);
+    await ctx.close();
+  }
+  // using Polish ends it, for good (all PL buttons, also after going back to another language and after a reload)
+  {
+    const { ctx, P } = await candPage({ width: 1280, height: 800 }, { lang: 'fr' });
+    assert.equal(await seen(P), null);
+    await P.click(PL);
+    assert.deepEqual((await tags(P)).map(x => x.is), [false, false], 'picking Polish removes the tag');
+    assert.equal(await seen(P), '1');
+    await P.click('#header .lang-toggle [data-lang="en"]');
+    assert.deepEqual((await tags(P)).map(x => x.is), [false, false], 'it does not come back with another language');
+    await P.reload({ waitUntil: 'load' }); await enterGame(P);
+    assert.deepEqual((await tags(P)).map(x => x.is), [false, false], 'nor after a reload');
+    await ctx.close();
+  }
+  // a player who already reads the game in Polish (saved choice, link or browser) never sees it
+  {
+    const { ctx, P } = await candPage({ width: 1280, height: 800 }, { lang: 'pl' });
+    assert.deepEqual((await tags(P)).map(x => x.is), [false, false]);
+    assert.equal(await seen(P), '1');
+    await ctx.close();
+  }
+  // a month after the launch it is gone for everybody
+  {
+    const { ctx, P } = await candPage({ width: 1280, height: 800 }, { lang: 'fr' });
+    assert.deepEqual((await tags(P)).map(x => x.is), [true, true]);
+    await P.evaluateOnNewDocument(() => { Date.now = () => Date.UTC(2027, 0, 1); });
+    await P.reload({ waitUntil: 'load' }); await enterGame(P);
+    assert.deepEqual((await tags(P)).map(x => x.is), [false, false], 'the tag expires');
+    await ctx.close();
+  }
+});
+
 await step('the browser tab says exactly "Sudoku": calendar screen, game, every language, popups open; the entry pages too', async () => {
   const { ctx, P } = await candPage({ width: 1280, height: 800 }, { lang: 'en' });
   assert.equal(await P.title(), 'Sudoku');
