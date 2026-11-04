@@ -1652,13 +1652,11 @@ await step('computer 1280×800 (EN + FR + PL): row 1 = logo · 🏆 Share || EN/
   }
 });
 
-await step('"NEW" tag on the PL button (game header and calendar screen): shown to a player who has not used Polish, purely decorative and never moves the header; gone for good once Polish is used, and after a month', async () => {
-  const PL = '#header .lang-toggle [data-lang="pl"]';
+await step('"NEW" tag on the PL button (game header and calendar screen): shown to everybody, in every language, for a month; purely decorative and never moves the header; gone after the month', async () => {
   const tags = P => P.evaluate(() => [...document.querySelectorAll('.lang-toggle button[data-lang="pl"]')].map(b => {
     const cs = getComputedStyle(b, '::after');
     return { is: b.classList.contains('is-new'), text: b.textContent.trim(), content: cs.content, events: cs.pointerEvents, aria: b.getAttribute('aria-label') };
   }));
-  const seen = P => P.evaluate(() => localStorage.getItem('sudoku-pl-new-seen'));
   for (const [vp, where] of [[{ width: 1280, height: 800 }, 'computer'], [{ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }, 'phone'], [{ width: 320, height: 568, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }, 'narrow phone']]) {
     const { ctx, P } = await candPage(vp, { lang: 'fr' });
     const T = await tags(P);
@@ -1678,24 +1676,16 @@ await step('"NEW" tag on the PL button (game header and calendar screen): shown 
     assert.ok(ox <= 0, `${where}: the tag must not make the page scroll sideways (${ox} px)`);
     await ctx.close();
   }
-  // using Polish ends it, for good (all PL buttons, also after going back to another language and after a reload)
-  {
-    const { ctx, P } = await candPage({ width: 1280, height: 800 }, { lang: 'fr' });
-    assert.equal(await seen(P), null);
-    await P.click(PL);
-    assert.deepEqual((await tags(P)).map(x => x.is), [false, false], 'picking Polish removes the tag');
-    assert.equal(await seen(P), '1');
-    await P.click('#header .lang-toggle [data-lang="en"]');
-    assert.deepEqual((await tags(P)).map(x => x.is), [false, false], 'it does not come back with another language');
-    await P.reload({ waitUntil: 'load' }); await enterGame(P);
-    assert.deepEqual((await tags(P)).map(x => x.is), [false, false], 'nor after a reload');
-    await ctx.close();
-  }
-  // a player who already reads the game in Polish (saved choice, link or browser) never sees it
-  {
-    const { ctx, P } = await candPage({ width: 1280, height: 800 }, { lang: 'pl' });
-    assert.deepEqual((await tags(P)).map(x => x.is), [false, false]);
-    assert.equal(await seen(P), '1');
+  // it stays whatever the player does: every language (also Polish), after a click on PL, after a reload (F5), and nothing is remembered about it
+  for (const first of ['en', 'fr', 'pl']) {
+    const { ctx, P } = await candPage({ width: 1280, height: 800 }, { lang: first });
+    assert.deepEqual((await tags(P)).map(x => x.is), [true, true], `${first}: shown from the first visit`);
+    for (const l of ['pl', 'en', 'fr', 'pl']) {
+      await P.click(`#header .lang-toggle [data-lang="${l}"]`);
+      assert.deepEqual((await tags(P)).map(x => x.is), [true, true], `${first} → ${l}: still shown`);
+    }
+    for (let i = 0; i < 2; i++) { await P.reload({ waitUntil: 'load' }); await enterGame(P); assert.deepEqual((await tags(P)).map(x => x.is), [true, true], `${first}: still shown after reload #${i + 1}`); }
+    assert.deepEqual(await P.evaluate(() => Object.keys(localStorage).filter(k => /new/i.test(k))), [], `${first}: nothing stored for the tag`);
     await ctx.close();
   }
   // a month after the launch it is gone for everybody

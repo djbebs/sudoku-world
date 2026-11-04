@@ -573,7 +573,7 @@ h1 {
   background: linear-gradient(135deg, #7700ff, #ff00aa);
   color: #fff;
 }
-/* "NEW" tag on the PL button (class set by syncPlNew()): a small amber pill straddling the top edge, above the button's own width so it never touches its neighbours.
+/* "NEW" tag on the PL button (class added at load, for a month, see "Language toggle" in the script): a small amber pill straddling the top edge, above the button's own width so it never touches its neighbours.
    Decorative only: the empty alternative text keeps screen readers from reading it, and clicks go through to the button */
 .lang-toggle button { position: relative; }
 .lang-toggle button.is-new::after {
@@ -2736,6 +2736,10 @@ themeBtns.forEach(btn => btn.addEventListener('click', () => {
   document.querySelector('meta[name="theme-color"]').content = isDayMode ? '#e8e0d4' : '#0d0d1a';  // Android browser bar
 }));
 
+// "NEW" tag on the PL buttons (CSS: .is-new). Polish launched on 2026-11-04: everybody sees the tag, all the time, for a month
+// (until 4 December 2026; months count from 0), whatever language is on. Once that date has passed this line can be deleted
+if (Date.now() < Date.UTC(2026, 11, 4)) document.querySelectorAll('.lang-toggle button[data-lang="pl"]').forEach(b => b.classList.add('is-new'));
+
 // Language toggle
 document.querySelectorAll('.lang-toggle button').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -2839,20 +2843,6 @@ function scrollToTopIfStacked() {
   if (document.body.classList.contains('stack') && window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// "NEW" tag on the PL buttons (CSS: .is-new). Polish launched on 2026-11-04: the tag stays until the player has used Polish
-// (picked it, or opened a link / browser in Polish) and in any case for a month, so it never becomes permanent wallpaper
-const PL_NEW_KEY = 'sudoku-pl-new-seen';
-const PL_NEW_UNTIL = Date.UTC(2026, 11, 4);   // 4 December 2026 (months count from 0)
-function syncPlNew() {
-  let seen = lang === 'pl';
-  try {
-    if (seen) localStorage.setItem(PL_NEW_KEY, '1');
-    else seen = !!localStorage.getItem(PL_NEW_KEY);
-  } catch (_) {}                                // storage blocked: the tag simply follows the current language
-  const show = !seen && Date.now() < PL_NEW_UNTIL;
-  document.querySelectorAll('.lang-toggle button[data-lang="pl"]').forEach(b => b.classList.toggle('is-new', show));
-}
-
 // Writes every language-dependent string (static text via data-i18n*, hint, overlay, scoreboard)
 function applyLang() {
   document.documentElement.lang = lang;
@@ -2864,7 +2854,6 @@ function applyLang() {
   ovName.setAttribute('aria-label', t('yourName'));
   hintEl.textContent = t(isTouch ? 'hintTouch' : 'hint');
   document.querySelectorAll('.lang-toggle button').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
-  syncPlNew();
   renderOverlay();
   renderScores(sbHighlight);
   renderOnline();
