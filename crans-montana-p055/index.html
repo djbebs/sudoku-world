@@ -235,10 +235,29 @@ function terrain(parent){
  box(100,9,100,side,0,-5.5,0,parent).castShadow=false;
  let border=mt('#2f3027');for(let k of [-50,50]){box(100,.4,.5,border,0,height(0,k)+.25,k,parent);box(.5,.4,100,border,k,height(k,0)+.25,0,parent)}
 }
-function planePoly(points,material,parent=world,yOffset=0.1){
- if(points.length<3)return;const shape=new THREE.Shape();shape.moveTo(points[0].x,-points[0].z);points.slice(1).forEach(p=>shape.lineTo(p.x,-p.z));
- let ge=new THREE.ShapeGeometry(shape);ge.rotateX(-Math.PI/2);
- let me=new THREE.Mesh(ge,material);let avg=points.reduce((a,p)=>a+height(p.x,p.z),0)/points.length;me.position.y=avg+yOffset;me.castShadow=false;me.receiveShadow=true;parent.add(me);return me;
+function planePoly(points,material,parent=world,yOffset=.1,followGround=true){
+ if(!points||points.length<3)return null;
+ const shape=new THREE.Shape();
+ shape.moveTo(points[0].x,-points[0].z);
+ points.slice(1).forEach(p=>shape.lineTo(p.x,-p.z));
+ shape.closePath();
+ const ge=new THREE.ShapeGeometry(shape);ge.rotateX(-Math.PI/2);
+ const pos=ge.getAttribute('position');
+ if(followGround){
+  // Vertex-level terrain draping instead of one average-height polygon.
+  // This prevents garden turf from floating above or covering mapped paths on slopes.
+  for(let i=0;i<pos.count;i++){
+   const x=pos.getX(i),z=pos.getZ(i);
+   pos.setY(i,height(x,z)+yOffset);
+  }
+  pos.needsUpdate=true;ge.computeVertexNormals();
+ }
+ const me=new THREE.Mesh(ge,material);
+ if(!followGround){
+  me.position.y=points.reduce((sum,p)=>sum+height(p.x,p.z),0)/points.length+yOffset;
+ }
+ me.castShadow=false;me.receiveShadow=true;parent.add(me);
+ return me;
 }
 function building(polygon,tags,seed,parent=world,demonstration=false){if(parent===world&&buildingLayer)parent=buildingLayer;
  const pts=polygon.filter(p=>Number.isFinite(p.x+p.z));if(pts.length<3)return;
@@ -397,7 +416,7 @@ function renderGeoreferencedFeatures(parent){
  const turf=mt('#6c945c'),waterMat=mt('#84c4ce');
  for(const region of waters){
   const poly=clipPolygonToPilot(region.points);
-  if(poly.length>=3)planePoly(poly,waterMat,parent,.19);
+  if(poly.length>=3)planePoly(poly,waterMat,parent,.19,false);
  }
  for(const zone of playgrounds){
   if(zone.points?.length>=3){
