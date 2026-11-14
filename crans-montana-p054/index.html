@@ -38,7 +38,7 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
 </style></head><body>
 <main id="map" aria-label="Maquette 3D isométrique de 100 mètres autour d'Ycoor"></main>
 <div id="real-status" role="status" aria-live="polite">Connexion aux toitures officielles…</div>
-<section id="place" class="box"><b>Crans-Montana</b><small>Ycoor · Valais · Suisse</small><div>P0 · 100 × 100 m</div><div class="weather">☀ <span id="weather">Météo simulée · clair</span><br><span id="origin">Terrain / OSM en cours...</span><br><a style="color:#174e78;display:inline-block;margin-top:5px" href="https://map.geo.admin.ch/#/map?lang=fr&amp;center=2603036,1128849&amp;z=11" target="_blank" rel="noopener noreferrer" title="Ouvrir swisstopo et activer la vue 3D pour comparer les bâtiments">Comparer à swisstopo ↗</a></div></section>
+<section id="place" class="box"><b>Crans-Montana</b><small>Ycoor · Valais · Suisse</small><div>P0 · 100 × 100 m</div><div class="weather">☀ <span id="weather">Météo simulée · clair</span><br><span id="origin">Terrain / OSM en cours...</span><br><a style="color:#174e78;display:inline-block;margin-top:5px" href="https://map.geo.admin.ch/#/map?lang=fr&amp;center=2603036,1128849&amp;z=11" target="_blank" rel="noopener noreferrer" title="Ouvrir swisstopo et activer la vue 3D pour comparer les bâtiments">Comparer à swisstopo ↗</a></div><div id="geo-status" style="font-size:11px;line-height:1.3;margin-top:5px">Arbres et chemins : chargement…</div><button id="veg-switch" type="button" title="Afficher la végétation officielle 3D" style="margin-top:5px;padding:3px 5px;font-size:11px">🌲 Végétation 3D</button></section>
 <section id="time" class="box" aria-label="Heure et saisons">
  <div class="row"><button id="postcard">postcard</button><button id="sun-mode" class="active">real sun</button></div>
  <input id="date" aria-label="Date de la scène" type="date" value="2026-11-14">
@@ -52,7 +52,7 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
  <p>Une scène miniature de démonstration P0 (100 × 100 m). Modèles en formes géométriques simplifiées, sans copie du code de bb.jest.pro.</p>
  <p><b>Données :</b> empreintes de bâtiments et routes chargées à la demande depuis © OpenStreetMap contributors (ODbL), via Overpass. Relief échantillonné depuis © swisstopo. Si le service ne répond pas, le terrain et les bâtiments de remplacement sont <b>artistiques, pas cadastraux</b>.</p>
  <p><b>P0.5.2 :</b> le chargeur configure le décodeur DRACO requis par les tuiles glTF compressées, teste deux révisions swisstopo et affiche la raison d’un échec. Les vrais modèles n’ont pas encore été validés dans ce moteur Three.js. <a href="../crans-montana-p0/?v=4" target="_blank" rel="noopener noreferrer">Comparer avec le rendu officiel Cesium P0.4 qui fonctionne</a>.</p><p><b>Mode 3D officielle :</b> les bâtiments sont fournis sous forme de tuiles swissBUILDINGS3D. Leurs formes de toiture et leurs dimensions sont conservées, les couleurs et la résolution sont stylisées. Le mode illustré reste un modèle OSM simplifié, différent de la 3D officielle.</p><p><b>Animations :</b> véhicule et piéton entièrement simulés. Aucun GPS ou trafic en direct. Les hauteurs de bâtiments non renseignées par OSM sont estimées. Les toitures sont provisoirement toutes plates et ne correspondent pas à swissBUILDINGS3D.</p>
- <p><b>Librairies :</b> Three.js (MIT), Pixelify Sans (SIL OFL).</p>
+ <p><b>Végétation P0.5.4 :</b> arbre individuel uniquement lorsqu’un point OSM `natural=tree` est connu, ou données officielles de végétation swisstopo 3D. Les arbres sans position individuelle ne sont pas générés au hasard.</p><p><b>Chemins :</b> tracés et intersections issus des coordonnées OSM, largeur par défaut approximative. Le jardin et les équipements de jeux ne sont localisés que si OSM fournit leurs coordonnées.</p><p><b>Librairies :</b> Three.js (MIT), 3d-tiles-renderer (Apache-2.0), Pixelify Sans (SIL OFL).</p>
  <p><a href="https://www.openstreetmap.org/copyright" target="_blank">Licence OSM</a> · <a href="https://www.swisstopo.admin.ch/" target="_blank">swisstopo</a> · <a href="../crans-montana-pixel-atlas/" target="_blank">V5 actuelle</a></p>
  </section>
 <nav id="tools" aria-label="Commandes de la carte">
@@ -96,6 +96,7 @@ const S=100,HALF=50;
 const state={season:'auto',clock:14,date:'2026-11-14',sun:true,play:false,labels:true,bounds:true,angle:Math.PI/4,zoom:1};
 const buildingData=[],streetData=[],treeData=[],playgrounds=[],waters=[],objects=[],animated=[];
 let osmPedCount=0,treeCount=0,playCount=0,parkStatus='OSM';
+let vegetationTiles=null,vegetationEnabled=true,vegetationReady=false,vegetationMeshes=0,treeLayer=null;
 let osmOk=false,terrainOk=false,terrainVals=null,frame=0,clockLast=performance.now(),selected=null;
 const scene=new THREE.Scene();scene.background=new THREE.Color('#729da2');scene.fog=new THREE.Fog('#729da2',190,420);
 const camera=new THREE.OrthographicCamera(-95,95,75,-75,0.1,1500);
@@ -159,6 +160,71 @@ function tree(x,z,seed,parent=world,tags={}){
   if(season()==='winter')crown.material=mt('#9b9e7d');
  }
 }
+
+function updateGeoLabel(){
+ const el=$('geo-status');
+ if(!el)return;
+ const official=vegetationReady&&vegetationEnabled;
+ if(treeLayer)treeLayer.visible=!official;
+ el.textContent=(official?'Végétation swisstopo 3D':(treeCount+' arbres OSM'))+
+  ' · '+osmPedCount+' chemins · '+playCount+' aires de jeux OSM';
+ const btn=$('veg-switch');btn.classList.toggle('active',official);
+ btn.setAttribute('aria-pressed',String(official));
+}
+$('veg-switch').onclick=()=>{
+ vegetationEnabled=!vegetationEnabled;
+ if(vegetationTiles)vegetationTiles.group.visible=vegetationEnabled;
+ updateGeoLabel();
+ if(vegetationEnabled&&!vegetationTiles)startVegetation();
+};
+async function startVegetation(){
+ if(vegetationTiles)return;
+ try{
+  const {TilesRenderer}=await import('https://esm.sh/3d-tiles-renderer@0.4.28/three?external=three');
+  const t=new TilesRenderer('https://3d.geo.admin.ch/ch.swisstopo.vegetation.3d/v1/20250728/tileset.json');
+  vegetationTiles=t;t.errorTarget=20;
+  t.setCamera(camera);t.setResolutionFromRenderer(camera,renderer);
+  const draco=new DRACOLoader();
+  draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/libs/draco/');
+  draco.setDecoderConfig({type:'wasm'});
+  const gltf=new GLTFLoader(t.manager);gltf.setDRACOLoader(draco);
+  t.manager.addHandler(/\.(gltf|glb)$/i,gltf);
+  t.group.matrixAutoUpdate=false;t.group.matrix.copy(toENU());
+  t.group.name='swisstopo vegetation 3D georeferenced';
+  scene.add(t.group);t.group.updateMatrixWorld(true);t.group.visible=vegetationEnabled;
+  const clip=[
+   new THREE.Plane(new THREE.Vector3(1,0,0),50),
+   new THREE.Plane(new THREE.Vector3(-1,0,0),50),
+   new THREE.Plane(new THREE.Vector3(0,0,1),50),
+   new THREE.Plane(new THREE.Vector3(0,0,-1),50)
+  ];
+  t.addEventListener('load-model',({scene:model})=>{
+   let count=0;
+   model.traverse(obj=>{
+    if(!obj.isMesh)return;
+    obj.material=new THREE.MeshLambertMaterial({
+     color:'#5e824c',flatShading:true,side:THREE.DoubleSide,clippingPlanes:clip
+    });
+    obj.castShadow=false;obj.receiveShadow=true;count++;
+   });
+   if(count){vegetationMeshes+=count;vegetationReady=true;updateGeoLabel()}
+  });
+  t.addEventListener('dispose-model',({scene:model})=>model.traverse(obj=>{
+   if(obj.isMesh)(Array.isArray(obj.material)?obj.material:[obj.material]).forEach(m=>m?.dispose?.())
+  }));
+  t.addEventListener('load-error',err=>{
+   console.warn('swisstopo vegetation 3D',err);
+   if(!vegetationReady)$('geo-status').textContent=treeCount+' arbres OSM · végétation officielle non disponible';
+  });
+  setTimeout(()=>{
+   if(!vegetationReady&&vegetationEnabled)$('geo-status').textContent=treeCount+' arbres OSM · végétation 3D non confirmée';
+  },17000);
+ }catch(e){
+  console.warn('official vegetation unavailable',e);
+  $('geo-status').textContent=treeCount+' arbres OSM · végétation 3D indisponible';
+ }
+}
+
 function terrain(parent){
  const seg=26,v=[],ix=[];for(let j=0;j<=seg;j++)for(let i=0;i<=seg;i++){let x=-50+i*100/seg,z=-50+j*100/seg;v.push(x,height(x,z),z)}
  for(let j=0;j<seg;j++)for(let i=0;i<seg;i++){let a=j*(seg+1)+i,b=a+1,c=a+seg+1,d=c+1;ix.push(a,c,b,b,c,d)}
@@ -340,6 +406,7 @@ function build(){
  mats.roof.color.set(season()==='winter'?'#bcbaa9':'#a05c44');
  while(world.children.length)world.remove(world.children[0]);objects.length=0;animated.length=0;
  terrain(world);
+ treeLayer=new THREE.Group();treeLayer.name='OSM georeferenced tree points';world.add(treeLayer);
  buildingLayer=new THREE.Group();world.add(buildingLayer);
  if(osmOk)for(const b of buildingData)building(b.points,b.tags,b.id,world,false);
  // Only true OSM ways; never draw an invented fallback road.
@@ -349,7 +416,7 @@ function build(){
  // Exact OSM natural=tree nodes. No procedural or scattered positions.
  treeCount=0;for(const item of treeData){
   if(Math.abs(item.x)>49||Math.abs(item.z)>49)continue;
-  tree(item.x,item.z,item.id,world,item.tags);treeCount++;
+  tree(item.x,item.z,item.id,treeLayer,item.tags);treeCount++;
  }
  winterDetails(world);
  renderGeoreferencedFeatures(world);
@@ -362,6 +429,7 @@ function build(){
  }
  $('origin').textContent=osmOk?('OSM : '+treeCount+' arbres, '+osmPedCount+' chemins, '+playCount+' aires de jeux'):'OSM indisponible, objets fictifs masqués';
  $('status').textContent='P0.5.4 · arbres/chemins géolocalisés OSM · '+(terrainOk?'relief swisstopo':'relief estimé')+' · animations simulées';
+ updateGeoLabel();
  syncRoofs();
 }
 
@@ -433,7 +501,7 @@ function transformCam(){
  camera.position.set(target.x+Math.sin(state.angle)*radius*Math.cos(el),target.y+radius*Math.sin(el),target.z+Math.cos(state.angle)*radius*Math.cos(el));camera.lookAt(target);
 }
 function resize(){let w=innerWidth,h=innerHeight,pixel=window.devicePixelRatio>1?0.65:0.8;
- renderer.setSize(Math.round(w*pixel),Math.round(h*pixel),false);if(tiles)tiles.setResolutionFromRenderer(camera,renderer);
+ renderer.setSize(Math.round(w*pixel),Math.round(h*pixel),false);if(tiles)tiles.setResolutionFromRenderer(camera,renderer);if(vegetationTiles)vegetationTiles.setResolutionFromRenderer(camera,renderer);
  renderer.domElement.style.width=w+'px';renderer.domElement.style.height=h+'px';
  let aspect=w/h,side=85/state.zoom;camera.left=-side*aspect;camera.right=side*aspect;camera.top=side;camera.bottom=-side;camera.updateProjectionMatrix();transformCam()}
 let needsResize=true;
@@ -481,7 +549,7 @@ function loop(now){
   a.v.rotation.y=Math.atan2(dir*(r.b.x-r.a.x),dir*(r.b.z-r.a.z));
  }
  }
- transformCam();camera.updateMatrixWorld();if(tiles&&useOfficial){try{tiles.update()}catch(e){console.warn(e)}}renderer.render(scene,camera);
+ transformCam();camera.updateMatrixWorld();if(tiles&&useOfficial){try{tiles.update()}catch(e){console.warn(e)}}if(vegetationTiles&&vegetationEnabled){try{vegetationTiles.update()}catch(e){console.warn('vegetation',e)}}renderer.render(scene,camera);
 }
 function asyncAbort(url,timeout=9000){const c=new AbortController();let t=setTimeout(()=>c.abort(),timeout);return fetch(url,{signal:c.signal,cache:'no-store'}).then(r=>{if(!r.ok)throw Error(r.status);return r.json()}).finally(()=>clearTimeout(t))}
 async function loadOSM(){
@@ -554,7 +622,7 @@ async function loadHeight(){
   }
  }
  await Promise.all([worker(),worker(),worker()]);
- if(valid===9){terrainVals=raw;terrainOk=true;if(tiles){tiles.group.matrix.copy(toENU());tiles.group.updateMatrixWorld(true)}build();$('loading').textContent='Relief swisstopo chargé';return true}
+ if(valid===9){terrainVals=raw;terrainOk=true;if(tiles){tiles.group.matrix.copy(toENU());tiles.group.updateMatrixWorld(true)}if(vegetationTiles){vegetationTiles.group.matrix.copy(toENU());vegetationTiles.group.updateMatrixWorld(true)}build();$('loading').textContent='Relief swisstopo chargé';return true}
  return false;
 }
 const raycaster=new THREE.Raycaster(),mouse=new THREE.Vector2();
@@ -595,7 +663,7 @@ $('run').onclick=()=>{state.play=!state.play;$('run').textContent=state.play?'�
 $('sun-mode').onclick=()=>{state.sun=!state.sun;$('sun-mode').classList.toggle('active',state.sun);$('sun-mode').textContent=state.sun?'real sun':'studio';if(false)toReal('light',{date:state.date,hour:state.clock,real:state.sun})};
 document.querySelectorAll('[data-season]').forEach(b=>b.onclick=()=>{state.season=b.dataset.season;document.querySelectorAll('[data-season]').forEach(x=>x.classList.toggle('active',x===b));build();if(false)toReal('season',{value:season()})});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('info').classList.remove('show');$('sources').classList.remove('show')}if(e.key==='+')zoom(1.2);if(e.key==='-')zoom(1/1.2);if(e.key==='ArrowLeft')state.angle-=.12;if(e.key==='ArrowRight')state.angle+=.12});
-build();requestAnimationFrame(loop);startRoofs();
+build();requestAnimationFrame(loop);startRoofs();setTimeout(startVegetation,2800);
 setTimeout(()=>{if($('loading').style.display!=='none')$('loading').textContent='Sources externes lentes : mode démo toujours utilisable';},12000);
 async function refreshData(){
  $('loading').style.display='block';$('loading').style.cursor='default';$('loading').textContent='Lecture des données OSM et swisstopo...';
