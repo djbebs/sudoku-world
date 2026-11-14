@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#173125">
-<title>Isometric Crans-Montana · P0.2 / Ycoor</title>
+<title>Isometric Crans-Montana · P0.3 / Ycoor</title>
 <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--paper:#f6f0dd;--ink:#29291f;--red:#c92430;--blue:#2f5c9e;--edge:#1d221c}
@@ -30,7 +30,7 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
 }
 </style></head><body>
 <main id="map" aria-label="Maquette 3D isométrique de 100 mètres autour d'Ycoor"></main>
-<section id="place" class="box"><b>Crans-Montana</b><small>Ycoor · Valais · Suisse</small><div>P0 · 100 × 100 m</div><div class="weather">☀ <span id="weather">Météo simulée · clair</span><br><span id="origin">Terrain / OSM en cours...</span></div></section>
+<section id="place" class="box"><b>Crans-Montana</b><small>Ycoor · Valais · Suisse</small><div>P0 · 100 × 100 m</div><div class="weather">☀ <span id="weather">Météo simulée · clair</span><br><span id="origin">Terrain / OSM en cours...</span><br><a style="color:#174e78;display:inline-block;margin-top:5px" href="https://map.geo.admin.ch/#/map?lang=fr&amp;center=2603036,1128849&amp;z=11" target="_blank" rel="noopener noreferrer" title="Ouvrir swisstopo et activer la vue 3D pour comparer les bâtiments">Comparer à swisstopo ↗</a></div></section>
 <section id="time" class="box" aria-label="Heure et saisons">
  <div class="row"><button id="postcard">postcard</button><button id="sun-mode" class="active">real sun</button></div>
  <input id="date" aria-label="Date de la scène" type="date" value="2026-11-14">
@@ -43,7 +43,7 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
 <section id="sources" class="box"><button id="close-sources" style="float:right" aria-label="Fermer">×</button><h2>Isometric Crans-Montana</h2>
  <p>Une scène miniature de démonstration P0 (100 × 100 m). Modèles en formes géométriques simplifiées, sans copie du code de bb.jest.pro.</p>
  <p><b>Données :</b> empreintes de bâtiments et routes chargées à la demande depuis © OpenStreetMap contributors (ODbL), via Overpass. Relief échantillonné depuis © swisstopo. Si le service ne répond pas, le terrain et les bâtiments de remplacement sont <b>artistiques, pas cadastraux</b>.</p>
- <p><b>Animations :</b> véhicule et piéton entièrement simulés. Aucun GPS ou trafic en direct. Les hauteurs de bâtiments non renseignées par OSM sont estimées.</p>
+ <p><b>Animations :</b> véhicule et piéton entièrement simulés. Aucun GPS ou trafic en direct. Les hauteurs de bâtiments non renseignées par OSM sont estimées. Les toitures sont provisoirement toutes plates et ne correspondent pas à swissBUILDINGS3D.</p>
  <p><b>Librairies :</b> Three.js (MIT), Pixelify Sans (SIL OFL).</p>
  <p><a href="https://www.openstreetmap.org/copyright" target="_blank">Licence OSM</a> · <a href="https://www.swisstopo.admin.ch/" target="_blank">swisstopo</a> · <a href="../crans-montana-pixel-atlas/" target="_blank">V5 actuelle</a></p>
  </section>
@@ -58,7 +58,7 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
 <div id="status">P0 · géométrie artistique initiale</div>
 <div id="loading">Chargement des données géographiques...</div>
 <div id="tip">glisser : déplacer · roulette/pincer : zoom · ↶ ↷ : rotation</div>
-<footer id="credit">© swisstopo · © OSM<br>Illustration P0 / <b>démo</b></footer>
+<footer id="credit">© swisstopo · © OSM<br><b>Empreintes réelles, volumes illustratifs</b></footer>
 <script>window.__p0Booted=false;setTimeout(()=>{if(!window.__p0Booted){let t=document.getElementById("loading");if(t)t.innerHTML='Impossible de lancer le moteur 3D. Vérifie le réseau ou réessaie dans Chrome.<br><a style="color:#fff" href="../crans-montana-pixel-atlas/">Retour à la V5</a>'}},14500);</script>
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
@@ -139,7 +139,7 @@ function building(polygon,tags,seed,parent=world,demonstration=false){
  const rgeo=new THREE.ShapeGeometry(shape);rgeo.rotateX(-Math.PI/2);
  let roof=new THREE.Mesh(rgeo,mats.roof);roof.position.y=base+h+.1;add(roof,parent);
  let bound=new THREE.Box3().setFromObject(mesh);if(bound.getSize(new THREE.Vector3()).length()<3)return;
- const center=mesh.position.clone();mesh.userData={title:tags.name||'Bâtiment',desc:demonstration?'Volume de démonstration, position fictive.':('Empreinte © OpenStreetMap, toiture simplifiée. Hauteur '+(rawHeight>2?'OSM':levels>0?'estimée selon étages':'estimée')+'.')};
+ const center=mesh.position.clone();mesh.userData={title:tags.name||'Bâtiment',desc:demonstration?'Volume de démonstration, position fictive.':('Empreinte réelle © OpenStreetMap. ATTENTION : volume extrudé, toit plat fictif et hauteur '+(rawHeight>2?'extraite d’OSM':levels>0?'estimée selon étages':'estimée')+'. Ce modèle ne reproduit pas encore la vraie toiture swissBUILDINGS3D.')};
  objects.push(mesh);return mesh;
 }
 function demo(){
@@ -202,8 +202,8 @@ function build(){
  if(state.bounds){
  const r=mt('#d1ad66');for(const x of [-50,50])for(const z of [-50,50]){box(2,.14,2,r,x,height(x,z)+.35,z,world).castShadow=false}
  }
- $('origin').textContent=osmOk?('OSM : '+buildingData.length+' bâtiments, '+streetData.length+' chemins/voies'):'Géométrie de démonstration';
- $('status').textContent='P0 · '+(osmOk?'OSM réel':'bâtiments fictifs')+' · '+(terrainOk?'relief swisstopo échantillonné':'relief approximatif')+' · animations simulées';
+ $('origin').textContent=osmOk?('OSM : '+buildingData.length+' empreintes, toits provisoires'):'Géométrie de démonstration';
+ $('status').textContent='P0 · '+(osmOk?'empreintes OSM (volumes estimés)':'bâtiments fictifs')+' · '+(terrainOk?'relief swisstopo échantillonné':'relief approximatif')+' · animations simulées';
 }
 function transformCam(){
  const radius=130/state.zoom,el=Math.PI/4.4;
