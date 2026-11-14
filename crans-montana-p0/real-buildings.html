@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ycoor · vrais bâtiments 3D</title>
+<link href="https://cdn.jsdelivr.net/npm/cesium@1.147.0/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#87a5a2}
+#view{position:absolute;inset:0}
+#view canvas{image-rendering:pixelated}
+#notice{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);max-width:min(340px,90vw);padding:12px 15px;background:#f5f0df;border:3px solid #28271c;box-shadow:5px 5px #2226;color:#26271e;font:14px monospace;z-index:10;text-align:center}
+#notice.hide{display:none}
+#notice b{color:#c5262e}
+#notice p{font-size:12px}
+#credit{position:absolute;right:9px;bottom:5px;z-index:2;color:#29372d;background:#f4eedae6;padding:3px 6px;font:10px monospace;pointer-events:none}
+#pixel{position:absolute;inset:0;pointer-events:none;opacity:.12;background:repeating-linear-gradient(90deg,transparent 0px,transparent 3px,#192919 4px),repeating-linear-gradient(0deg,transparent 0px,transparent 3px,#192919 4px)}
+.cesium-viewer-bottom{transform:scale(.7);transform-origin:bottom right}
+</style><script>window.CESIUM_BASE_URL="https://cdn.jsdelivr.net/npm/cesium@1.147.0/Build/Cesium/";</script>
+<script defer src="https://cdn.jsdelivr.net/npm/cesium@1.147.0/Build/Cesium/Cesium.js" onerror="window.__noCesium=true"></script>
+</head><body><div id="view"></div><div id="pixel"></div>
+<div id="notice" role="status"><b>Ycoor · bâtiments réels</b><p id="progress">Chargement des modèles officiels…</p></div>
+<div id="credit">© swisstopo · swissBUILDINGS3D</div>
+<script>
+(function(){
+'use strict';
+const loc={lat:46.311036,lon:7.478052,alt:1515},$=id=>document.getElementById(id);
+const url='https://3d.geo.admin.ch/ch.swisstopo.swissbuildings3d.3d/v1/tileset.json';
+let viewer,terrain,buildings,heading=.79,range=205,visible=0,done=false,season='autumn';
+function tell(status,more={}){try{if(parent!==window)parent.postMessage({source:'crans-ycoor-real',status,...more},location.origin)}catch(e){}}
+function progress(t){$('progress').textContent=t;tell('progress',{text:t})}
+function fail(t){$('notice').classList.remove('hide');$('notice').querySelector('b').textContent='Données 3D indisponibles';progress(t);tell('error',{reason:t})}
+function focus(){
+ const c=Cesium.Cartesian3.fromDegrees(loc.lon,loc.lat,loc.alt);
+ viewer.camera.lookAt(c,new Cesium.HeadingPitchRange(heading,Cesium.Math.toRadians(-48),range));
+ viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
+}
+function light(date,hour,real){
+ if(!viewer)return;
+ try{viewer.clock.currentTime=Cesium.JulianDate.fromIso8601((date||'2026-11-14')+'T'+String(Math.floor(hour||14)).padStart(2,'0')+':00:00Z')}catch(e){}
+ viewer.scene.globe.enableLighting=!!real;
+}
+function palette(){
+ if(!viewer)return;
+ const layer=viewer.imageryLayers.get(0);
+ if(layer){layer.saturation=.45;layer.contrast=1.12;layer.brightness=season==='winter'?1.18:1.05}
+ viewer.scene.globe.baseColor=Cesium.Color.fromCssColorString(season==='winter'?'#c1cabd':'#7c916b');
+}
+function op(action,d){
+ if(!viewer)return;
+ if(action==='home'){heading=.79;range=205;focus()}
+ else if(action==='zoomIn'){range=Math.max(60,range*.82);focus()}
+ else if(action==='zoomOut'){range=Math.min(900,range*1.22);focus()}
+ else if(action==='left'){heading-=Math.PI/8;focus()}
+ else if(action==='right'){heading+=Math.PI/8;focus()}
+ else if(action==='light'){light(d.date,d.hour,d.real)}
+ else if(action==='season'){season=d.value;palette()}
+ else if(action==='capture'){try{let a=document.createElement('a');a.href=viewer.canvas.toDataURL('image/png');a.download='ycoor-3d-officiel.png';a.click()}catch(e){}}
+}
+addEventListener('message',e=>{if(e.origin!==location.origin||e.data?.source!=='crans-p0')return;op(e.data.action,e.data)});
+async function run(){
+ if(!window.Cesium){fail('CesiumJS n’a pas été chargé.');return}
+ progress('Lecture du relief swisstopo…');
+ try{terrain=await Cesium.CesiumTerrainProvider.fromUrl('https://3d.geo.admin.ch/ch.swisstopo.terrain.3d/v1/')}catch(e){console.warn('terrain',e)}
+ try{
+  const base=new Cesium.ImageryLayer(new Cesium.UrlTemplateImageryProvider({
+   url:'https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swisstlm3d-karte-farbe.3d/default/current/3857/{z}/{x}/{y}.jpeg',
+   rectangle:Cesium.Rectangle.fromDegrees(5,45.3,11.5,48.3),minimumLevel:8,maximumLevel:17,credit:'© swisstopo'
+  }));
+  viewer=new Cesium.Viewer('view',{
+   terrainProvider:terrain||new Cesium.EllipsoidTerrainProvider(),baseLayer:base,
+   baseLayerPicker:false,geocoder:false,sceneModePicker:false,homeButton:false,
+   infoBox:false,selectionIndicator:false,animation:false,timeline:false,
+   fullscreenButton:false,navigationHelpButton:false,scene3DOnly:true,requestRenderMode:false
+  });
+  viewer.scene.globe.depthTestAgainstTerrain=true;
+  viewer.scene.skyAtmosphere.show=false;viewer.scene.fog.enabled=false;
+  viewer.scene.postProcessStages.fxaa.enabled=false;
+  viewer.resolutionScale=.6;viewer.resize();
+  viewer.camera.switchToOrthographicFrustum();
+  focus();palette();light('2026-11-14',14,true);
+ }catch(e){fail('Caméra 3D : '+String(e?.message||e));return}
+ progress('Lecture des bâtiments et des toitures…');
+ try{
+  buildings=await Cesium.Cesium3DTileset.fromUrl(url,{maximumScreenSpaceError:8,maximumMemoryUsage:112});
+  viewer.scene.primitives.add(buildings);
+  buildings.tileVisible.addEventListener(()=>{visible++});
+  // Retain all geometric roof surfaces; only recolor the surfaces.
+  try{
+   const up=Cesium.Cartesian3.normalize(Cesium.Cartesian3.fromDegrees(loc.lon,loc.lat,0),new Cesium.Cartesian3());
+   const shader='void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) { vec3 n=normalize(czm_inverseViewRotation * fsInput.attributes.normalEC); float facing=dot(n,normalize(u_up)); float isRoof=step(0.48,facing); vec3 wall=vec3(0.84,0.79,0.68); vec3 roof=vec3(0.65,0.33,0.25); material.diffuse=mix(wall,roof,isRoof); material.alpha=1.0; }';
+   buildings.customShader=new Cesium.CustomShader({uniforms:{u_up:{type:Cesium.UniformType.VEC3,value:up}},fragmentShaderText:shader});
+  }catch(e){console.warn('Styling fallback',e)}
+  // Geographic clipping: 100 metres in both axes around Ycoor; optional if unsupported.
+  try{
+   const dy=50/111320,dx=50/(111320*Math.cos(loc.lat*Math.PI/180));
+   buildings.clippingPolygons=new Cesium.ClippingPolygonCollection({
+     polygons:[new Cesium.ClippingPolygon({positions:Cesium.Cartesian3.fromDegreesArray([
+      loc.lon-dx,loc.lat-dy,loc.lon+dx,loc.lat-dy,loc.lon+dx,loc.lat+dy,loc.lon-dx,loc.lat+dy
+     ])})],inverse:true
+   });
+  }catch(e){console.warn('Clipping fallback',e)}
+ }catch(e){fail('swissBUILDINGS3D : '+String(e?.message||e));return}
+ progress('Vérification du rendu géographique…');
+ const started=Date.now();
+ const tick=()=>{
+  if(done||!viewer)return;
+  if((visible>0||buildings.tilesLoaded)&&viewer.scene.globe.tilesLoaded&&Date.now()-started>1300){
+   done=true;viewer.scene.postRender.removeEventListener(tick);
+   $('notice').classList.add('hide');tell('ready',{visibleTiles:visible,terrain:!!terrain});
+  }
+ };
+ viewer.scene.postRender.addEventListener(tick);
+ setTimeout(()=>{if(!done){viewer.scene.postRender.removeEventListener(tick);fail('Impossible de confirmer le rendu des tuiles à Ycoor.')}},21000);
+ const handler=new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+ handler.setInputAction(e=>{
+  const f=viewer.scene.pick(e.position);
+  if(f&&typeof f.getProperty==='function'){
+   tell('pick',{title:String(f.getProperty('name')||'Bâtiment'),description:'Volume officiel swissBUILDINGS3D, toitures réelles et couleurs stylisées. Les bâtiments peuvent être modifiés depuis la date de prise de vue.'})
+  }
+ },Cesium.ScreenSpaceEventType.LEFT_CLICK);
+}
+addEventListener('load',run);
+})();
+</script></body></html>
