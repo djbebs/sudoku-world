@@ -351,7 +351,7 @@ function findRoadRoute(){
 
 
 function findPedestrianRoute(){
- if(!osmOk)return null;
+ if(!osmOk&&!officialFootpaths.length)return null;
  let best=null;
  for(const w of [...streetData.filter(p=>p.type==='footway'),...officialFootpaths]){
   if(w.type!=='footway')continue;
