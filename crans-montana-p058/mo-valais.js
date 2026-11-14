@@ -26,9 +26,9 @@ export const MO_CATEGORIES={
 const isFiniteXY=(p)=>Array.isArray(p)&&p.length>=2&&Number.isFinite(Number(p[0]))&&Number.isFinite(Number(p[1]));
 const genre=(a)=>String(a?.GENRE??'').trim();
 function toLocal(pt,origin){return {x:Number(pt[0])-origin.e,z:origin.n-Number(pt[1])}}
-function nearPilot(points){
- return points.some(p=>Math.abs(p.x)<=55&&Math.abs(p.z)<=55);
-}
+// ArcGIS intersects the requested 100 m envelope on the server. Do not
+// require a source vertex within the square: a polygon may enclose the entire
+// pilot, or a long straight segment may cross it with both vertices outside.
 function mapGeometry(item,origin,type){
  const a=item.attributes||item.properties||{},code=genre(a);
  if(type==='surfaces'){
@@ -36,7 +36,7 @@ function mapGeometry(item,origin,type){
   const rings=item.geometry?.rings;
   if(!Array.isArray(rings)||!rings.length)return null;
   const validRings=rings.filter(r=>r.length>=4&&r.every(isFiniteXY)).map(r=>r.map(pt=>toLocal(pt,origin)));
-  if(!validRings.length||!validRings.some(nearPilot))return null;
+  if(!validRings.length)return null;
   return {
    source:'Etat du Valais - mensuration officielle',layer:270,
    id:String(a.GID??a.OBJECTID??''),category:category.kind,label:category.label,
@@ -52,7 +52,7 @@ function mapGeometry(item,origin,type){
   const paths=item.geometry?.paths;
   if(!Array.isArray(paths))return null;
   const validPaths=paths.filter(p=>p.length>=2&&p.every(isFiniteXY)).map(p=>p.map(pt=>toLocal(pt,origin)));
-  if(!validPaths.length||!validPaths.some(nearPilot))return null;
+  if(!validPaths.length)return null;
   return {
    source:'Etat du Valais - mensuration officielle',layer:180,
    id:String(a.GID??a.OBJECTID??''),category:'footpath',label:'Sentier',
