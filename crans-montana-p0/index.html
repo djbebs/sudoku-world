@@ -263,7 +263,7 @@ function build(){
  if(state.bounds){
  const r=mt('#d1ad66');for(const x of [-50,50])for(const z of [-50,50]){box(2,.14,2,r,x,height(x,z)+.35,z,world).castShadow=false}
  }
- $('origin').textContent=osmOk?('OSM : '+buildingData.length+' empreintes, toits provisoires'):'Géométrie de démonstration';
+ if(!(realWanted&&realAvailable))$('origin').textContent=osmOk?('OSM : '+buildingData.length+' empreintes, toits provisoires'):'Géométrie de démonstration';
  if(!(realWanted&&realAvailable))$('status').textContent='P0 · '+(osmOk?'empreintes OSM (volumes estimés)':'bâtiments fictifs')+' · '+(terrainOk?'relief swisstopo échantillonné':'relief approximatif')+' · animations simulées';
 }
 function transformCam(){
@@ -298,7 +298,7 @@ function angleForSun(){
 function loop(now){
  requestAnimationFrame(loop);let dt=Math.min(0.04,(now-clockLast)/1000);clockLast=now;frame+=dt;
  if(needsResize){resize();needsResize=false}
- if(state.play){state.clock=(state.clock+dt*.35)%24;$('hour').value=state.clock}
+ if(state.play){state.clock=(state.clock+dt*.35)%24;$('hour').value=state.clock;if(realAvailable&&Math.floor(frame*2)!==Math.floor((frame-dt)*2))toReal('light',{date:state.date,hour:state.clock,real:state.sun})}
  angleForSun();
  if(animated.length){
  let a=animated[0];
@@ -307,7 +307,7 @@ function loop(now){
  a.p.rotation.y=frame*.3;
  let px=-41+(t%82),pz=18; a.v.position.set(px,height(px,pz)+.2,pz);a.v.rotation.y=Math.PI/2;
  }
- transformCam();renderer.render(scene,camera);
+ transformCam();if(!(realWanted&&realAvailable))renderer.render(scene,camera);
 }
 function asyncAbort(url,timeout=9000){const c=new AbortController();let t=setTimeout(()=>c.abort(),timeout);return fetch(url,{signal:c.signal,cache:'no-store'}).then(r=>{if(!r.ok)throw Error(r.status);return r.json()}).finally(()=>clearTimeout(t))}
 async function loadOSM(){
