@@ -824,9 +824,12 @@ build();requestAnimationFrame(loop);startRoofs();setTimeout(startVegetation,2800
 setTimeout(()=>{if($('loading').style.display!=='none')$('loading').textContent='Sources externes lentes : les éléments sans géodonnées restent masqués';},12000);
 async function refreshData(){
  $('loading').style.display='block';$('loading').style.cursor='default';$('loading').textContent='Lecture des données OSM et swisstopo...';
- const results=await Promise.allSettled([loadOSM(),loadHeight()]);
- // Swiss complement is queried only after OSM loaded to avoid duplicate paths.
+ // The elevation requests run in parallel; official paths should not wait on them.
+ const osmRequest=loadOSM(),terrainRequest=loadHeight();
+ const osmResult=await Promise.allSettled([osmRequest]);
  await loadSwissFootpaths();
+ const elevationResult=await Promise.allSettled([terrainRequest]);
+ const results=[...osmResult,...elevationResult];
  if(osmOk&&terrainOk){$('loading').style.display='none';}
  else{
  $('loading').textContent='Données incomplètes · toucher ici pour réessayer';$('loading').style.cursor='pointer';
