@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#173125">
-<title>Isometric Crans-Montana · P0 / Ycoor</title>
+<title>Isometric Crans-Montana · P0.1 / Ycoor</title>
 <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--paper:#f6f0dd;--ink:#29291f;--red:#c92430;--blue:#2f5c9e;--edge:#1d221c}
@@ -177,6 +177,8 @@ function marker(x,z,title,desc,parent=world){
  return cap;
 }
 function build(){
+ mats.ground.color.set(season()==='winter'?'#c9d1c4':season()==='autumn'?'#79815a':'#6e8552');
+ mats.roof.color.set(season()==='winter'?'#bcbaa9':'#a05c44');
  while(world.children.length)world.remove(world.children[0]);objects.length=0;animated.length=0;
  terrain(world);
  if(!osmOk)demo();
@@ -191,13 +193,13 @@ function build(){
  winterDetails(world);
  const monument=cone(1.8,4.5,5,mt('#d0bc7a'),-3,height(-3,-4)+2.25,-4,world);
  monument.userData={title:'Place d’Ycoor',desc:'Point d’intérêt de la station. Objet doré stylisé : repère artistique P0, pas une représentation exacte de la place.'};objects.push(monument);
- marker(1,-29,'Arrêt Ycoor','Arrêt de bus SMC réel, proche du centre de la station. Position de la maquette indicative, à valider précisément avec les géodonnées.');
+ if(state.labels)marker(1,-29,'Arrêt Ycoor','Arrêt de bus SMC réel, proche du centre de la station. Position de la maquette indicative, à valider précisément avec les géodonnées.');
  const p=person(-12,4,'#b74935',world);
  const v=vehicle(world);animated.push({p,v});
  if(state.bounds){
  const r=mt('#d1ad66');for(const x of [-50,50])for(const z of [-50,50]){box(2,.14,2,r,x,height(x,z)+.35,z,world).castShadow=false}
  }
- $('origin').textContent=osmOk?'Bâtiments / routes OSM':'Géométrie de démonstration';
+ $('origin').textContent=osmOk?('OSM : '+buildingData.length+' bâtiments, '+streetData.length+' chemins/voies'):'Géométrie de démonstration';
  $('status').textContent='P0 · '+(osmOk?'OSM réel':'bâtiments fictifs')+' · '+(terrainOk?'relief swisstopo échantillonné':'relief approximatif')+' · animations simulées';
 }
 function transformCam(){
