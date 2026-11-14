@@ -42,7 +42,7 @@
   <div class="grain"></div><div id="ambience" class="day"></div>
   <aside id="sidebar" aria-label="Options de la carte">
     <button id="mobile-toggle" aria-expanded="false" aria-controls="sidebar-content"><span>✦ CRANS—MONTANA <small> / REAL ATLAS</small></span><span id="toggle-arrow">▲ EXPLORER</span></button>
-    <div class="pad"><div class="brand"><div class="logo">✳</div><div class="brand-text"><strong>CRANS—MONTANA</strong><small class="mono">PIXEL ATLAS / VERSION 02</small></div></div>
+    <div class="pad"><div class="brand"><div class="logo">✳</div><div class="brand-text"><strong>CRANS—MONTANA</strong><small class="mono">PIXEL ATLAS / VERSION 05</small></div></div>
       <div class="intro"><span class="eyebrow">46°18′ N · VALAIS · SUISSE</span><h1>Un vrai relief.<br><em>Un petit monde.</em></h1><p>Un atlas miniature qui explore la <strong>vraie</strong> topographie et les véritables bâtiments 3D de Crans-Montana.</p></div>
       <div class="real"><span class="dot"></span><div><strong>Géographie réelle</strong><small>Terrain + bâtiments · swisstopo</small></div></div>
     </div>
@@ -65,7 +65,7 @@
   <div class="hud"><strong id="hud-text">46.3132° N · 7.4791° E</strong><span class="secondary">/</span><span class="secondary">GLISSER POUR EXPLORER · MOLETTE POUR ZOOMER</span></div>
   <nav class="tools" aria-label="Navigation 3D"><button title="Zoomer" aria-label="Zoomer" id="zoom-in">+</button><button title="Dézoomer" aria-label="Dézoomer" id="zoom-out">−</button><button title="Tourner" aria-label="Tourner" id="rotate" class="small">↻</button><button title="Vue générale" aria-label="Vue générale" id="home" class="small">⌂</button><button title="Copier un lien de cette vue" aria-label="Partager la vue" id="share" class="small">↗</button></nav>
   <div id="detail"><span class="eyebrow">EMPLACEMENT RÉEL</span><button id="close-detail" aria-label="Fermer">×</button><h2 id="detail-title"></h2><div class="alt" id="detail-alt"></div><p id="detail-text"></p></div>
-  <div id="notice" role="status" aria-live="polite"><div class="mountain">⛰</div><h2>Chargement de l’atlas réel</h2><p>Connexion aux tuiles officielles swisstopo. Les reliefs et bâtiments ne sont pas préfabriqués : ils sont récupérés directement depuis les données géographiques suisses.</p><div class="steps"><div>CesiumJS <span id="step-js">EN ATTENTE</span></div><div>Relief swisstopo <span id="step-terrain">EN ATTENTE</span></div><div>Bâtiments 3D <span id="step-buildings">EN ATTENTE</span></div></div><a href="crans-montana-pixel-atlas.html" class="offlinelink">Ouvrir la V1 stylisée hors ligne</a></div>
+  <div id="notice" role="status" aria-live="polite"><div class="mountain">⛰</div><h2>Chargement de l’atlas réel</h2><p>Connexion aux tuiles officielles swisstopo. Les reliefs et bâtiments ne sont pas préfabriqués : ils sont récupérés directement depuis les données géographiques suisses.</p><div class="steps"><div>CesiumJS <span id="step-js">EN ATTENTE</span></div><div>Relief swisstopo <span id="step-terrain">EN ATTENTE</span></div><div>Bâtiments 3D <span id="step-buildings">EN ATTENTE</span></div></div><a href="./" target="_top" class="offlinelink">Ouvrir la V1 stylisée hors ligne</a></div>
   <div id="toast" role="status"></div>
 <script>
 (function(){
@@ -86,10 +86,10 @@
   const state={base:'atlas',light:'day',pixels:true,buildings:true,trees:false,structures:false,labels:true,poi:'panorama'};
   const resources={}, poiEntities=[];let viewer,terrain;let toastTimeout,started=false;
   const p=(id)=>POIS.find(x=>x.id===id);
-  function status(id,label,kind){const el=$(id);el.textContent=label;el.className=kind||'';}
+  function status(id,label,kind){const el=$(id);el.textContent=label;el.className=kind||'';try{parent.postMessage({source:'crans-atlas',status:'geo-progress',label:(id==='step-js'?'CesiumJS':id==='step-terrain'?'Relief':id==='step-buildings'?'Bâtiments':'Données')+' : '+label},'*')}catch(e){}}
   function toast(txt){const el=$('toast');el.textContent=txt;el.classList.add('show');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>el.classList.remove('show'),3100)}
   function failHard(msg){try{parent.postMessage({source:'crans-atlas',status:'geo-error',reason:String(msg)},'*')}catch(e){};$('notice').classList.add('error');$('notice').classList.remove('hide');$('notice').querySelector('h2').textContent='Carte 3D indisponible';$('notice').querySelector('p').textContent=msg+' Vérifie la connexion Internet et réessaie. La V1 peut fonctionner hors connexion.';$('data-label').textContent='CHARGEMENT IMPOSSIBLE';}
-  function ensureCesium(){if(started)return;if(window.__cesiumScriptFailed){status('step-js','ÉCHEC','bad');failHard('La bibliothèque CesiumJS n’a pas pu être chargée.');return;}if(!window.Cesium)return;started=true;init().catch(e=>{console.error(e);failHard('Impossible d’initialiser le moteur cartographique.');});}
+  function ensureCesium(){if(started)return;if(window.__cesiumScriptFailed){status('step-js','ÉCHEC','bad');failHard('La bibliothèque CesiumJS n’a pas pu être chargée.');return;}if(!window.Cesium)return;started=true;init().catch(e=>{console.error(e);failHard('Impossible d’initialiser CesiumJS : '+String(e?.message||e).slice(0,140));});}
   function buildPoiMenu(){const root=$('poi-list');POIS.forEach((v,i)=>{const button=document.createElement('button');button.className='place'+(v.id===state.poi?' selected':'');button.dataset.poi=v.id;button.innerHTML='<span class="number">'+String(i+1).padStart(2,'0')+' · '+v.type+'</span><span class="place-name">'+v.name+'</span><span class="place-sub">'+(v.id==='panorama'?'VUE GÉNÉRALE':Math.round(v.alt)+' M')+'</span>';button.addEventListener('click',()=>focus(v.id,true));root.append(button)})}
   function setSelectedPoi(id){state.poi=id;document.querySelectorAll('[data-poi]').forEach(btn=>btn.classList.toggle('selected',btn.dataset.poi===id))}
   function renderPoi(pos,entity){const height=pos.alt+12;entity.position=Cesium.Cartesian3.fromDegrees(pos.lon,pos.lat,height)}
@@ -100,7 +100,7 @@
   function updateDataLabel(){const terms=[];terms.push(terrain?'RELIEF RÉEL':'RELIEF INDISPONIBLE');terms.push(resources.buildings?'BÂTIMENTS RÉELS':'BÂTIMENTS INDISPONIBLES');$('data-label').textContent='SOURCES DISPONIBLES · '+terms.join(' · ')}
   function basemapProvider(kind){const rectangle=Cesium.Rectangle.fromDegrees(5.01392695,45.35600133,11.47743631,48.27502358);
     if(kind==='photo')return new Cesium.UrlTemplateImageryProvider({url:'https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swissimage-product/default/current/3857/{z}/{x}/{y}.jpeg',minimumLevel:8,maximumLevel:19,rectangle,credit:'© swisstopo'});
-    return new Cesium.UrlTemplateImageryProvider({url:'https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg',minimumLevel:8,maximumLevel:17,rectangle,credit:'© swisstopo'});
+    return new Cesium.UrlTemplateImageryProvider({url:'https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swisstlm3d-karte-farbe.3d/default/current/3857/{z}/{x}/{y}.jpeg',minimumLevel:8,maximumLevel:17,rectangle,credit:'© swisstopo'});
   }
   function setBasemap(style){state.base=style;document.querySelectorAll('[data-style]').forEach(btn=>btn.classList.toggle('active',btn.dataset.style===style));if(!viewer)return;viewer.imageryLayers.removeAll();if(style==='none'){viewer.scene.globe.baseColor=Cesium.Color.fromCssColorString('#809785');return}viewer.imageryLayers.addImageryProvider(basemapProvider(style))}
   function setPixels(pixels){state.pixels=pixels;document.querySelectorAll('[data-pixels]').forEach(b=>b.classList.toggle('active',b.dataset.pixels===String(pixels)));if(viewer){viewer.resolutionScale=pixels?.66:1;viewer.resize();$('viewer').classList.toggle('pixel',pixels)}}
@@ -127,23 +127,25 @@
     addMarkers();viewer.screenSpaceEventHandler.setInputAction(m=>{const picked=viewer.scene.pick(m.position);if(Cesium.defined(picked)&&picked.id&&typeof picked.id.id==='string'&&picked.id.id.startsWith('poi-'))focus(picked.id.id.substring(4),true)},Cesium.ScreenSpaceEventType.LEFT_CLICK);
     let lastUpdate=0;viewer.camera.changed.addEventListener(()=>{const t=Date.now();if(t-lastUpdate<250)return;lastUpdate=t;const c=viewer.camera.positionCartographic;if(!c)return;$('hud-text').textContent=Cesium.Math.toDegrees(c.latitude).toFixed(4)+'° N · '+Cesium.Math.toDegrees(c.longitude).toFixed(4)+'° E · '+Math.round(c.height)+' M'});
     $('viewer').classList.add('ready');
-    await loadTiles('buildings');updateDataLabel();
-    if(!terrain&&!resources.buildings){failHard('Les sources officielles de terrain et de bâtiments sont inaccessibles.');return}
-    $('notice').classList.add('hide');if(!terrain||!resources.buildings)toast('Certaines couches officielles ne sont pas disponibles');
-    // Report rendering status to the wrapper only after some terrain or imagery tiles have rendered.
-    let reported=false;
-    const begin=Date.now();
-    const watcher=setInterval(()=>{
-      if(reported||!viewer)return;
-      const scene=viewer.scene;
-      const tiles=scene.globe?._surface?._tilesToRender || [];
-      const hasVisibleTiles=tiles.length>0 && tiles.some(t=>t?.data?.imagery?.length>0);
-      if(hasVisibleTiles && Date.now()-begin>1800){
-        reported=true;clearInterval(watcher);
-        parent.postMessage({source:'crans-atlas',status:'geo-loaded'},'*');
+    const buildingsPromise=loadTiles('buildings');updateDataLabel();
+    if(!terrain){const buildingAvailable=await Promise.race([buildingsPromise,new Promise(resolve=>setTimeout(()=>resolve(false),7000))]);if(!buildingAvailable){failHard('Les sources officielles de terrain et de bâtiments sont inaccessibles.');return}}
+    $('notice').classList.add('hide');if(!terrain)toast('Relief officiel indisponible, affichage des bâtiments uniquement');
+    // Public Cesium property replaces inspection of unstable internal tile structures.
+    let reported=false,frames=0;
+    const startedAt=Date.now(),scene=viewer.scene;
+    const watcher=()=>{
+      if(reported)return;
+      frames++;
+      if(frames>=4 && Date.now()-startedAt>700 && scene.globe && scene.globe.tilesLoaded && viewer.canvas.width>32 && viewer.canvas.height>32){
+        reported=true;
+        scene.postRender.removeEventListener(watcher);
+        try{parent.postMessage({source:'crans-atlas',status:'geo-loaded'},'*')}catch(e){}
       }
-    },1000);
-    setTimeout(()=>{if(!reported){clearInterval(watcher);parent.postMessage({source:'crans-atlas',status:'geo-timeout'},'*')}},18500);
+    };
+    scene.postRender.addEventListener(watcher);
+    setTimeout(()=>{
+      if(!reported){scene.postRender.removeEventListener(watcher);try{parent.postMessage({source:'crans-atlas',status:'geo-timeout',reason:'Le relief ou les images 3D n’ont pas terminé leur chargement.'},'*')}catch(e){}}
+    },16000);
   
   }
   document.addEventListener('DOMContentLoaded',ensureCesium);window.addEventListener('load',ensureCesium);window.addEventListener('cesium-unavailable',ensureCesium);
