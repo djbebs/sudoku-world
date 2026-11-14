@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#173125">
-<title>Isometric Crans-Montana · P0.5 / Ycoor</title>
+<title>Isometric Crans-Montana · P0.5.1 / Ycoor</title>
 <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--paper:#f6f0dd;--ink:#29291f;--red:#c92430;--blue:#2f5c9e;--edge:#1d221c}
@@ -51,7 +51,7 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
 <section id="sources" class="box"><button id="close-sources" style="float:right" aria-label="Fermer">×</button><h2>Isometric Crans-Montana</h2>
  <p>Une scène miniature de démonstration P0 (100 × 100 m). Modèles en formes géométriques simplifiées, sans copie du code de bb.jest.pro.</p>
  <p><b>Données :</b> empreintes de bâtiments et routes chargées à la demande depuis © OpenStreetMap contributors (ODbL), via Overpass. Relief échantillonné depuis © swisstopo. Si le service ne répond pas, le terrain et les bâtiments de remplacement sont <b>artistiques, pas cadastraux</b>.</p>
- <p><b>Mode 3D officielle :</b> les bâtiments sont fournis sous forme de tuiles swissBUILDINGS3D. Leurs formes de toiture et leurs dimensions sont conservées, les couleurs et la résolution sont stylisées. Le mode illustré reste un modèle OSM simplifié, différent de la 3D officielle.</p><p><b>Animations :</b> véhicule et piéton entièrement simulés. Aucun GPS ou trafic en direct. Les hauteurs de bâtiments non renseignées par OSM sont estimées. Les toitures sont provisoirement toutes plates et ne correspondent pas à swissBUILDINGS3D.</p>
+ <p><b>P0.5.1 :</b> le chargeur teste deux révisions swisstopo et affiche la raison d’un échec. Les vrais modèles n’ont pas encore été validés dans ce moteur Three.js. <a href="../crans-montana-p0/?v=4" target="_blank" rel="noopener noreferrer">Comparer avec le rendu officiel Cesium P0.4 qui fonctionne</a>.</p><p><b>Mode 3D officielle :</b> les bâtiments sont fournis sous forme de tuiles swissBUILDINGS3D. Leurs formes de toiture et leurs dimensions sont conservées, les couleurs et la résolution sont stylisées. Le mode illustré reste un modèle OSM simplifié, différent de la 3D officielle.</p><p><b>Animations :</b> véhicule et piéton entièrement simulés. Aucun GPS ou trafic en direct. Les hauteurs de bâtiments non renseignées par OSM sont estimées. Les toitures sont provisoirement toutes plates et ne correspondent pas à swissBUILDINGS3D.</p>
  <p><b>Librairies :</b> Three.js (MIT), Pixelify Sans (SIL OFL).</p>
  <p><a href="https://www.openstreetmap.org/copyright" target="_blank">Licence OSM</a> · <a href="https://www.swisstopo.admin.ch/" target="_blank">swisstopo</a> · <a href="../crans-montana-pixel-atlas/" target="_blank">V5 actuelle</a></p>
  </section>
@@ -86,7 +86,7 @@ function syncRoofs(){
  $('real-toggle').setAttribute('aria-pressed',String(ready));
  if(ready){$('origin').textContent='swissBUILDINGS3D · vrais volumes';$('status').textContent='P0.5 · un seul moteur Three.js · vrais toits / animation simulée'}
 }
-$('real-toggle').onclick=()=>{useOfficial=!useOfficial;syncRoofs();note(useOfficial?(tilesMeshes?'3D officielle activée':'3D officielle en chargement'):'Maquette OSM illustrée');setTimeout(()=>note('',false),2700)};
+$('real-toggle').onclick=()=>{useOfficial=!useOfficial;if(useOfficial&&tilesState==='error'){startRoofs();return}syncRoofs();note(useOfficial?(tilesMeshes?'3D officielle activée':'3D officielle en chargement'):'Maquette OSM illustrée');setTimeout(()=>note('',false),2700)};
 // Position du terrain de jeux de la place Ycoor, donnees touristiques georeferencees (LV95, WGS84).
 const ORIGIN={lat:46.311036,lon:7.478052,e:2603036,n:1128849};
 const S=100,HALF=50;
@@ -242,7 +242,7 @@ function toENU(){
  const E=new THREE.Vector3(-Math.sin(lon),Math.cos(lon),0);
  const U=new THREE.Vector3(Math.cos(lat)*Math.cos(lon),Math.cos(lat)*Math.sin(lon),Math.sin(lat));
  const S=new THREE.Vector3(Math.sin(lat)*Math.cos(lon),Math.sin(lat)*Math.sin(lon),-Math.cos(lat));
- const P=ecef(ORIGIN.lon,ORIGIN.lat,1515);
+ const P=ecef(ORIGIN.lon,ORIGIN.lat,terrainOk&&terrainVals?.[1]?.[1]?terrainVals[1][1]:1515);
  return new THREE.Matrix4().set(E.x,E.y,E.z,-E.dot(P),U.x,U.y,U.z,-U.dot(P),S.x,S.y,S.z,-S.dot(P),0,0,0,1)
 }
 function materialForTiles(){
@@ -257,13 +257,20 @@ function materialForTiles(){
  m.customProgramCacheKey=()=> 'ycoor-p05';
  return m;
 }
-async function startRoofs(){
- note('Chargement des bâtiments officiels dans Three.js…');
- const timeout=setTimeout(()=>{if(!tilesMeshes){tilesState='error';note('Source 3D non disponible. Maquette OSM conservée.')}},24000);
+async function startRoofs(older=false){
+ note('Chargement des bâtiments officiels · '+(older?'révision 2025':'révision 2026')+'…');
+ if(tiles){scene.remove(tiles.group);try{tiles.dispose()}catch(e){}tiles=null}
+ tilesMeshes=0;tilesState='loading';
+ const timeout=setTimeout(()=>{
+  if(!tilesMeshes){
+   if(!older)startRoofs(true);
+   else{tilesState='error';useOfficial=false;syncRoofs();$('status').textContent='P0.5.1 · toitures indisponibles / OSM illustratif';note('Chargement 3D échoué : '+String(window.__roofError||'modèles non reçus').slice(0,125))}
+  }
+ },13000);
  try{
   const {TilesRenderer}=await import('https://esm.sh/3d-tiles-renderer@0.4.28/three?external=three');
   renderer.localClippingEnabled=true;
-  tiles=new TilesRenderer('https://3d.geo.admin.ch/ch.swisstopo.swissbuildings3d.3d/v1/tileset.json');
+  tiles=new TilesRenderer('https://3d.geo.admin.ch/ch.swisstopo.swissbuildings3d.3d/v1/'+(older?'20251121':'20260520')+'/tileset.json');
   tiles.setCamera(camera);tiles.setResolutionFromRenderer(camera,renderer);
   tiles.group.matrixAutoUpdate=false;tiles.group.matrix.copy(toENU());scene.add(tiles.group);tiles.group.updateMatrixWorld(true);
   tiles.addEventListener('load-tileset',()=>note('Source swisstopo connectée, chargement des toits…'));
@@ -273,8 +280,8 @@ async function startRoofs(){
    if(count){tilesMeshes+=count;tilesState='ready';clearTimeout(timeout);syncRoofs();note('Maillages officiels reçus dans Three.js · vérifie le rendu');setTimeout(()=>note('',false),3200)}
   });
   tiles.addEventListener('dispose-model',({scene:tileScene})=>tileScene.traverse(o=>{if(o.isMesh)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m?.dispose?.())}));
-  tiles.addEventListener('load-error',e=>{console.warn('swisstopo tiles',e);if(!tilesMeshes)note('Chargement d’une tuile impossible, nouvelle tentative…')});
- }catch(err){clearTimeout(timeout);tilesState='error';note('Échec de la bibliothèque 3D : '+String(err.message||err).slice(0,90))}
+  tiles.addEventListener('load-error',e=>{console.warn('swisstopo tiles',e);if(!tilesMeshes){window.__roofError=String(e.error?.message||e.error||'requête bloquée')+' · '+String(e.url||'').split('/').slice(-2).join('/');note('Erreur tuile : '+window.__roofError.slice(0,124));if(!e.tile){clearTimeout(timeout);if(!older)startRoofs(true);else{tilesState='error';useOfficial=false;syncRoofs();note('3D swisstopo indisponible : '+window.__roofError.slice(0,118))}}}});
+ }catch(err){clearTimeout(timeout);window.__roofError=String(err?.message||err);if(!older){startRoofs(true)}else{tilesState='error';useOfficial=false;syncRoofs();note('Bibliothèque ou tuiles indisponibles : '+window.__roofError.slice(0,105))}}
 }
 function transformCam(){
  const radius=130/state.zoom,el=Math.PI/4.4;
@@ -360,7 +367,7 @@ async function loadHeight(){
   }
  }
  await Promise.all([worker(),worker(),worker()]);
- if(valid===9){terrainVals=raw;terrainOk=true;build();$('loading').textContent='Relief swisstopo chargé';return true}
+ if(valid===9){terrainVals=raw;terrainOk=true;if(tiles){tiles.group.matrix.copy(toENU());tiles.group.updateMatrixWorld(true)}build();$('loading').textContent='Relief swisstopo chargé';return true}
  return false;
 }
 const raycaster=new THREE.Raycaster(),mouse=new THREE.Vector2();
