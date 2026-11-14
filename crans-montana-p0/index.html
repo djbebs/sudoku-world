@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#173125">
-<title>Isometric Crans-Montana · P0.1 / Ycoor</title>
+<title>Isometric Crans-Montana · P0.2 / Ycoor</title>
 <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--paper:#f6f0dd;--ink:#29291f;--red:#c92430;--blue:#2f5c9e;--edge:#1d221c}
@@ -23,9 +23,9 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
  #time{top:8px;right:8px;width:167px;padding:5px 6px;border-width:2px;box-shadow:3px 3px #17201999}
  #time .row{margin:3px 0;gap:2px}#time button{padding:3px 4px;font-size:10px;border-width:1px;box-shadow:1px 2px #172019}#date{font-size:11px;padding:2px}
  #solar{font-size:10px}#time-value{font-size:10px;min-width:29px}#time .row:nth-last-child(1) button{font-size:10px}
- #tools{bottom:calc(10px + env(safe-area-inset-bottom));right:8px;padding:3px;gap:2px;flex-wrap:wrap;max-width:260px;border-width:2px;box-shadow:3px 3px #17201999}#tools button{font-size:12px;padding:4px 6px;min-width:28px}
- #credit{left:7px;bottom:calc(10px + env(safe-area-inset-bottom));padding:4px 6px;font-size:10px;max-width:110px;line-height:1.2}
- #status{bottom:calc(50px + env(safe-area-inset-bottom));left:7px;font-size:10px;max-width:72vw}#tip{display:none}
+ #tools{left:8px;right:8px;width:auto;bottom:calc(9px + env(safe-area-inset-bottom));padding:3px;gap:3px;flex-wrap:nowrap;max-width:none;justify-content:space-between;border-width:2px;box-shadow:3px 3px #17201999}#tools button{font-size:13px;padding:5px 0;min-width:0;flex:1;box-shadow:1px 2px #172019}
+ #credit{left:8px;bottom:calc(62px + env(safe-area-inset-bottom));padding:3px 6px;font-size:9px;max-width:135px;line-height:1.1;box-shadow:2px 2px #17201999}
+ #status{bottom:calc(115px + env(safe-area-inset-bottom));left:8px;font-size:10px;max-width:min(310px,78vw);line-height:1.15}#tip{display:none}
  #loading{top:115px;font-size:11px}
 }
 </style></head><body>
@@ -64,7 +64,8 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
 window.__p0Booted=true;
 const $=(id)=>document.getElementById(id);
-const ORIGIN={lat:46.31220,lon:7.48060,e:2603233,n:1128978};
+// Position du terrain de jeux de la place Ycoor, donnees touristiques georeferencees (LV95, WGS84).
+const ORIGIN={lat:46.311036,lon:7.478052,e:2603036,n:1128849};
 const S=100,HALF=50;
 const state={season:'auto',clock:14,date:'2026-11-14',sun:true,play:false,labels:true,bounds:true,angle:Math.PI/4,zoom:1};
 const buildingData=[],streetData=[],objects=[],animated=[];
@@ -249,13 +250,14 @@ function loop(now){
 }
 function asyncAbort(url,timeout=9000){const c=new AbortController();let t=setTimeout(()=>c.abort(),timeout);return fetch(url,{signal:c.signal,cache:'no-store'}).then(r=>{if(!r.ok)throw Error(r.status);return r.json()}).finally(()=>clearTimeout(t))}
 async function loadOSM(){
- const south=ORIGIN.lat-.00052,north=ORIGIN.lat+.00052,west=ORIGIN.lon-.00072,east=ORIGIN.lon+.00072;
+ const south=ORIGIN.lat-.00054,north=ORIGIN.lat+.00054,west=ORIGIN.lon-.00077,east=ORIGIN.lon+.00077;
  const bbox=[south,west,north,east].map(v=>v.toFixed(6)).join(',');
  const query='[out:json][timeout:18];(way["building"]('+bbox+');way["highway"]('+bbox+'););out geom;';
- const providers=['https://overpass.kumi.systems/api/interpreter?data=','https://overpass-api.de/api/interpreter?data=','https://overpass.private.coffee/api/interpreter?data='];
+ // Pour le Valais: instance suisse en premier, puis secours publics.
+ const providers=['https://overpass.osm.ch/api/interpreter?data=','https://overpass-api.de/api/interpreter?data=','https://overpass.openstreetmap.fr/api/interpreter?data='];
  for(const service of providers){
   try{
-   let data=await asyncAbort(service+encodeURIComponent(query),10000);
+   $('loading').textContent='Recherche des bâtiments et rues OSM...';let data=await asyncAbort(service+encodeURIComponent(query),9500);if(data.remark)throw Error(String(data.remark));
    if(!data.elements||!data.elements.length)continue;
    let buildings=[],streets=[];
    for(let obj of data.elements){
@@ -268,7 +270,7 @@ async function loadOSM(){
     }
    }
    if(!buildings.length&&!streets.length)continue;
-   buildingData.splice(0,buildingData.length,...buildings);streetData.splice(0,streetData.length,...streets);osmOk=true;build();
+   buildingData.splice(0,buildingData.length,...buildings);streetData.splice(0,streetData.length,...streets);osmOk=true;build();$('loading').textContent='Bâtiments OSM chargés · relief swisstopo en cours';
    return true;
   }catch(err){console.warn('Overpass indisponible',err)}
  }
@@ -276,7 +278,7 @@ async function loadOSM(){
 }
 async function loadHeight(){
  // Sparse official samples: deliberately only 9 requests, bilinear interpolation between samples.
- let raw=Array.from({length:3},()=>Array(3).fill(null));
+ $('loading').textContent='Chargement du relief swisstopo...';let raw=Array.from({length:3},()=>Array(3).fill(null));
  let jobs=[];for(let j=0;j<3;j++)for(let i=0;i<3;i++){jobs.push({i,j,x:(i-1)*50,z:(j-1)*50})}
  let next=0,valid=0;
  async function worker(){
@@ -287,7 +289,7 @@ async function loadHeight(){
   }
  }
  await Promise.all([worker(),worker(),worker()]);
- if(valid===9){terrainVals=raw;terrainOk=true;build();return true}
+ if(valid===9){terrainVals=raw;terrainOk=true;build();$('loading').textContent='Relief swisstopo chargé';return true}
  return false;
 }
 const raycaster=new THREE.Raycaster(),mouse=new THREE.Vector2();
@@ -330,8 +332,15 @@ document.querySelectorAll('[data-season]').forEach(b=>b.onclick=()=>{state.seaso
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('info').classList.remove('show');$('sources').classList.remove('show')}if(e.key==='+')zoom(1.2);if(e.key==='-')zoom(1/1.2);if(e.key==='ArrowLeft')state.angle-=.12;if(e.key==='ArrowRight')state.angle+=.12});
 build();requestAnimationFrame(loop);
 setTimeout(()=>{if($('loading').style.display!=='none')$('loading').textContent='Sources externes lentes : mode démo toujours utilisable';},12000);
-Promise.allSettled([loadOSM(),loadHeight()]).then(results=>{
- $('loading').style.display='none';
+async function refreshData(){
+ $('loading').style.display='block';$('loading').style.cursor='default';$('loading').textContent='Lecture des données OSM et swisstopo...';
+ const results=await Promise.allSettled([loadOSM(),loadHeight()]);
+ if(osmOk&&terrainOk){$('loading').style.display='none';}
+ else{
+ $('loading').textContent='Données incomplètes · toucher ici pour réessayer';$('loading').style.cursor='pointer';
+ }
  if(!osmOk||!terrainOk)console.warn('P0 mode partiellement illustratif',results);
-});
+}
+$('loading').addEventListener('click',()=>{if($('loading').style.cursor==='pointer')refreshData()});
+refreshData();
 </script></body></html>
