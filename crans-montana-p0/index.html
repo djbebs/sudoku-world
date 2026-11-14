@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#173125">
+<title>Isometric Crans-Montana · P0 / Ycoor</title>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#f6f0dd;--ink:#29291f;--red:#c92430;--blue:#2f5c9e;--edge:#1d221c}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#263b29;color:var(--ink);font-family:'Pixelify Sans',monospace}
+button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid var(--edge);background:#fffaf0;box-shadow:2px 3px 0 #172019;font-weight:700;padding:5px 10px;font-size:14px;border-radius:0}button:hover{background:#ffecbe}button.active{background:var(--blue);color:white}button:focus-visible,input:focus-visible{outline:3px solid #ffdc53;outline-offset:3px}
+#map{position:fixed;inset:0;overflow:hidden}#map canvas{width:100%;height:100%;image-rendering:pixelated;touch-action:none;cursor:grab;display:block}#map canvas:active{cursor:grabbing}
+.box{position:fixed;background:var(--paper);border:3px solid var(--edge);box-shadow:6px 6px 0 #161b17a0;z-index:10;font-size:14px}
+#place{top:16px;left:16px;width:235px;padding:12px 13px}#place b{color:var(--red);font-size:19px}#place small{display:block;color:#59594e;margin:3px 0;font-size:12px}
+#place .weather{border-top:2px dashed #b5b1a2;margin-top:8px;padding-top:6px;color:#514c40}
+#time{top:16px;right:16px;width:239px;padding:9px 10px}#time .row{display:flex;gap:4px;margin:5px 0;align-items:center}#time button{padding:4px 7px;flex:1;min-width:0}#time button.active{background:#285b9e;color:white}#date{width:100%;border:2px solid #29291f;background:white;padding:3px 5px;font:13px monospace}#hour{flex:1;min-width:0;accent-color:var(--red)}#time-value{font-weight:700;color:var(--red);min-width:38px;text-align:right}#solar{font-size:12px;color:#6f6557;line-height:1.4}
+#tools{position:fixed;right:17px;bottom:20px;display:flex;align-items:center;gap:4px;z-index:10;padding:5px;background:var(--paper);border:3px solid #25291f;box-shadow:5px 5px #1620199f}#tools button{padding:5px 7px;min-width:31px;min-height:30px}#tools button.active{background:#2c63a1}
+#credit{position:fixed;left:15px;bottom:15px;background:var(--paper);border:2px solid #25291f;padding:6px 10px;font-size:12px;z-index:8;box-shadow:3px 3px #17201999}
+#info{display:none;position:fixed;left:50%;bottom:85px;transform:translateX(-50%);width:min(390px,calc(100vw - 28px));padding:12px 15px;z-index:15}#info.show{display:block}#info strong{font-size:17px;color:var(--red)}#info p{font-size:13px;line-height:1.45;margin:7px 0}#close-info{float:right}
+#sources{display:none;left:50%;top:50%;transform:translate(-50%,-50%);width:min(460px,calc(100vw - 24px));max-height:80dvh;overflow:auto;padding:15px 17px;z-index:20}#sources.show{display:block}#sources h2{font-size:20px;color:var(--red);margin:0 0 10px}#sources p{line-height:1.45;font-size:14px}#sources a{color:#164b86}
+#loading{position:fixed;top:120px;left:50%;transform:translateX(-50%);z-index:5;color:#fff6d9;background:#152d23d4;padding:5px 9px;font-size:13px;max-width:80%;text-align:center}
+#status{position:fixed;left:15px;bottom:54px;z-index:6;background:#f8f0dbe0;padding:5px 7px;font-size:12px;max-width:48vw;border:2px solid #24281f;pointer-events:none}
+#tip{position:fixed;left:50%;bottom:23px;transform:translateX(-50%);z-index:6;color:white;background:#14241bac;padding:5px 10px;font-size:12px;text-align:center;pointer-events:none;white-space:nowrap}
+@media(max-width:650px){
+ #place{top:8px;left:8px;width:160px;padding:7px 8px;border-width:2px;font-size:11px;box-shadow:3px 3px #17201999}#place b{font-size:14px}#place small{font-size:10px}#place .weather{font-size:10px;margin-top:4px}
+ #time{top:8px;right:8px;width:167px;padding:5px 6px;border-width:2px;box-shadow:3px 3px #17201999}
+ #time .row{margin:3px 0;gap:2px}#time button{padding:3px 4px;font-size:10px;border-width:1px;box-shadow:1px 2px #172019}#date{font-size:11px;padding:2px}
+ #solar{font-size:10px}#time-value{font-size:10px;min-width:29px}#time .row:nth-last-child(1) button{font-size:10px}
+ #tools{bottom:calc(10px + env(safe-area-inset-bottom));right:8px;padding:3px;gap:2px;flex-wrap:wrap;max-width:260px;border-width:2px;box-shadow:3px 3px #17201999}#tools button{font-size:12px;padding:4px 6px;min-width:28px}
+ #credit{left:7px;bottom:calc(10px + env(safe-area-inset-bottom));padding:4px 6px;font-size:10px;max-width:110px;line-height:1.2}
+ #status{bottom:calc(50px + env(safe-area-inset-bottom));left:7px;font-size:10px;max-width:72vw}#tip{display:none}
+ #loading{top:115px;font-size:11px}
+}
+</style></head><body>
+<main id="map" aria-label="Maquette 3D isométrique de 100 mètres autour d'Ycoor"></main>
+<section id="place" class="box"><b>Crans-Montana</b><small>Ycoor · Valais · Suisse</small><div>P0 · 100 × 100 m</div><div class="weather">☀ <span id="weather">Météo simulée · clair</span><br><span id="origin">Terrain / OSM en cours...</span></div></section>
+<section id="time" class="box" aria-label="Heure et saisons">
+ <div class="row"><button id="postcard">postcard</button><button id="sun-mode" class="active">real sun</button></div>
+ <input id="date" aria-label="Date de la scène" type="date" value="2026-11-14">
+ <div class="row"><input id="hour" aria-label="Heure" type="range" min="0" max="23.99" step=".05" value="14"><span id="time-value">14:00</span><button id="run" aria-label="Animer l'heure">▶</button></div>
+ <div id="solar">Soleil simulé en fonction de la date.</div>
+ <div class="row"><button data-season="auto" class="active">auto</button><button data-season="spring">spr</button><button data-season="summer">sum</button><button data-season="autumn">aut</button><button data-season="winter">win</button></div>
+ <div id="season-label" style="font-size:11px;color:#746f5b">automne</div>
+</section>
+<section id="info" class="box"><button id="close-info" aria-label="Fermer">×</button><strong id="info-title">Lieu</strong><p id="info-desc"></p></section>
+<section id="sources" class="box"><button id="close-sources" style="float:right" aria-label="Fermer">×</button><h2>Isometric Crans-Montana</h2>
+ <p>Une scène miniature de démonstration P0 (100 × 100 m). Modèles en formes géométriques simplifiées, sans copie du code de bb.jest.pro.</p>
+ <p><b>Données :</b> empreintes de bâtiments et routes chargées à la demande depuis © OpenStreetMap contributors (ODbL), via Overpass. Relief échantillonné depuis © swisstopo. Si le service ne répond pas, le terrain et les bâtiments de remplacement sont <b>artistiques, pas cadastraux</b>.</p>
+ <p><b>Animations :</b> véhicule et piéton entièrement simulés. Aucun GPS ou trafic en direct. Les hauteurs de bâtiments non renseignées par OSM sont estimées.</p>
+ <p><b>Librairies :</b> Three.js (MIT), Pixelify Sans (SIL OFL).</p>
+ <p><a href="https://www.openstreetmap.org/copyright" target="_blank">Licence OSM</a> · <a href="https://www.swisstopo.admin.ch/" target="_blank">swisstopo</a> · <a href="../crans-montana-pixel-atlas/" target="_blank">V5 actuelle</a></p>
+ </section>
+<nav id="tools" aria-label="Commandes de la carte">
+ <button id="shot" title="Capture">▣</button><button id="reset" title="Caméra initiale">⌂</button>
+ <button id="rotleft" title="Tourner vers la gauche">↶</button><button id="rotright" title="Tourner vers la droite">↷</button>
+ <button id="bounds" title="Afficher le cadre de la zone">◇</button>
+ <button id="labels" title="Lieux cliquables" class="active">▦</button>
+ <button id="minus" title="Zoom arrière">−</button><button id="plus" title="Zoom avant">+</button>
+ <button id="about" title="Informations et sources">i</button>
+</nav>
+<div id="status">P0 · géométrie artistique initiale</div>
+<div id="loading">Chargement des données géographiques...</div>
+<div id="tip">glisser : déplacer · roulette/pincer : zoom · ↶ ↷ : rotation</div>
+<footer id="credit">© swisstopo · © OSM<br>Illustration P0 / <b>démo</b></footer>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
+const $=(id)=>document.getElementById(id);
+const ORIGIN={lat:46.31220,lon:7.48060,e:2603233,n:1128978};
+const S=100,HALF=50;
+const state={season:'auto',clock:14,date:'2026-11-14',sun:true,play:false,labels:true,bounds:true,angle:Math.PI/4,zoom:1};
+const buildingData=[],streetData=[],objects=[],animated=[];
+let osmOk=false,terrainOk=false,terrainVals=null,frame=0,clockLast=performance.now(),selected=null;
+const scene=new THREE.Scene();scene.background=new THREE.Color('#729da2');scene.fog=new THREE.Fog('#729da2',190,420);
+const camera=new THREE.OrthographicCamera(-95,95,75,-75,0.1,1500);
+const renderer=new THREE.WebGLRenderer({antialias:false,preserveDrawingBuffer:true,powerPreference:'low-power'});
+renderer.setPixelRatio(1);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.BasicShadowMap;
+renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.NoToneMapping;
+$('map').appendChild(renderer.domElement);
+const world=new THREE.Group();scene.add(world);
+const hemi=new THREE.HemisphereLight(0xe9eeff,0x38432e,2.3);scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xffe9bc,3.3);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);
+sun.shadow.camera.left=-95;sun.shadow.camera.right=95;sun.shadow.camera.top=95;sun.shadow.camera.bottom=-95;sun.shadow.camera.near=0.5;sun.shadow.camera.far=320;sun.shadow.bias=-0.00015;scene.add(sun);scene.add(sun.target);
+const up=new THREE.Vector3(0,1,0),target=new THREE.Vector3(0,0,0);
+const mats={ground:new THREE.MeshLambertMaterial({color:'#6e8552',flatShading:true,side:THREE.DoubleSide}),road:new THREE.MeshLambertMaterial({color:'#48463d',flatShading:true,side:THREE.DoubleSide}),walk:new THREE.MeshLambertMaterial({color:'#99917c',flatShading:true,side:THREE.DoubleSide}),white:new THREE.MeshLambertMaterial({color:'#ded9c0',flatShading:true}),ink:new THREE.MeshLambertMaterial({color:'#26342b',flatShading:true}),roof:new THREE.MeshLambertMaterial({color:'#a05c44',flatShading:true,side:THREE.DoubleSide}),red:new THREE.MeshLambertMaterial({color:'#cc342c',flatShading:true}),black:new THREE.MeshLambertMaterial({color:'#202e2d',flatShading:true}),yellow:new THREE.MeshLambertMaterial({color:'#c9bd71',flatShading:true})};
+function seeded(n){let v=Math.sin(n*84.115+14.115)*43758.5453;return v-Math.floor(v)}
+function local(lat,lon){return {x:(lon-ORIGIN.lon)*111320*Math.cos(ORIGIN.lat*Math.PI/180),z:-(lat-ORIGIN.lat)*111320}}
+function height(x,z){
+ if(terrainVals){let a=Math.max(0,Math.min(2,(x+50)/50)),b=Math.max(0,Math.min(2,(z+50)/50));let i=Math.min(1,Math.floor(a)),j=Math.min(1,Math.floor(b)),tx=a-i,tz=b-j;
+ return (terrainVals[j][i]*(1-tx)*(1-tz)+terrainVals[j][i+1]*tx*(1-tz)+terrainVals[j+1][i]*(1-tx)*tz+terrainVals[j+1][i+1]*tx*tz)-terrainVals[1][1];
+ }
+ return 0.045*z-0.018*x+Math.sin(x*.06)*.4;
+}
+function mt(color){return new THREE.MeshLambertMaterial({color,flatShading:true,side:THREE.DoubleSide})}
+function add(mesh,parent=world){mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);return mesh}
+function box(w,h,d,mat,x,y,z,parent=world){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);return add(m,parent)}
+function cone(radius,h,faces,mat,x,y,z,parent=world){let m=new THREE.Mesh(new THREE.ConeGeometry(radius,h,faces),mat);m.position.set(x,y,z);return add(m,parent)}
+function cyl(radius,h,faces,mat,x,y,z,parent=world){let m=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius,h,faces),mat);m.position.set(x,y,z);return add(m,parent)}
+function lineGeom(points,width,mat,raise=.13,parent=world){
+ for(let i=1;i<points.length;i++){let a=points[i-1],b=points[i],dx=b.x-a.x,dz=b.z-a.z,len=Math.hypot(dx,dz);if(len<.05)continue;
+ let y=(height(a.x,a.z)+height(b.x,b.z))/2+raise;
+ let m=box(width,.11,len,mat,(a.x+b.x)/2,y,(a.z+b.z)/2,parent);m.rotation.y=Math.atan2(dx,dz);m.receiveShadow=true;m.castShadow=false;
+ }
+}
+const treeMat=[mt('#314d32'),mt('#365e40'),mt('#56743b'),mt('#77914a')],autumnMat=[mt('#7f8336'),mt('#a88145'),mt('#c09455'),mt('#b56e43')],trunk=mt('#5c4734');
+function season(){if(state.season!=='auto')return state.season;let m=Number(state.date.split('-')[1]);return m===12||m<3?'winter':m<6?'spring':m<9?'summer':'autumn'}
+function tree(x,z,seed,parent=world){
+ let y=height(x,z);let t=cyl(.17,2.4,5,trunk,x,y+1.1,z,parent);t.castShadow=false;
+ let type=seeded(seed)>0.38,leaf=season()==='autumn'?autumnMat[seed%4]:treeMat[seed%4];
+ if(type){let A=cone(1.6,4.2,5,leaf,x,y+3.8,z,parent);let B=cone(1.22,3.1,5,leaf,x,y+5,z,parent);if(season()==='winter'){cone(.65,1.4,5,mats.white,x,y+6.2,z,parent)}} else {
+  let crown=new THREE.Mesh(new THREE.IcosahedronGeometry(2.2,0),leaf);crown.position.set(x,y+4.2,z);add(crown,parent);
+  if(season()==='winter')crown.material=mt('#9b9e7d');
+ }
+}
+function terrain(parent){
+ const seg=26,v=[],ix=[];for(let j=0;j<=seg;j++)for(let i=0;i<=seg;i++){let x=-50+i*100/seg,z=-50+j*100/seg;v.push(x,height(x,z),z)}
+ for(let j=0;j<seg;j++)for(let i=0;i<seg;i++){let a=j*(seg+1)+i,b=a+1,c=a+seg+1,d=c+1;ix.push(a,c,b,b,c,d)}
+ let g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(v,3));g.setIndex(ix);g.computeVertexNormals();
+ add(new THREE.Mesh(g,mats.ground),parent);
+ let side=mt(season()==='winter'?'#b5a994':'#514b37');
+ box(100,9,100,side,0,-5.5,0,parent).castShadow=false;
+ let border=mt('#2f3027');for(let k of [-50,50]){box(100,.4,.5,border,0,height(0,k)+.25,k,parent);box(.5,.4,100,border,k,height(k,0)+.25,0,parent)}
+}
+function planePoly(points,material,parent=world,yOffset=0.1){
+ if(points.length<3)return;const shape=new THREE.Shape();shape.moveTo(points[0].x,-points[0].z);points.slice(1).forEach(p=>shape.lineTo(p.x,-p.z));
+ let ge=new THREE.ShapeGeometry(shape);ge.rotateX(-Math.PI/2);
+ let me=new THREE.Mesh(ge,material);let avg=points.reduce((a,p)=>a+height(p.x,p.z),0)/points.length;me.position.y=avg+yOffset;me.castShadow=false;me.receiveShadow=true;parent.add(me);return me;
+}
+function building(polygon,tags,seed,parent=world,demonstration=false){
+ const pts=polygon.filter(p=>Number.isFinite(p.x+p.z));if(pts.length<3)return;
+ let cx=pts.reduce((a,p)=>a+p.x,0)/pts.length,cz=pts.reduce((a,p)=>a+p.z,0)/pts.length;
+ if(Math.abs(cx)>65||Math.abs(cz)>65)return;
+ let rawHeight=Number.parseFloat(String(tags.height||'').replace(',','.'));let levels=Number.parseInt(tags['building:levels']||'');
+ let h=rawHeight>2&&rawHeight<100?rawHeight:levels>0&&levels<30?levels*3:6+Math.floor(seeded(seed)*4)*2.3;
+ const shape=new THREE.Shape();shape.moveTo(pts[0].x,-pts[0].z);pts.slice(1).forEach(p=>shape.lineTo(p.x,-p.z));shape.closePath();
+ const walls=mt(['#ddcba7','#bfb19a','#c7b4a3','#e1d5b6'][seed%4]);
+ let base=pts.reduce((a,p)=>a+height(p.x,p.z),0)/pts.length;
+ const geo=new THREE.ExtrudeGeometry(shape,{depth:h,bevelEnabled:false,curveSegments:1});geo.rotateX(-Math.PI/2);
+ let mesh=new THREE.Mesh(geo,walls);mesh.position.y=base;add(mesh,parent);
+ const rgeo=new THREE.ShapeGeometry(shape);rgeo.rotateX(-Math.PI/2);
+ let roof=new THREE.Mesh(rgeo,mats.roof);roof.position.y=base+h+.1;add(roof,parent);
+ let bound=new THREE.Box3().setFromObject(mesh);if(bound.getSize(new THREE.Vector3()).length()<3)return;
+ const center=mesh.position.clone();mesh.userData={title:tags.name||'Bâtiment',desc:demonstration?'Volume de démonstration, position fictive.':('Empreinte © OpenStreetMap, toiture simplifiée. Hauteur '+(rawHeight>2?'OSM':levels>0?'estimée selon étages':'estimée')+'.')};
+ objects.push(mesh);return mesh;
+}
+function demo(){
+ for(let k=0;k<13;k++){
+ let x=-40+(k%5)*21+seeded(k)*5,z=-38+Math.floor(k/5)*34+seeded(k+18)*6;
+ if(Math.hypot(x,z)<14)continue;
+ let p=[{x:x-5,z:z-3},{x:x+5,z:z-3},{x:x+5,z:z+4},{x:x-5,z:z+4}];
+ building(p,{},k,world,true)
+ }
+ streetData.length=0;
+ streetData.push({points:[{x:-55,z:21},{x:-24,z:16},{x:8,z:18},{x:52,z:9}],type:'road'},
+ {points:[{x:-27,z:-54},{x:-22,z:-9},{x:-17,z:56}],type:'road'},
+ {points:[{x:28,z:-52},{x:22,z:0},{x:19,z:53}],type:'footway'});
+}
+function winterDetails(parent){
+ if(season()!=='winter')return;
+ box(12,.17,7,mt('#b7d6d5'),-5,height(-5,-7)+.23,-7,parent);
+ for(let i=0;i<4;i++) box(.2,.45,7,mats.white,-11+i*4,height(-5,-7)+.55,-7,parent).castShadow=false;
+}
+function person(x,z,clothes,parent=world){
+ let g=new THREE.Group();g.position.set(x,height(x,z)+.1,z);parent.add(g);
+ const cloth=mt(clothes);
+ cyl(.32,1.25,5,cloth,0,1.12,0,g);
+ cyl(.27,.6,5,mats.white,0,1.95,0,g);
+ box(.17,.7,.17,mats.ink,-.17,.35,0,g);box(.17,.7,.17,mats.ink,.17,.35,0,g);
+ let head=new THREE.Mesh(new THREE.IcosahedronGeometry(.34,0),mt('#ddba8d'));head.position.set(0,2.25,0);add(head,g);
+ return g;
+}
+function vehicle(parent){
+ const group=new THREE.Group();parent.add(group);
+ let body=box(3.8,1.4,6.4,mats.red,0,1.1,0,group);box(3.7,.9,4.1,mats.white,0,1.9,-.1,group);box(3.76,.7,2.4,mats.ink,0,2.1,.3,group);
+ for(const x of [-1.85,1.85])for(const z of [-2.1,2.1]){let wheel=cyl(.62,.35,8,mats.black,x,.65,z,group);wheel.rotation.z=Math.PI/2}
+ return group;
+}
+function marker(x,z,title,desc,parent=world){
+ let pole=cyl(.1,4,5,mats.ink,x,height(x,z)+2,z,parent);
+ let cap=box(3.9,1.1,.35,mats.white,x,height(x,z)+4.4,z,parent);cap.userData={title,desc};objects.push(cap);
+ return cap;
+}
+function build(){
+ while(world.children.length)world.remove(world.children[0]);objects.length=0;animated.length=0;
+ terrain(world);
+ if(!osmOk)demo();
+ else{
+ for(const b of buildingData)building(b.points,b.tags,b.id,world,false);
+ }
+ for(const s of streetData)lineGeom(s.points,s.type==='footway'?1.9:5,s.type==='footway'?mats.walk:mats.road,.19,world);
+ if(!osmOk)lineGeom([{x:-55,z:16},{x:10,z:18},{x:53,z:8}],5.1,mats.road,.25,world);
+ let trees=0;for(let i=0;i<120;i++){let x=-49+seeded(i+5)*98,z=-49+seeded(i+143)*98;if(Math.hypot(x,z)<20)continue; if(streetData.some(s=>s.points.some(q=>Math.hypot(q.x-x,q.z-z)<4)))continue;
+ if(buildingData.some(b=>b.points.some(q=>Math.hypot(q.x-x,q.z-z)<8)))continue;
+ if(seeded(i+44)<.5)continue;tree(x,z,i,world);trees++;if(trees>44)break;}
+ winterDetails(world);
+ const monument=cone(1.8,4.5,5,mt('#d0bc7a'),-3,height(-3,-4)+2.25,-4,world);
+ monument.userData={title:'Place d’Ycoor',desc:'Point d’intérêt de la station. Objet doré stylisé : repère artistique P0, pas une représentation exacte de la place.'};objects.push(monument);
+ marker(1,-29,'Arrêt Ycoor','Arrêt de bus SMC réel, proche du centre de la station. Position de la maquette indicative, à valider précisément avec les géodonnées.');
+ const p=person(-12,4,'#b74935',world);
+ const v=vehicle(world);animated.push({p,v});
+ if(state.bounds){
+ const r=mt('#d1ad66');for(const x of [-50,50])for(const z of [-50,50]){box(2,.14,2,r,x,height(x,z)+.35,z,world).castShadow=false}
+ }
+ $('origin').textContent=osmOk?'Bâtiments / routes OSM':'Géométrie de démonstration';
+ $('status').textContent='P0 · '+(osmOk?'OSM réel':'bâtiments fictifs')+' · '+(terrainOk?'relief swisstopo échantillonné':'relief approximatif')+' · animations simulées';
+}
+function transformCam(){
+ const radius=130/state.zoom,el=Math.PI/4.4;
+ camera.position.set(target.x+Math.sin(state.angle)*radius*Math.cos(el),target.y+radius*Math.sin(el),target.z+Math.cos(state.angle)*radius*Math.cos(el));camera.lookAt(target);
+}
+function resize(){let w=innerWidth,h=innerHeight,pixel=window.devicePixelRatio>1?0.65:0.8;
+ renderer.setSize(Math.round(w*pixel),Math.round(h*pixel),false);
+ renderer.domElement.style.width=w+'px';renderer.domElement.style.height=h+'px';
+ let aspect=w/h,side=85/state.zoom;camera.left=-side*aspect;camera.right=side*aspect;camera.top=side;camera.bottom=-side;camera.updateProjectionMatrix();transformCam()}
+let needsResize=true;
+addEventListener('resize',()=>{needsResize=true});
+function angleForSun(){
+ const lat=ORIGIN.lat*Math.PI/180;
+ const date=new Date(state.date+'T12:00:00Z');
+ let day=Math.max(1,Math.floor((date-Date.UTC(date.getUTCFullYear(),0,0))/86400000));
+ const decl=23.44*Math.PI/180*Math.sin(2*Math.PI*(284+day)/365);
+ const hourAngle=(state.clock-12.0)*Math.PI/12;
+ const sinAlt=Math.sin(lat)*Math.sin(decl)+Math.cos(lat)*Math.cos(decl)*Math.cos(hourAngle);
+ let alt=Math.asin(Math.max(-1,Math.min(1,sinAlt)));
+ let az=Math.atan2(Math.sin(hourAngle),Math.cos(hourAngle)*Math.sin(lat)-Math.tan(decl)*Math.cos(lat));
+ let c=Math.max(.05,Math.sin(Math.max(alt,.06)));
+ sun.position.set(95*Math.sin(az),120*c+15,95*Math.cos(az));
+ sun.intensity=state.sun?(alt<0?.11:Math.min(3.8,.8+3.0*c)):3.2;
+ hemi.intensity=state.sun?(alt<0?.55:1.2+c*1.35):2.3;
+ const sky=alt<0?'#263d4f':alt<.15?'#c98e76':'#84a7a3';
+ scene.background.set(sky);scene.fog.color.set(sky);
+ $('time-value').textContent=String(Math.floor(state.clock)).padStart(2,'0')+':'+String(Math.floor((state.clock%1)*60)).padStart(2,'0');
+ $('solar').textContent='soleil '+(alt*180/Math.PI).toFixed(0)+'° sur l’horizon · '+(state.sun?'réel calculé':'mode studio');
+ $('season-label').textContent={spring:'printemps',summer:'été',autumn:'automne',winter:'hiver'}[season()];
+}
+function loop(now){
+ requestAnimationFrame(loop);let dt=Math.min(0.04,(now-clockLast)/1000);clockLast=now;frame+=dt;
+ if(needsResize){resize();needsResize=false}
+ if(state.play){state.clock=(state.clock+dt*.35)%24;$('hour').value=state.clock}
+ angleForSun();
+ if(animated.length){
+ let a=animated[0];
+ const t=frame*2.9;
+ a.p.position.x=-12+Math.sin(t*.24)*8;a.p.position.z=4+Math.cos(t*.24)*3;a.p.position.y=height(a.p.position.x,a.p.position.z)+.1;
+ a.p.rotation.y=frame*.3;
+ let px=-41+(t%82),pz=18; a.v.position.set(px,height(px,pz)+.2,pz);a.v.rotation.y=Math.PI/2;
+ }
+ transformCam();renderer.render(scene,camera);
+}
+function asyncAbort(url,timeout=9000){const c=new AbortController();let t=setTimeout(()=>c.abort(),timeout);return fetch(url,{signal:c.signal,cache:'no-store'}).then(r=>{if(!r.ok)throw Error(r.status);return r.json()}).finally(()=>clearTimeout(t))}
+async function loadOSM(){
+ const south=ORIGIN.lat-.00052,north=ORIGIN.lat+.00052,west=ORIGIN.lon-.00072,east=ORIGIN.lon+.00072;
+ const bbox=[south,west,north,east].map(v=>v.toFixed(6)).join(',');
+ const query='[out:json][timeout:18];(way["building"]('+bbox+');way["highway"]('+bbox+'););out geom;';
+ const providers=['https://overpass.kumi.systems/api/interpreter?data=','https://overpass-api.de/api/interpreter?data=','https://overpass.private.coffee/api/interpreter?data='];
+ for(const service of providers){
+  try{
+   let data=await asyncAbort(service+encodeURIComponent(query),10000);
+   if(!data.elements||!data.elements.length)continue;
+   let buildings=[],streets=[];
+   for(let obj of data.elements){
+    if(!obj.geometry||obj.geometry.length<2)continue;
+    const coords=obj.geometry.map(p=>local(p.lat,p.lon));
+    if(obj.tags&&obj.tags.building&&coords.length>3)buildings.push({points:coords,tags:obj.tags,id:obj.id});
+    if(obj.tags&&obj.tags.highway){
+      if(['motorway','trunk','motorway_link'].includes(obj.tags.highway))continue;
+      streets.push({points:coords,type:['pedestrian','steps','footway','path'].includes(obj.tags.highway)?'footway':'road'});
+    }
+   }
+   if(!buildings.length&&!streets.length)continue;
+   buildingData.splice(0,buildingData.length,...buildings);streetData.splice(0,streetData.length,...streets);osmOk=true;build();
+   return true;
+  }catch(err){console.warn('Overpass indisponible',err)}
+ }
+ return false;
+}
+async function loadHeight(){
+ // Sparse official samples: deliberately only 9 requests, bilinear interpolation between samples.
+ let raw=Array.from({length:3},()=>Array(3).fill(null));
+ let jobs=[];for(let j=0;j<3;j++)for(let i=0;i<3;i++){jobs.push({i,j,x:(i-1)*50,z:(j-1)*50})}
+ let next=0,valid=0;
+ async function worker(){
+  while(next<jobs.length){
+   let {i,j,x,z}=jobs[next++];
+   const url='https://api3.geo.admin.ch/rest/services/height?easting='+(ORIGIN.e+x).toFixed(2)+'&northing='+(ORIGIN.n-z).toFixed(2)+'&sr=2056';
+   try{let result=await asyncAbort(url,7500);let v=parseFloat(result.height);if(Number.isFinite(v)){raw[j][i]=v;valid++}}catch(e){}
+  }
+ }
+ await Promise.all([worker(),worker(),worker()]);
+ if(valid===9){terrainVals=raw;terrainOk=true;build();return true}
+ return false;
+}
+const raycaster=new THREE.Raycaster(),mouse=new THREE.Vector2();
+function selectAt(clientX,clientY){
+ let rect=renderer.domElement.getBoundingClientRect();
+ mouse.set(2*(clientX-rect.left)/rect.width-1,1-2*(clientY-rect.top)/rect.height);
+ raycaster.setFromCamera(mouse,camera);let intersections=raycaster.intersectObjects(objects,false);
+ if(!intersections.length)return;
+ let obj=intersections[0].object;if(!obj.userData.title)return;
+ $('info-title').textContent=obj.userData.title;$('info-desc').textContent=obj.userData.desc;$('info').classList.add('show');
+}
+function saveCanvas(){try{let a=document.createElement('a');a.download='crans-montana-p0.png';a.href=renderer.domElement.toDataURL('image/png');a.click()}catch(e){alert('Capture indisponible : '+e.message)}}
+const c=renderer.domElement;let pointers=new Map(),start=null,rotateByDrag=false;
+c.addEventListener('pointerdown',e=>{c.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size===1)start={x:e.clientX,y:e.clientY,tx:target.x,tz:target.z,moved:false}});
+c.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;let prev=pointers.get(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size===2){
+ let p=[...pointers.values()],d=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y),pd=window.__prevPinch||d;state.zoom=Math.min(3,Math.max(.55,state.zoom*d/pd));window.__prevPinch=d;needsResize=true;return}
+ if(!start)return;
+ let dx=e.clientX-start.x,dy=e.clientY-start.y;if(Math.abs(dx)+Math.abs(dy)>5)start.moved=true;
+ let k=175/state.zoom/Math.max(320,Math.min(innerWidth,innerHeight));
+ target.x=start.tx-(dx*Math.cos(state.angle)+dy*Math.sin(state.angle))*k;
+ target.z=start.tz-(-dx*Math.sin(state.angle)+dy*Math.cos(state.angle))*k;
+ target.x=Math.max(-60,Math.min(60,target.x));target.z=Math.max(-60,Math.min(60,target.z));
+});
+c.addEventListener('pointerup',e=>{if(start&&!start.moved&&pointers.size===1)selectAt(e.clientX,e.clientY);pointers.delete(e.pointerId);if(pointers.size<2)window.__prevPinch=null;if(!pointers.size)start=null});
+c.addEventListener('pointercancel',()=>{pointers.clear();start=null;window.__prevPinch=null});
+c.addEventListener('wheel',e=>{e.preventDefault();state.zoom=Math.min(3,Math.max(.55,state.zoom*Math.exp(-e.deltaY*.001)));needsResize=true},{passive:false});
+function zoom(f){state.zoom=Math.max(.55,Math.min(3,state.zoom*f));needsResize=true}
+$('plus').onclick=()=>zoom(1.22);$('minus').onclick=()=>zoom(1/1.22);
+$('rotleft').onclick=()=>{state.angle-=Math.PI/8};$('rotright').onclick=()=>{state.angle+=Math.PI/8};
+$('reset').onclick=()=>{state.angle=Math.PI/4;state.zoom=1;target.set(0,0,0);needsResize=true};
+$('shot').onclick=saveCanvas;$('postcard').onclick=saveCanvas;
+$('about').onclick=()=>$('sources').classList.add('show');$('close-sources').onclick=()=>$('sources').classList.remove('show');$('close-info').onclick=()=>$('info').classList.remove('show');
+$('bounds').onclick=()=>{state.bounds=!state.bounds;$('bounds').classList.toggle('active',state.bounds);build()};
+$('labels').onclick=()=>{state.labels=!state.labels;$('labels').classList.toggle('active',state.labels);$('info').classList.remove('show')};
+$('date').onchange=e=>{state.date=e.target.value||'2026-11-14';build()};
+$('hour').oninput=e=>{state.clock=Number(e.target.value)};
+$('run').onclick=()=>{state.play=!state.play;$('run').textContent=state.play?'❚❚':'▶'};
+$('sun-mode').onclick=()=>{state.sun=!state.sun;$('sun-mode').classList.toggle('active',state.sun);$('sun-mode').textContent=state.sun?'real sun':'studio'};
+document.querySelectorAll('[data-season]').forEach(b=>b.onclick=()=>{state.season=b.dataset.season;document.querySelectorAll('[data-season]').forEach(x=>x.classList.toggle('active',x===b));build()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('info').classList.remove('show');$('sources').classList.remove('show')}if(e.key==='+')zoom(1.2);if(e.key==='-')zoom(1/1.2);if(e.key==='ArrowLeft')state.angle-=.12;if(e.key==='ArrowRight')state.angle+=.12});
+build();requestAnimationFrame(loop);
+Promise.allSettled([loadOSM(),loadHeight()]).then(results=>{
+ $('loading').style.display='none';
+ if(!osmOk||!terrainOk)console.warn('P0 mode partiellement illustratif',results);
+});
+</script></body></html>
