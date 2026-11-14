@@ -1,4 +1,4 @@
-# Crans-Montana Pixel Atlas P0.5.1 — préversion expérimentale
+# Crans-Montana Pixel Atlas P0.5.2 — préversion expérimentale
 
 Objectif : afficher les **véritables toitures** d'Ycoor dans **la même scène Three.js** que la végétation, les routes, les personnages et les voitures, en conservant la navigation isométrique rétro inspirée de bb.jest.pro.
 
@@ -17,6 +17,21 @@ Objectif : afficher les **véritables toitures** d'Ycoor dans **la même scène 
 - Découpe d'affichage à ±50 mètres par quatre plans ; couleur des façades et toits interprétée par la normale des triangles, et effet pixelisé.
 - Mode de secours : bâtiments approximatifs extrudés depuis les empreintes OSM si les tuiles officielles ne chargent pas.
 - Sol et relief local échantillonnés depuis swisstopo à neuf points, routes et chemins obtenus depuis OSM. Arbres, voiture et piétons toujours simulés.
+
+## P0.5.2 : correction identifiée dans la capture utilisateur (14 novembre 2026)
+
+Le navigateur affiche l'erreur exacte `THREE.GLTFLoader: No DRACOLoader instance provided.`. Ce n'est pas une preuve de tuiles manquantes : les modèles glTF officiels de swissBUILDINGS3D sont compressés et Three.js exige un décodeur Draco configuré.
+
+Correctif publié dans `index.html` :
+- Charger `GLTFLoader` et `DRACOLoader` depuis les addons de la **même** version Three.js (0.180.0).
+- Fournir le répertoire CDN des fichiers de décodage Draco (WASM et wrapper) avec `setDecoderPath`.
+- Passer le `DRACOLoader` au `GLTFLoader` avec `setDRACOLoader`.
+- Enregistrer le GLTFLoader via `tiles.manager.addHandler(/\\.(gltf|glb)$/i, gltfLoader)` **avant** le démarrage des requêtes de tuiles.
+- Garder la maquette OSM comme secours et les erreurs visibles en cas de nouvel échec.
+
+Contrôles statiques : syntaxe JS validée et enregistrement du décodeur confirmé dans le code GitHub. **Rendu Android encore à confirmer**, notamment l'altitude, l'orientation et la visibilité des vraies toitures. 
+
+Références : [Three.js GLTFLoader](https://threejs.org/docs/pages/GLTFLoader.html), [3d-tiles-renderer USAGE](https://github.com/NASA-AMMOS/3DTilesRendererJS/blob/master/USAGE.md).
 
 ## Correctifs P0.5.1 après vidéo utilisateur (14 novembre 2026)
 
