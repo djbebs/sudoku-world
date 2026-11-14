@@ -71,7 +71,7 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}</script>
 <script type="module">
 import * as THREE from 'three';
-import {TilesRenderer} from 'https://esm.sh/3d-tiles-renderer@0.4.28/three?external=three';
+// Optional 3D Tiles library is loaded dynamically: the OSM view stays available if the CDN fails.
 window.__p0Booted=true;
 const $=(id)=>document.getElementById(id);
 
@@ -256,10 +256,11 @@ function materialForTiles(){
  m.customProgramCacheKey=()=> 'ycoor-p05';
  return m;
 }
-function startRoofs(){
+async function startRoofs(){
  note('Chargement des bâtiments officiels dans Three.js…');
  const timeout=setTimeout(()=>{if(!tilesMeshes){tilesState='error';note('Source 3D non disponible. Maquette OSM conservée.')}},24000);
  try{
+  const {TilesRenderer}=await import('https://esm.sh/3d-tiles-renderer@0.4.28/three?external=three');
   renderer.localClippingEnabled=true;
   tiles=new TilesRenderer('https://3d.geo.admin.ch/ch.swisstopo.swissbuildings3d.3d/v1/tileset.json');
   tiles.setCamera(camera);tiles.setResolutionFromRenderer(camera,renderer);
@@ -268,7 +269,7 @@ function startRoofs(){
   tiles.addEventListener('load-model',({scene:tileScene})=>{
    let count=0;
    tileScene.traverse(o=>{if(o.isMesh){o.material=materialForTiles();o.castShadow=false;o.receiveShadow=true;count++}});
-   if(count){tilesMeshes+=count;tilesState='ready';clearTimeout(timeout);syncRoofs();note('Vrais toits affichés dans Three.js');setTimeout(()=>note('',false),3200)}
+   if(count){tilesMeshes+=count;tilesState='ready';clearTimeout(timeout);syncRoofs();note('Maillages officiels reçus dans Three.js · vérifie le rendu');setTimeout(()=>note('',false),3200)}
   });
   tiles.addEventListener('dispose-model',({scene:tileScene})=>tileScene.traverse(o=>{if(o.isMesh)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m?.dispose?.())}));
   tiles.addEventListener('load-error',e=>{console.warn('swisstopo tiles',e);if(!tilesMeshes)note('Chargement d’une tuile impossible, nouvelle tentative…')});
