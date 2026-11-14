@@ -1,0 +1,29 @@
+name: Verification cadastrale Ycoor (execution ponctuelle)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/verify-ycoor-mo.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Query official Valais cadastral layers for Ycoor
+        run: python3 scripts/audit_ycoor_mo.py
+      - name: Record verified counts and explicit service failures
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add crans-montana-p058/audit-ycoor.json
+          if ! git diff --staged --quiet; then
+            git commit -m "Store Ycoor MO audit result with source and UTC timestamp"
+            git push origin HEAD:main
+          fi
