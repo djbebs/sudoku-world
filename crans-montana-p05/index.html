@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#173125">
-<title>Isometric Crans-Montana · P0.5.1 / Ycoor</title>
+<title>Isometric Crans-Montana · P0.5.2 / Ycoor</title>
 <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--paper:#f6f0dd;--ink:#29291f;--red:#c92430;--blue:#2f5c9e;--edge:#1d221c}
@@ -51,7 +51,7 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
 <section id="sources" class="box"><button id="close-sources" style="float:right" aria-label="Fermer">×</button><h2>Isometric Crans-Montana</h2>
  <p>Une scène miniature de démonstration P0 (100 × 100 m). Modèles en formes géométriques simplifiées, sans copie du code de bb.jest.pro.</p>
  <p><b>Données :</b> empreintes de bâtiments et routes chargées à la demande depuis © OpenStreetMap contributors (ODbL), via Overpass. Relief échantillonné depuis © swisstopo. Si le service ne répond pas, le terrain et les bâtiments de remplacement sont <b>artistiques, pas cadastraux</b>.</p>
- <p><b>P0.5.1 :</b> le chargeur teste deux révisions swisstopo et affiche la raison d’un échec. Les vrais modèles n’ont pas encore été validés dans ce moteur Three.js. <a href="../crans-montana-p0/?v=4" target="_blank" rel="noopener noreferrer">Comparer avec le rendu officiel Cesium P0.4 qui fonctionne</a>.</p><p><b>Mode 3D officielle :</b> les bâtiments sont fournis sous forme de tuiles swissBUILDINGS3D. Leurs formes de toiture et leurs dimensions sont conservées, les couleurs et la résolution sont stylisées. Le mode illustré reste un modèle OSM simplifié, différent de la 3D officielle.</p><p><b>Animations :</b> véhicule et piéton entièrement simulés. Aucun GPS ou trafic en direct. Les hauteurs de bâtiments non renseignées par OSM sont estimées. Les toitures sont provisoirement toutes plates et ne correspondent pas à swissBUILDINGS3D.</p>
+ <p><b>P0.5.2 :</b> le chargeur configure le décodeur DRACO requis par les tuiles glTF compressées, teste deux révisions swisstopo et affiche la raison d’un échec. Les vrais modèles n’ont pas encore été validés dans ce moteur Three.js. <a href="../crans-montana-p0/?v=4" target="_blank" rel="noopener noreferrer">Comparer avec le rendu officiel Cesium P0.4 qui fonctionne</a>.</p><p><b>Mode 3D officielle :</b> les bâtiments sont fournis sous forme de tuiles swissBUILDINGS3D. Leurs formes de toiture et leurs dimensions sont conservées, les couleurs et la résolution sont stylisées. Le mode illustré reste un modèle OSM simplifié, différent de la 3D officielle.</p><p><b>Animations :</b> véhicule et piéton entièrement simulés. Aucun GPS ou trafic en direct. Les hauteurs de bâtiments non renseignées par OSM sont estimées. Les toitures sont provisoirement toutes plates et ne correspondent pas à swissBUILDINGS3D.</p>
  <p><b>Librairies :</b> Three.js (MIT), Pixelify Sans (SIL OFL).</p>
  <p><a href="https://www.openstreetmap.org/copyright" target="_blank">Licence OSM</a> · <a href="https://www.swisstopo.admin.ch/" target="_blank">swisstopo</a> · <a href="../crans-montana-pixel-atlas/" target="_blank">V5 actuelle</a></p>
  </section>
@@ -71,6 +71,8 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}</script>
 <script type="module">
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 // Optional 3D Tiles library is loaded dynamically: the OSM view stays available if the CDN fails.
 window.__p0Booted=true;
 const $=(id)=>document.getElementById(id);
@@ -260,7 +262,7 @@ function materialForTiles(){
 }
 async function startRoofs(older=false){
  note('Chargement des bâtiments officiels · '+(older?'révision 2025':'révision 2026')+'…');
- if(tiles){scene.remove(tiles.group);try{tiles.dispose()}catch(e){}tiles=null}
+ if(tiles){scene.remove(tiles.group);try{tiles.dispose()}catch(e){}try{tiles.userData?.dracoLoader?.dispose()}catch(e){}tiles=null}
  tilesMeshes=0;tilesState='loading';
  const timeout=setTimeout(()=>{
   if(!tilesMeshes){
@@ -272,6 +274,17 @@ async function startRoofs(older=false){
   const {TilesRenderer}=await import('https://esm.sh/3d-tiles-renderer@0.4.28/three?external=three');
   renderer.localClippingEnabled=true;
   tiles=new TilesRenderer('https://3d.geo.admin.ch/ch.swisstopo.swissbuildings3d.3d/v1/'+(older?'20251121':'20260520')+'/tileset.json');
+  // The national swissBUILDINGS3D glTF tiles use KHR_draco_mesh_compression.
+  // 3d-tiles-renderer does not create a DRACOLoader by default.
+  // Connect it to a custom GLTFLoader through the per-tileset LoadingManager.
+  const dracoLoader=new DRACOLoader();
+  dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/libs/draco/');
+  dracoLoader.setDecoderConfig({type:'wasm'});
+  const gltfLoader=new GLTFLoader(tiles.manager);
+  gltfLoader.setDRACOLoader(dracoLoader);
+  tiles.manager.addHandler(/\.(gltf|glb)$/i,gltfLoader);
+  tiles.userData={dracoLoader};
+  note('Décodeur DRACO connecté · chargement des bâtiments officiels…');
   tiles.setCamera(camera);tiles.setResolutionFromRenderer(camera,renderer);
   tiles.group.matrixAutoUpdate=false;tiles.group.matrix.copy(toENU());scene.add(tiles.group);tiles.group.updateMatrixWorld(true);
   tiles.addEventListener('load-tileset',()=>note('Source swisstopo connectée, chargement des toits…'));
