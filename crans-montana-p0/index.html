@@ -59,8 +59,10 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
 <div id="loading">Chargement des données géographiques...</div>
 <div id="tip">glisser : déplacer · roulette/pincer : zoom · ↶ ↷ : rotation</div>
 <footer id="credit">© swisstopo · © OSM<br>Illustration P0 / <b>démo</b></footer>
+<script>window.__p0Booted=false;setTimeout(()=>{if(!window.__p0Booted){let t=document.getElementById("loading");if(t)t.innerHTML='Impossible de lancer le moteur 3D. Vérifie le réseau ou réessaie dans Chrome.<br><a style="color:#fff" href="../crans-montana-pixel-atlas/">Retour à la V5</a>'}},14500);</script>
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
+window.__p0Booted=true;
 const $=(id)=>document.getElementById(id);
 const ORIGIN={lat:46.31220,lon:7.48060,e:2603233,n:1128978};
 const S=100,HALF=50;
@@ -327,6 +329,7 @@ $('sun-mode').onclick=()=>{state.sun=!state.sun;$('sun-mode').classList.toggle('
 document.querySelectorAll('[data-season]').forEach(b=>b.onclick=()=>{state.season=b.dataset.season;document.querySelectorAll('[data-season]').forEach(x=>x.classList.toggle('active',x===b));build()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('info').classList.remove('show');$('sources').classList.remove('show')}if(e.key==='+')zoom(1.2);if(e.key==='-')zoom(1/1.2);if(e.key==='ArrowLeft')state.angle-=.12;if(e.key==='ArrowRight')state.angle+=.12});
 build();requestAnimationFrame(loop);
+setTimeout(()=>{if($('loading').style.display!=='none')$('loading').textContent='Sources externes lentes : mode démo toujours utilisable';},12000);
 Promise.allSettled([loadOSM(),loadHeight()]).then(results=>{
  $('loading').style.display='none';
  if(!osmOk||!terrainOk)console.warn('P0 mode partiellement illustratif',results);
