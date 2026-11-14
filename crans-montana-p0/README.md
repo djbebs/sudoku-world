@@ -1,4 +1,4 @@
-# Crans-Montana Live Pixel Atlas — P0.2 (Ycoor)
+# Crans-Montana Live Pixel Atlas — P0.4 (Ycoor)
 
 Prototype technique autonome dans `crans-montana-p0/index.html`. Aucune modification du Sudoku ou de l'atlas V5.
 
@@ -19,6 +19,17 @@ Prototype technique autonome dans `crans-montana-p0/index.html`. Aucune modifica
 3. Tester déplacements, rotation, zoom, pincement, date/heure/saisons et capture.
 4. Vérifier les messages de source, la disponibilité des APIs externes et la précision des géodonnées utilisées.
 5. Mesurer la fluidité sur le téléphone : cible ~30 images/seconde, non vérifiée pour le moment.
+
+## P0.4 : géométrie de toitures officielles (14 novembre 2026)
+
+Le prototype possède maintenant **deux modes** :
+
+- **3D officielle (chargement automatique par défaut)** : iframe `real-buildings.html`, CesiumJS, tuiles 3D de la couche `ch.swisstopo.swissbuildings3d.3d/v1/tileset.json`, terrain officiel quand disponible, caméra orthographique isométrique, coloration rétro facultative, résolution pixelisée, limitation géographique à ~100 m par découpe si supportée sur le téléphone.
+- **Illustration (bouton 3D dans la barre)** : moteur Three.js historique avec empreintes OSM et volumes/toitures approximatifs. La géométrie n'est pas cadastrale.
+
+Le mode officiel signale le chargement à la fenêtre par `postMessage` et revient au mode illustré lorsqu'il ne peut confirmer l'affichage des tuiles. Les commandes de date, heure, saisons, zoom, rotation et capture sont relayées au mode officiel. La scène Three.js ne se redessine pas pendant le mode officiel, pour préserver les performances sur Android.
+
+**Limites non résolues :** ce n'est pas encore un export/conversion de toitures en maillages Three.js embarqués ; ce sont les vrais volumes 3D diffusés en streaming et affichés avec Cesium. Sans connexion, ils ne sont pas disponibles. La stylisation des couleurs est indicative. Le cadrage et les propriétés de bâtiment n'ont pas été inspectés visuellement sur le Samsung de l'utilisateur. Vérifier la correspondance des bâtiments dans une capture d'écran avant de valider P0.
 
 ## Ajustements P0.2 (14 novembre 2026)
 
