@@ -31,7 +31,7 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
 #real-frame{position:fixed;inset:0;width:100%;height:100%;border:0;display:block;opacity:0;pointer-events:none;z-index:1;background:#83a4a0;transition:opacity .2s}
 #real-frame.active{opacity:1;pointer-events:auto}
 #real-status{display:none;position:fixed;top:96px;left:50%;transform:translateX(-50%);z-index:9;padding:7px 12px;font-size:12px;max-width:80vw;text-align:center;background:#f5eedc;color:#29281f;border:2px solid #25291e;box-shadow:3px 3px #1720198c}
-#real-status.show{display:block}
+#real-status.show{display:block}#real-status[data-failed='true']{cursor:pointer;text-decoration:underline;background:#f6e6dc;border-color:#b02d35}
 #real-toggle{background:#c52b30;color:#fff}
 #real-toggle.active{background:#306299}
 @media(max-width:650px){#real-status{top:174px;max-width:90vw;font-size:11px}}
@@ -76,7 +76,8 @@ window.__p0Booted=true;
 const $=(id)=>document.getElementById(id);
 
 let tiles=null,tilesMeshes=0,useOfficial=true,buildingLayer=null,tilesState='loading';
-function note(t,show=true){$('real-status').textContent=t;$('real-status').classList.toggle('show',show)}
+function note(t,show=true){const e=$('real-status');e.textContent=t;e.classList.toggle('show',show);e.dataset.failed=String(tilesState==='error');if(tilesState==='error')e.title='Cliquer pour ouvrir le rendu officiel P0.4'}
+$('real-status').onclick=()=>{if(tilesState==='error')location.href='../crans-montana-p0/?v=4'};
 function syncRoofs(){
  let ready=useOfficial&&tilesMeshes>0;
  if(buildingLayer)buildingLayer.visible=!ready;
@@ -264,7 +265,7 @@ async function startRoofs(older=false){
  const timeout=setTimeout(()=>{
   if(!tilesMeshes){
    if(!older)startRoofs(true);
-   else{tilesState='error';useOfficial=false;syncRoofs();$('status').textContent='P0.5.1 · toitures indisponibles / OSM illustratif';note('Chargement 3D échoué : '+String(window.__roofError||'modèles non reçus').slice(0,125))}
+   else{tilesState='error';useOfficial=false;syncRoofs();$('status').textContent='P0.5.1 · toitures indisponibles / OSM illustratif';note('Chargement 3D échoué : '+String(window.__roofError||'modèles non reçus').slice(0,89)+' · appuyer ici pour P0.4')}
   }
  },13000);
  try{
@@ -280,7 +281,7 @@ async function startRoofs(older=false){
    if(count){tilesMeshes+=count;tilesState='ready';clearTimeout(timeout);syncRoofs();note('Maillages officiels reçus dans Three.js · vérifie le rendu');setTimeout(()=>note('',false),3200)}
   });
   tiles.addEventListener('dispose-model',({scene:tileScene})=>tileScene.traverse(o=>{if(o.isMesh)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m?.dispose?.())}));
-  tiles.addEventListener('load-error',e=>{console.warn('swisstopo tiles',e);if(!tilesMeshes){window.__roofError=String(e.error?.message||e.error||'requête bloquée')+' · '+String(e.url||'').split('/').slice(-2).join('/');note('Erreur tuile : '+window.__roofError.slice(0,124));if(!e.tile){clearTimeout(timeout);if(!older)startRoofs(true);else{tilesState='error';useOfficial=false;syncRoofs();note('3D swisstopo indisponible : '+window.__roofError.slice(0,118))}}}});
+  tiles.addEventListener('load-error',e=>{console.warn('swisstopo tiles',e);if(!tilesMeshes){window.__roofError=String(e.error?.message||e.error||'requête bloquée')+' · '+String(e.url||'').split('/').slice(-2).join('/');note('Erreur tuile : '+window.__roofError.slice(0,124));if(!e.tile){clearTimeout(timeout);if(!older)startRoofs(true);else{tilesState='error';useOfficial=false;syncRoofs();note('3D Three.js indisponible : '+window.__roofError.slice(0,96)+' · appuyer ici pour P0.4')}}}});
  }catch(err){clearTimeout(timeout);window.__roofError=String(err?.message||err);if(!older){startRoofs(true)}else{tilesState='error';useOfficial=false;syncRoofs();note('Bibliothèque ou tuiles indisponibles : '+window.__roofError.slice(0,105))}}
 }
 function transformCam(){
