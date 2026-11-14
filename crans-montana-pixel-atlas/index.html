@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1821">
+<title>CRANS–MONTANA · Pixel Atlas V4</title>
+<style>
+
+:root {--bg:#0d1921;--panel:rgba(10,25,31,.95);--panel2:#182a31;--ink:#eef7ee;--muted:#93acaf;--accent:#a7f1bd;--line:rgba(187,228,209,.17);--sub:#d0a569;}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:'Space Grotesk',system-ui,sans-serif}button,input{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+#scene{position:fixed;inset:0;width:100%;height:100%;cursor:grab;touch-action:none;image-rendering:pixelated}#scene:active{cursor:grabbing}
+.scrim{position:fixed;top:0;bottom:0;left:0;width:300px;background:linear-gradient(90deg,rgba(5,16,22,.22),transparent);pointer-events:none}
+.panel{position:fixed;top:18px;bottom:18px;left:18px;width:288px;max-height:calc(100dvh - 36px);padding:18px 18px 13px;background:var(--panel);border:1px solid rgba(171,219,191,.25);box-shadow:0 28px 80px #09121baa,0 0 0 1px #0a2228 inset;border-radius:9px;display:flex;flex-direction:column;gap:0;overflow:auto;scrollbar-color:#42585b transparent;z-index:2;backdrop-filter:blur(18px)}
+.brand{display:flex;align-items:center;gap:12px;padding:2px 1px 18px;border-bottom:1px solid var(--line)}.mark{height:42px;width:42px;border:1px solid #a7f1bd66;background:#15332e;display:grid;place-items:center;position:relative;flex-shrink:0}.mark::after{content:'✦';font-size:25px;color:var(--accent);position:absolute}.brand h1{font-size:17px;line-height:1.02;letter-spacing:-.04em;margin:0;font-weight:700}.brand small{display:block;font:10px 'DM Mono',monospace;letter-spacing:.18em;color:var(--accent);margin-top:5px}.overline{font:10px 'DM Mono',monospace;letter-spacing:.17em;color:var(--muted);text-transform:uppercase;margin:21px 0 10px}.hero h2{font-size:27px;line-height:1.04;letter-spacing:-.055em;margin:10px 0 10px;font-weight:700}.hero p{font-size:12px;color:#b2c6c5;line-height:1.65;margin:0}.hero em{color:var(--accent);font-style:normal}.divider{height:1px;background:var(--line);margin:21px 0 0}.control-label{display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:600;margin-bottom:11px}.control-label span:last-child{color:var(--accent);font:11px 'DM Mono',monospace}.seg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}.seg button,.weather button{background:#152931;border:1px solid #30464a;color:#a6b9b7;font-size:10px;padding:10px 2px;border-radius:3px;transition:background .15s,color .15s}.seg button:hover,.weather button:hover{border-color:#92d5aa}.seg button.active,.weather button.active{color:#0b2419;background:var(--accent);border-color:var(--accent);font-weight:700}.seg .symbol{display:block;font-size:18px;margin-bottom:4px;line-height:1.2}.timebar{display:flex;gap:9px;align-items:center}.round{height:33px;width:33px;border-radius:3px;display:grid;place-items:center;border:1px solid #44625e;background:#1b3637;color:var(--accent);flex-shrink:0}.round:hover{background:#285448}.timebar input{accent-color:var(--accent);min-width:0;width:100%;cursor:pointer}.time-ticks{display:flex;justify-content:space-between;color:#739296;font:9px 'DM Mono',monospace;margin-top:5px;padding-right:42px}.weather{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.weather button{padding:9px 2px}.switches{display:grid;grid-template-columns:1fr 1fr;gap:6px}.switch{display:flex;align-items:center;gap:7px;padding:9px 8px;border:1px solid #2b4547;border-radius:3px;color:#c8d9d3;background:#14262e;font-size:11px;text-align:left}.switch span{font:12px 'DM Mono',monospace;color:#688a85}.switch.active span{color:var(--accent)}.switch:not(.active){opacity:.58}.switch:hover{border-color:var(--accent)}
+.places{display:grid;grid-template-columns:1fr 1fr;gap:6px}.places button{padding:8px;text-align:left;background:#172b32;border:1px solid #365053;border-radius:3px;color:#dce9df;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.places button:hover{border-color:var(--accent);color:var(--accent)}
+.panelfooter{margin-top:auto;padding-top:22px}.panelfooter p{font:10px/1.65 'DM Mono',monospace;color:#7c9698;margin:0}.panelfooter a{color:#b8d8cd;text-decoration:none;border-bottom:1px solid #62887e}.panelfooter a:hover{color:var(--accent)}
+.headhud{position:fixed;top:32px;right:34px;pointer-events:none;text-align:right;z-index:1;text-shadow:0 2px 14px rgba(13,25,33,.4)}.headhud .eyebrow{font:11px 'DM Mono',monospace;letter-spacing:.21em;color:#173b44}.headhud .place{font-size:clamp(24px,3vw,44px);line-height:1;letter-spacing:-.07em;color:#173b44;font-weight:700;margin-top:6px}.headhud .sub{margin-top:7px;font:11px 'DM Mono',monospace;color:#275263;letter-spacing:.08em}
+.ctl{position:fixed;right:24px;bottom:26px;z-index:2;display:grid;gap:6px}.ctl button{width:43px;height:43px;display:grid;place-items:center;background:#0c222adf;border:1px solid #61958b;color:#d7f3df;border-radius:5px;font-size:21px;box-shadow:0 3px 14px #0b161c55}.ctl button:hover{background:#254c4b}.ctl button.small{font-size:13px}.bottomhud{position:fixed;left:337px;bottom:25px;z-index:1;color:#e9f3ea;text-shadow:0 2px 9px #091924;font:11px 'DM Mono',monospace;letter-spacing:.03em;pointer-events:none}.bottomhud .top{font-weight:500}.bottomhud .detail{margin-top:6px;opacity:.74;font-size:10px}
+.detail-card{position:fixed;right:80px;bottom:28px;width:300px;background:rgba(9,27,33,.96);color:#ebfaed;border:1px solid #9dddbb80;border-radius:6px;box-shadow:0 18px 45px #09131d8c;padding:16px 18px;z-index:5;display:none}.detail-card.open{display:block}.detail-card button.close{position:absolute;right:9px;top:8px;background:transparent;border:0;color:#bdd3c7;font-size:18px}.detail-card .eyebrow{font:10px 'DM Mono',monospace;color:var(--accent);letter-spacing:.18em}.detail-card h3{font-size:20px;margin:9px 18px 3px 0;letter-spacing:-.03em}.detail-card p{font-size:12px;line-height:1.55;color:#afc8c6;margin:8px 0 0}.detail-card .alt{font:11px 'DM Mono',monospace;color:#ecd3a5}
+.info-chip{position:fixed;left:330px;top:24px;display:flex;align-items:center;gap:8px;color:#173b44;font:11px 'DM Mono',monospace;letter-spacing:.08em;z-index:1;background:#f3faf0bd;border:1px solid #cfdfd0;padding:9px 12px;border-radius:3px}.live{height:7px;width:7px;background:#339a70;border-radius:50%;box-shadow:0 0 0 3px #aee4c0}
+#toast{position:fixed;left:50%;bottom:23px;transform:translate(-50%,20px);opacity:0;transition:.25s;pointer-events:none;z-index:10;background:#e7f7e8;color:#193529;padding:11px 14px;border-radius:4px;font-size:12px;font-weight:600}#toast.show{transform:translate(-50%,0);opacity:1}
+.mobile-head{display:none}
+@media(max-width:800px){.panel{top:auto;bottom:0;left:0;right:0;width:100%;max-height:42dvh;border-radius:14px 14px 0 0;padding:13px 15px 16px;overflow:auto;box-shadow:0 -12px 40px #0d192188}.panel .brand{display:none}.hero{display:none}.panel .divider{display:none}.panel .overline{margin:9px 0 9px}.panel .panelfooter{display:none}.panel .section{margin-bottom:4px}.panel .places{grid-template-columns:repeat(3,1fr)}.headhud{top:14px;right:12px;text-align:right}.headhud .eyebrow{display:none}.headhud .place{font-size:18px;margin:0}.headhud .sub{display:none}.info-chip{display:none}.ctl{right:11px;bottom:calc(42dvh + 16px)}.ctl button{width:38px;height:38px}.bottomhud{left:13px;bottom:calc(42dvh + 15px);font-size:10px;max-width:55%}.bottomhud .detail{font-size:9px}.detail-card{right:12px;left:12px;width:auto;bottom:calc(42dvh + 12px)}.mobile-head{display:block;position:fixed;left:12px;top:14px;font-size:12px;font-weight:700;color:#163b42;letter-spacing:-.05em;z-index:1}}
+@media(max-width:440px){.panel{max-height:45dvh}.ctl{bottom:calc(45dvh + 10px)}.bottomhud{bottom:calc(45dvh + 13px)}.detail-card{bottom:calc(45dvh + 10px)}.places button{font-size:10px}.seg button{padding:7px 0}}
+
+/* V3 rescue shell: visible illustrated map, optional source-data renderer. */
+#v3-toolbar{position:fixed;top:11px;left:50%;transform:translateX(-50%);z-index:49;background:rgba(10,28,35,.96);border:1px solid #9ddcba7a;border-radius:12px;padding:7px;display:flex;align-items:center;gap:5px;box-shadow:0 9px 32px #0919209e;max-width:calc(100vw - 20px)}
+#v3-toolbar button,#v3-toolbar a{background:transparent;border:1px solid transparent;color:#d5e7df;border-radius:7px;font-weight:700;font-size:12px;padding:9px 12px;white-space:nowrap;text-decoration:none;display:inline-block}
+#v3-toolbar button.active{background:#b4efc4;color:#15372e}
+#v3-toolbar button:focus-visible,#v3-toolbar a:focus-visible{outline:2px solid white}
+#v3-3d{position:fixed;inset:0;width:100%;height:100%;z-index:42;border:none;display:none;background:#15262e}
+#v3-3d.show{display:block}
+#v3-loading{position:fixed;top:78px;left:50%;transform:translateX(-50%);z-index:50;display:none;max-width:min(440px,94vw);border:1px solid #a3ddbb;background:#132c35f5;color:#ecfaec;border-radius:10px;padding:18px 22px;text-align:center;font-size:13px;line-height:1.55;box-shadow:0 12px 36px #061c24ad}
+#v3-loading.show{display:block}#v3-loading strong{display:block;font-size:16px;margin-bottom:6px}#v3-loading small{display:block;color:#b6cdc5;margin:5px 0 12px;font-size:11px}
+#v3-loading button{border:1px solid #9fd3b5;border-radius:5px;padding:9px 12px;background:#24493f;color:white;font-size:12px;font-weight:700;cursor:pointer}
+#v3-footer{position:fixed;left:50%;transform:translateX(-50%);bottom:9px;z-index:3;font-size:10px;color:#2f525a;background:#f4faf0d9;border-radius:20px;padding:6px 12px;text-align:center;pointer-events:none}
+@media(max-width:800px){#v3-toolbar{top:9px;left:10px;right:10px;transform:none;justify-content:center}#v3-toolbar button,#v3-toolbar a{font-size:11px;padding:8px 8px}#v3-footer{bottom:calc(45dvh + 1px);font-size:9px;white-space:nowrap}#v3-loading{top:66px}}
+
+</style>
+</head>
+<body>
+<canvas id="scene" aria-label="Carte isométrique interactive stylisée de Crans-Montana"></canvas>
+<div class="scrim"></div>
+<div class="mobile-head">✦ CM / PIXEL ATLAS</div>
+<aside class="panel" aria-label="Commandes de la carte">
+  <div class="brand"><div class="mark"></div><div><h1>CRANS–MONTANA</h1><small>PIXEL ATLAS / 001</small></div></div>
+  <section class="hero"><div class="overline">46°18′ N · VALAIS · CH</div><h2>Un petit monde.<br><span style="color:var(--accent)">De grandes Alpes.</span></h2><p>Explore une version miniature de la station. Une carte <em>interactive et artistique</em>, inspirée du pixel art isométrique.</p></section>
+  <div class="divider"></div>
+  <section class="section"><div class="overline">01 / AMBIANCE</div><div class="control-label">Saison <span id="season-label">HIVER</span></div><div class="seg" id="season-controls"><button data-season="spring"><span class="symbol">🌱</span>PRIN</button><button data-season="summer"><span class="symbol">☀</span>ÉTÉ</button><button data-season="autumn"><span class="symbol">🍂</span>AUT</button><button data-season="winter" class="active"><span class="symbol">❄</span>HIVER</button></div></section>
+  <section class="section"><div class="overline">02 / HEURE LOCALE SIMULÉE</div><div class="control-label">Lumière <span id="hour-text">14:00</span></div><div class="timebar"><input type="range" id="hour" min="0" max="23.75" step="0.25" value="14" aria-label="Heure simulée"><button class="round" id="play" title="Faire défiler la journée">▶</button></div><div class="time-ticks"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span></div></section>
+  <section class="section"><div class="overline">03 / MÉTÉO SIMULÉE</div><div class="weather" id="weather-controls"><button data-weather="clear" class="active">☀ Clair</button><button data-weather="snow">❄ Neige</button><button data-weather="fog">≋ Brume</button></div></section>
+  <section class="section"><div class="overline">04 / AFFICHAGE</div><div class="switches"><button class="switch active" data-toggle="lifts"><span>◉</span> Remontées</button><button class="switch active" data-toggle="pistes"><span>◉</span> Pistes</button><button class="switch active" data-toggle="life"><span>◉</span> Vie alpine</button><button class="switch active" data-toggle="labels"><span>◉</span> Lieux</button></div></section>
+  <section class="section"><div class="overline">05 / EXPLORER UN LIEU</div><div class="places" id="places"><button data-place="crans">↗ Crans</button><button data-place="montana">↗ Montana</button><button data-place="cry">↗ Cry d’Er</button><button data-place="violettes">↗ Violettes</button><button data-place="aminona">↗ Aminona</button><button data-place="plaine">↗ Plaine Morte</button></div></section>
+  <div class="panelfooter"><p>GLISSER POUR SE DÉPLACER · MOLETTE POUR ZOOMER · PINCER SUR MOBILE</p><p style="margin-top:12px">Maquette illustrative : bâtiments, tracés et relief simplifiés. <a href="https://map.geo.admin.ch/" target="_blank" rel="noopener">Voir la carte officielle ↗</a></p></div>
+</aside>
+<div class="info-chip"><span class="live"></span> CARTE INTERACTIVE · DÉMO V1</div>
+<div class="headhud"><div class="eyebrow">ALPINE DIGITAL DIORAMA</div><div class="place">CRANS—MONTANA</div><div class="sub">1'500 m · SWITZERLAND · 4 SAISONS</div></div>
+<div class="bottomhud"><div class="top" id="status">❄ HIVER · 14:00 · PANORAMA</div><div class="detail">ESPACE REPRÉSENTÉ DE FAÇON ARTISTIQUE · NON DESTINÉ À LA NAVIGATION</div></div>
+<div class="ctl"><button id="zoom-in" title="Zoom avant">+</button><button id="zoom-out" title="Zoom arrière">−</button><button id="rotate" class="small" title="Pivoter la vue">⟳</button><button id="home" class="small" title="Vue générale">⌂</button><button id="share" class="small" title="Partager la vue">↗</button></div>
+<div class="detail-card" id="detail-card"><button class="close" id="close-card" aria-label="Fermer">×</button><span class="eyebrow">DÉCOUVRIR / CRANS-MONTANA</span><h3 id="card-title"></h3><div class="alt" id="card-alt"></div><p id="card-text"></p></div>
+<div id="toast" role="status"></div>
+<script>
+(()=>{'use strict';
+const canvas=document.querySelector('#scene'),ctx=canvas.getContext('2d',{alpha:false});
+const $=s=>document.querySelector(s);let W=0,H=0,DPR=1,renderScale=1;
+const rand=seed=>()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
+const r=rand(1729),rr=rand(101),clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),mix=(a,b,t)=>a+(b-a)*t,smooth=t=>t*t*(3-2*t),sm=(a,b,x)=>smooth(clamp((x-a)/(b-a),0,1));
+const palettes={spring:{grass:[105,147,105],forest:[40,99,78],rocks:[135,145,143],snow:[225,234,230]},summer:{grass:[115,158,101],forest:[45,103,75],rocks:[153,157,143],snow:[232,236,235]},autumn:{grass:[176,139,96],forest:[113,106,58],rocks:[150,147,137],snow:[238,231,220]},winter:{grass:[149,173,165],forest:[46,103,93],rocks:[139,162,167],snow:[230,242,238]}};
+const places=[
+{id:'crans',name:'Crans',x:-2.45,y:-.9,alt:'1’476 m',text:'Le cœur occidental de la station, ses rues commerçantes, ses chalets et les lacs voisins.'},
+{id:'montana',name:'Montana',x:-.12,y:-.72,alt:'1’495 m',text:'Le centre de Montana, entre front de neige, hôtels alpins et panorama sur la vallée du Rhône.'},
+{id:'barzettes',name:'Barzettes',x:2.03,y:-.48,alt:'1’506 m',text:'L’un des principaux accès au domaine skiable, notamment en direction des Violettes.'},
+{id:'aminona',name:'Aminona',x:4.33,y:-.26,alt:'env. 1’500 m',text:'Le secteur oriental du domaine, tourné vers les alpages et la haute montagne.'},
+{id:'cry',name:'Cry d’Er',x:-1.12,y:3.25,alt:'2’256 m',text:'Sommet emblématique du domaine avec vue sur les Alpes et le plateau de Crans-Montana.'},
+{id:'violettes',name:'Violettes',x:1.69,y:3.65,alt:'2’220 m',text:'Point de passage vers les secteurs d’altitude et le glacier de la Plaine Morte.'},
+{id:'bella',name:'Bella Lui',x:-2.92,y:5.35,alt:'2’543 m',text:'Crête qui domine les pistes et le plateau de Crans-Montana.'},
+{id:'plaine',name:'Plaine Morte',x:2.48,y:6.34,alt:'2’927 m',text:'Le plateau glaciaire d’altitude, au nord-est de la station.'},
+{id:'moubra',name:'Lac Moubra',x:-1.53,y:-1.83,alt:'',text:'Un lac de loisirs apprécié à proximité de la station.'},
+{id:'randogne',name:'Randogne',x:1.42,y:-2.75,alt:'1’225 m',text:'Village valaisan situé sous le plateau de Crans-Montana.'},
+];
+const hotspots=places.filter(p=>!['moubra'].includes(p.id));
+const lines=[
+{from:[-2.60,-.55],to:[-1.12,3.25],name:'Crans · Cry d’Er'},
+{from:[-.20,-.46],to:[-.45,1.58],name:'Montana · Arnouva'},
+{from:[2.03,-.48],to:[1.69,3.65],name:'Barzettes · Violettes'},
+{from:[4.33,-.24],to:[3.74,2.57],name:'Aminona · Alpages'},
+{from:[1.69,3.65],to:[2.48,6.34],name:'Violettes · Plaine Morte'}
+];
+const paths=[
+{p:[[-1.12,3.3],[-1.48,2.5],[-1.26,1.9],[-2.0,1.1],[-2.49,-.48]],color:'#ec6d65',width:4},
+{p:[[-1.12,3.25],[-.42,2.7],[-.38,2.0],[-.46,1.56],[-.25,.1]],color:'#3d92d1',width:3},
+{p:[[1.68,3.64],[1.0,3.18],[1.17,2.18],[1.65,1.37],[2.01,-.25]],color:'#e95e69',width:4},
+{p:[[1.68,3.64],[2.25,2.73],[2.73,1.72],[2.39,.86],[2.01,-.25]],color:'#3479ca',width:3},
+{p:[[2.46,6.32],[3.06,5.32],[2.63,4.26],[1.69,3.64]],color:'#3c4652',width:3},
+{p:[[-2.93,5.30],[-2.38,4.22],[-2.48,3.55],[-1.1,3.25]],color:'#447fb4',width:3},
+{p:[[3.74,2.56],[4.6,1.62],[4.11,.72],[4.33,-.23]],color:'#4a95cb',width:3},
+];
+const roads=[
+[[-5.4,-1.7],[-4.4,-1.3],[-3.4,-1.14],[-2.4,-.92],[-1.4,-1.0],[-.3,-.73],[.7,-.66],[2.0,-.5],[3.14,-.48],[4.3,-.29],[5.4,-.82]],
+[[-2.65,-.8],[-2.5,-1.5],[-1.52,-1.86],[-.6,-1.72],[.12,-1.22],[.87,-1.47],[1.45,-2.7],[2.38,-3.72]],
+[[-3.3,-1.1],[-3.57,-2.0],[-4.2,-2.73],[-4.84,-3.4]],
+[[.2,-.8],[.17,-.11],[-.15,.6],[-.45,1.55]],
+[[2.03,-.48],[1.72,.12],[1.58,.78],[1.85,1.06]],
+[[4.34,-.28],[4.71,-1.09],[5.3,-2.27]],
+];
+function elevation(x,y){
+let south=1030+19*(x+.5),plateau=500*sm(-3.4,-.45,y),up=1120*sm(.12,6.65,y);
+let bump=(xx,yy,sx,sy,a)=>a*Math.exp(-(((x-xx)/sx)**2+((y-yy)/sy)**2)*1.45);
+let ridges=bump(-2.95,5.05,1.5,1.4,260)+bump(-1.1,3.3,1.15,1.25,160)+bump(1.7,3.75,1.3,1.35,135)+bump(2.55,6.2,2.3,1.1,395)+bump(-5,5.7,1.2,1.6,260);
+let valleys=120*bump(.7,2.95,.95,2.4,1)/120+115*bump(3.85,3.5,.92,2.2,1)/115;
+let undulations=25*Math.sin(x*2.3+y*.7)+18*Math.sin(x*5-y*2.8)+10*Math.sin(x*10+y*6);
+return south+plateau+up+ridges-valleys+undulations;
+}
+const view={x:0,y:1.0,zoom:.88,angle:.22},target={...view},state={season:'winter',hour:14,weather:'clear',lifts:true,pistes:true,life:true,labels:true,playing:false};
+let animTime=0,last=performance.now(),dirtyHash=false,drag=null,pinch=null,hovered=null,particles=[];
+function resize(){DPR=Math.min(window.devicePixelRatio||1,1.6);W=window.innerWidth;H=window.innerHeight;renderScale=DPR;canvas.width=Math.max(1,Math.floor(W*DPR));canvas.height=Math.max(1,Math.floor(H*DPR));canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(DPR,0,0,DPR,0,0);ctx.imageSmoothingEnabled=false;particles=Array.from({length:135},()=>({x:rr()*W,y:rr()*H,v:8+rr()*24,size:1+rr()*2}));}
+window.addEventListener('resize',resize);resize();
+function scale(){return W<=800?33*view.zoom*Math.min(1.2,Math.max(.85,W/390)):68*view.zoom*Math.min(1.28,Math.max(.78,H/820));}
+function screenCenter(){const mobile=W<=800;return {x:mobile?W*.50:(W+320)*.50,y:mobile?H*.31:H*.55};}
+function project(x,y,z=elevation(x,y)){let sc=scale(),ca=Math.cos(view.angle),sa=Math.sin(view.angle),cent=screenCenter(),dx=x-view.x,dy=y-view.y;return {x:cent.x+(dx*ca+dy*sa)*sc,y:cent.y+(dx*sa-dy*ca)*sc*.64-(z-1500)*sc*.00105};}
+function unprojectApprox(screenX,screenY){const sc=scale(),ca=Math.cos(view.angle),sa=Math.sin(view.angle),cc=screenCenter(),u=(screenX-cc.x)/sc,v=(screenY-cc.y)/(.64*sc),x=view.x+ca*u+sa*v,y=view.y+sa*u-ca*v;for(let i=0;i<3;i++){const p=project(x,y),dx=screenX-p.x,dy=screenY-p.y,x0=x,y0=y;x+=dx*ca/sc+dy*sa/(sc*.64);y+=dx*sa/sc-dy*ca/(sc*.64);if(!isFinite(x+y)){x=x0;y=y0;break;}}return{x,y};}
+function col(arr,f=1){return 'rgb('+arr.map(v=>Math.floor(clamp(v*f,0,255))).join(',')+')'};
+const terrain=[];for(let iy=0;iy<42;iy++)for(let ix=0;ix<44;ix++){
+const x=-6.7+ix*.305,y=-4.25+iy*.305,s=.305,z=elevation(x+s/2,y+s/2),zx=elevation(x+s,y)-elevation(x,y),zy=elevation(x,y+s)-elevation(x,y);
+terrain.push({x,y,s,z,zx,zy,noise:rr(),shade:clamp(.86+.19*(zx-zy)/160+rr()*.06,.68,1.2)});
+}
+const treeLocations=[];
+for(let i=0;i<840;i++){let x=-6.35+r()*12.9,y=-3.72+r()*10.8;if(Math.abs(y+.65)<.43&&x>-5&&x<5.5)continue;let village=places.some(p=>['crans','montana','barzettes','aminona','randogne'].includes(p.id)&&((x-p.x)**2/1.1**2+(y-p.y)**2/.75**2)<1.0);if(village)continue;let z=elevation(x,y);if(z>2600||rr()<.12)continue;treeLocations.push({kind:'tree',x,y,z,h:7+rr()*14,s:3+rr()*4,color:rr(),id:i});}
+const buildings=[];const areas=[[-2.5,-.87,105,1.15,.48],[-.15,-.72,140,1.18,.54],[2.0,-.50,75,.84,.48],[4.38,-.26,54,.62,.41],[1.45,-2.64,39,.6,.4],[-.7,-2.15,35,.55,.37]];
+let bid=0;for(const [cx,cy,n,rx,ry] of areas)for(let i=0;i<n;i++){
+let x=cx+(r()+r()-1)*rx,y=cy+(r()+r()-1)*ry;let z=elevation(x,y);buildings.push({kind:'building',x,y,z,w:.07+r()*.076,d:.061+r()*.084,h:11+r()*27,type:r(),roof:r(),id:bid++});}
+const cabins=[];for(let i=0;i<4;i++)cabins.push({x:mix(-3.4,-.8,i/3),y:mix(.65,2.1,i/3),z:0,w:.16,d:.13,h:22,type:.4,roof:.45,kind:'building',id:bid++});
+const items=[...treeLocations,...buildings,...cabins];
+const lakes=[{pts:[[-1.75,-1.92],[-1.6,-2.02],[-1.3,-1.89],[-1.32,-1.68],[-1.57,-1.60],[-1.77,-1.73]],name:'Moubra'},{pts:[[-.84,-1.30],[-.65,-1.43],[-.40,-1.3],[-.49,-1.13],[-.70,-1.13]],name:'Grenon'},{pts:[[-2.88,-1.55],[-2.62,-1.60],[-2.48,-1.46],[-2.67,-1.34]],name:'Étang Long'}];
+function polygon(points,fill,stroke,sw=1){ctx.beginPath();ctx.moveTo(points[0].x,points[0].y);for(let i=1;i<points.length;i++)ctx.lineTo(points[i].x,points[i].y);ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=sw;ctx.stroke();}}
+function polylineWorld(points,stroke,width,dash=[]){ctx.beginPath();points.forEach(([x,y],i)=>{const p=project(x,y,elevation(x,y)+7);if(i===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y)});ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle=stroke;ctx.lineWidth=width;ctx.setLineDash(dash);ctx.stroke();ctx.setLineDash([]);}
+function samplePath(path,t){const f=clamp(t,0,.9999)*(path.length-1),i=Math.floor(f),j=f-i;return [mix(path[i][0],path[i+1][0],j),mix(path[i][1],path[i+1][1],j)]}
+function drawSky(){let t=state.hour,night=(t>=19||t<5),dawn=(t>=5&&t<8)||(t>=17&&t<20);let top=night?'#071923':dawn?'#7c9db3':'#96c7da',bot=night?'#315565':dawn?'#ffcd9d':'#f0eee0';let grad=ctx.createLinearGradient(0,0,0,H);grad.addColorStop(0,top);grad.addColorStop(.66,bot);grad.addColorStop(1,night?'#56727a':'#d4e3d3');ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+ctx.save();ctx.fillStyle=night?'rgba(222,242,243,.63)':'rgba(255,255,255,.5)';for(let i=0;i<160;i++){let xx=((i*173.43)%W),yy=((i*i*7.132)%Math.max(1,H*.48));if(night){ctx.fillRect(xx,yy,(i%7===0)?2:1,(i%7===0)?2:1);} }
+ctx.restore();let sunX=W*.78,sunY=H*.17,sunGlow=night?'#dae8ed':dawn?'#ffe3b2':'#ffefc5';ctx.fillStyle=sunGlow;ctx.beginPath();ctx.arc(sunX,sunY,night?13:20,0,Math.PI*2);ctx.fill();if(!night){ctx.fillStyle='#ffffff1a';ctx.beginPath();ctx.arc(sunX,sunY,36,0,Math.PI*2);ctx.fill();}
+ctx.fillStyle=night?'#52697b':'#b6c7c9';ctx.beginPath();ctx.moveTo(0,H*.6);for(let x=-60;x<=W+60;x+=25)ctx.lineTo(x,H*.55+Math.sin(x*.007)*16+Math.sin(x*.019)*11);ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.fill();}
+function drawTerrain(){let p=palettes[state.season],night=state.hour>=19||state.hour<5,brightness=night?.55:state.hour<7||state.hour>17?.84:1;
+const sorted=terrain.slice().sort((a,b)=>((a.x+a.s/2)*Math.sin(view.angle)-(a.y+a.s/2)*Math.cos(view.angle))-((b.x+b.s/2)*Math.sin(view.angle)-(b.y+b.s/2)*Math.cos(view.angle)));
+for(const t of sorted){let snowLevel={winter:1410,spring:2100,summer:2620,autumn:2360}[state.season];let snowy=sm(snowLevel-90,snowLevel+220,t.z)+(.07*(t.noise-.5));let base=t.z>2150?p.rocks:p.grass;let rgb=base.map((v,i)=>mix(v,p.snow[i],clamp(snowy,0,1)));if(t.z>2150&&snowy<.8)rgb=rgb.map((v,i)=>mix(v,p.rocks[i],.42));let variation=(t.noise-.5)*.10;let shade=t.shade*brightness+variation;let {x,y,s}=t;let pts=[project(x,y),project(x+s,y),project(x+s,y+s),project(x,y+s)];polygon(pts,col(rgb,shade));}
+// Decorative cut-out edges. A layered miniature landmass rather than an infinite flat map.
+for(const side of ['south','east']){let top=[],bottom=[];if(side==='south'){for(let i=0;i<=44;i++){let x=-6.7+i*.305,y=-4.25;top.push(project(x,y));bottom.push(project(x,y,650));}}else{for(let i=0;i<=42;i++){let x=-6.7+44*.305,y=-4.25+i*.305;top.push(project(x,y));bottom.push(project(x,y,650));}}let arr=top.concat(bottom.reverse());polygon(arr,night?'#192d35':'#59757a','#314f55',1);}
+}
+function drawLakes(){for(const lake of lakes){let pts=lake.pts.map(([x,y])=>project(x,y,elevation(x,y)+9));polygon(pts,state.hour>=19||state.hour<5?'#5b92a3':'#56afbc','#e6f4e8',2);let a=pts[0],b=pts[2];ctx.strokeStyle='#e3f4e670';ctx.lineWidth=1;for(let q=0;q<3;q++){ctx.beginPath();ctx.moveTo(mix(a.x,b.x,.2)+q*4,mix(a.y,b.y,.2)+q*3);ctx.lineTo(mix(a.x,b.x,.5)+q*3,mix(a.y,b.y,.5)+q*3);ctx.stroke();}}}
+function drawRoads(){let w=clamp(scale()*.076,3,8.2);for(let line of roads){const samples=[];for(let i=0;i<line.length-1;i++)for(let j=0;j<8;j++)samples.push(samplePath([line[i],line[i+1]],j/8));samples.push(line.at(-1));polylineWorld(samples,'#4d6065',w+3);polylineWorld(samples,state.season==='winter'?'#dde1d3':'#d0c8aa',w);if(view.zoom>1.34)polylineWorld(samples,'#e8c98c',.8,[4,6]);}}
+function drawPistes(){if(!state.pistes)return;for(const path of paths){const samples=[];for(let i=0;i<120;i++)samples.push(samplePath(path.p,i/119));let width=clamp(scale()*.11,3,11);polylineWorld(samples,'#f2fbf1b2',width+3);polylineWorld(samples,state.season==='winter'?path.color:'#d8bb8a',width);if(state.season==='winter'){polylineWorld(samples,'#f9fcf7d0',1,[2,8]);}}
+}
+function drawTreesAndHouses(){let night=state.hour>=19||state.hour<5;let sorted=items.slice().sort((a,b)=>(a.x*Math.sin(view.angle)-a.y*Math.cos(view.angle))-(b.x*Math.sin(view.angle)-b.y*Math.cos(view.angle)));for(const item of sorted){let p=project(item.x,item.y,item.z);if(p.x<-50||p.x>W+50||p.y<-80||p.y>H+80)continue;if(item.kind==='tree')drawTree(p,item,night);else drawBuilding(p,item,night);}}
+function drawTree(p,t,night){let size=t.s*scale()/68,h=t.h*scale()/68;let snow=state.season==='winter'||t.z>2250;ctx.fillStyle=night?'#274346':'#426b57';ctx.fillRect(Math.round(p.x)-1,Math.round(p.y-h*.35),2,h*.38);let colors=palettes[state.season].forest;let shade=1-t.color*.22;for(let layer=0;layer<3;layer++){let yy=p.y-h*(.35+layer*.23),width=size*(1.22-layer*.2);polygon([{x:p.x,y:yy-h*.31},{x:p.x-width,y:yy+3},{x:p.x+width,y:yy+3}],col(colors,night?.57:shade*(1-layer*.07)),'#173d39',.5);if(snow){ctx.strokeStyle='#f0f7ef';ctx.lineWidth=clamp(scale()*.012,.6,1.8);ctx.beginPath();ctx.moveTo(p.x-width*.67,yy-1);ctx.lineTo(p.x,yy-h*.31);ctx.lineTo(p.x+width*.43,yy-1);ctx.stroke();}}}
+function drawBuilding(p,b,night){let sc=scale(),bw=b.w*sc,bd=b.d*sc,bh=clamp(b.h*sc*.0057,5,28);if(b.kind==='building'&&b.z>2450)return;let roofColor=(state.season==='winter'?['#cfd7cf','#a5b8b7','#bdd0cd','#e9ecdb']:['#a46f5d','#576c73','#9c6858','#987d64'])[Math.floor(b.roof*4)];let wallColor=['#e4dcc7','#c3c6b9','#e8cbb1','#c2d2c2'][Math.floor(b.type*4)];const A={x:p.x-bw*.5,y:p.y},B={x:p.x,y:p.y+bd*.34},C={x:p.x+bw*.5,y:p.y},D={x:p.x,y:p.y-bd*.34};const AT={x:A.x,y:A.y-bh},BT={x:B.x,y:B.y-bh},CT={x:C.x,y:C.y-bh},DT={x:D.x,y:D.y-bh};polygon([A,B,BT,AT],night?'#687573':wallColor,'#405b5d',.6);polygon([B,C,CT,BT],night?'#586c70':'#a2ada6','#405b5d',.6);let peak={x:p.x,y:p.y-bh-bh*.34};polygon([AT,BT,peak,DT],roofColor,'#526367',.65);polygon([BT,CT,DT,peak],night?'#485d67':roofColor,'#526367',.65);
+if(bw>5){ctx.fillStyle=night&&b.id%3!==0?'#ffd792':'#54717a';let n=bw>12?3:2;for(let i=0;i<n;i++){let q=(i+1)/(n+1);let xx=mix(A.x,B.x,q),yy=mix(A.y,B.y,q)-bh*.5;ctx.fillRect(Math.round(xx),Math.round(yy),2,3);}ctx.fillStyle=night&&b.id%4!==0?'#ffdaa4':'#546f74';ctx.fillRect(Math.round((B.x+C.x)*.5),Math.round((B.y+C.y)*.5-bh*.55),2,2);}
+if(state.season==='winter'&&bw>5){ctx.strokeStyle='#fbfcf4';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(AT.x,AT.y);ctx.lineTo(BT.x,BT.y);ctx.lineTo(peak.x,peak.y);ctx.stroke();}
+if(b.type>.83&&bw>7){ctx.fillStyle='#6a7c77';ctx.fillRect(Math.round(p.x-bw*.22),Math.round(p.y-bh*1.3),3,5);}
+}
+function liftPoint(line,t){const [ax,ay]=line.from,[bx,by]=line.to;let x=mix(ax,bx,t),y=mix(ay,by,t),z=elevation(x,y)+150*Math.sin(t*Math.PI)+50;return project(x,y,z)}
+function drawLifts(){if(!state.lifts)return;for(let li=0;li<lines.length;li++){const line=lines[li],samples=[];for(let j=0;j<=55;j++)samples.push(liftPoint(line,j/55));ctx.strokeStyle=state.hour>=19||state.hour<5?'#9baba8':'#4e5a5a';ctx.lineWidth=1.5;ctx.beginPath();samples.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();for(let j=1;j<=5;j++){let f=j/6,[ax,ay]=line.from,[bx,by]=line.to,x=mix(ax,bx,f),y=mix(ay,by,f),a=project(x,y,elevation(x,y)),b=liftPoint(line,f);ctx.strokeStyle='#70858b';ctx.lineWidth=1.7;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.fillStyle='#52656a';ctx.fillRect(b.x-4,b.y-1,8,2);}if(state.life){for(let k=0;k<5;k++){let t=((animTime*.000032*(1+li*.05))+k/5)%1,p=liftPoint(line,t),reverse=liftPoint(line,1-t);drawCabin(p,li);if(k%2===0)drawCabin(reverse,li);}}}}
+function drawCabin(p,li){let sc=clamp(scale()/75,.7,1.8),sz=5*sc;ctx.strokeStyle='#334e53';ctx.lineWidth=1.1;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x,p.y+5*sc);ctx.stroke();ctx.fillStyle=['#cf6547','#e6b75d','#4a8598','#b24f59','#6aa58a'][li];ctx.fillRect(Math.round(p.x-sz),Math.round(p.y+5*sc),Math.round(sz*2),Math.round(sz*1.45));ctx.fillStyle='#d4ebec';ctx.fillRect(Math.round(p.x-sz+1),Math.round(p.y+6*sc),Math.round(sz*.9),Math.round(sz*.55));}
+function drawSkiers(){if(!state.life||!state.pistes||state.season!=='winter')return;for(let i=0;i<19;i++){let pth=paths[i%paths.length],t=((animTime*.000014*(1+(i%4)*.22))+(i*.265)%1)%1,[x,y]=samplePath(pth.p,t),p=project(x,y,elevation(x,y)+13);ctx.fillStyle=i%3===0?'#ea534c':'#1f688b';ctx.fillRect(Math.round(p.x),Math.round(p.y)-3,3,4);ctx.strokeStyle='#fcfcf4';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(p.x-2,p.y+2);ctx.lineTo(p.x+4,p.y+3);ctx.stroke();}}
+function drawLamps(){if(!state.life)return;let night=state.hour>=18||state.hour<7;if(!night)return;for(let k=0;k<100;k++){let road=roads[k%4],f=((k*.618)%1),[x,y]=samplePath(road,f),p=project(x,y,elevation(x,y)+8);ctx.fillStyle='#ffd18f';ctx.fillRect(p.x,p.y-3,2,3);if(k%2===0){ctx.fillStyle='#ffd58c24';ctx.beginPath();ctx.arc(p.x+1,p.y-2,6,0,Math.PI*2);ctx.fill();}}}
+function drawLabels(){if(!state.labels)return;let dark=state.hour>=19||state.hour<5;for(const place of hotspots){let p=project(place.x,place.y,elevation(place.x,place.y)+60),special=['plaine','bella','cry','violettes'].includes(place.id);if(p.x<-70||p.x>W+90||p.y<30||p.y>H+40)continue;let f=clamp(view.zoom,.75,1.35),font=11*f,txt=place.name.toUpperCase(),tw=ctx.measureText(txt).width;
+ctx.font='700 '+font+'px "Space Grotesk",sans-serif';tw=ctx.measureText(txt).width;let y=p.y-24;
+ctx.strokeStyle=dark?'#a7d2c3':'#32575d';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(p.x,p.y-4);ctx.lineTo(p.x,y+5);ctx.stroke();ctx.fillStyle=special?'#d4e9e2':'#f9ffed';ctx.strokeStyle='#1c4249';ctx.lineWidth=2;ctx.fillRect(p.x-2,p.y-5,4,4);let boxX=p.x-tw*.5-9,boxW=tw+18;ctx.fillStyle=dark?'rgba(12,33,40,.90)':'rgba(19,49,54,.92)';ctx.fillRect(boxX,y-12,boxW,23);ctx.strokeStyle='#a7d5ca55';ctx.lineWidth=1;ctx.strokeRect(boxX+.5,y-11.5,boxW-1,22);ctx.fillStyle='#effaf0';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(txt,p.x,y);ctx.textAlign='left';ctx.textBaseline='alphabetic';}}
+function drawWeather(dt){if(state.weather==='snow'){ctx.fillStyle='#fffdfa';for(const p of particles){p.y+=p.v*dt*.001;p.x+=Math.sin(animTime*.00025+p.y*.012)*.2;if(p.y>H){p.y=-5;p.x=rr()*W;}ctx.fillRect(Math.round(p.x),Math.round(p.y),p.size,p.size);}}if(state.weather==='fog'){let grad=ctx.createLinearGradient(0,0,0,H);grad.addColorStop(0,'rgba(229,245,243,.25)');grad.addColorStop(.7,'rgba(238,245,238,.58)');grad.addColorStop(1,'rgba(236,244,241,.4)');ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);}}
+function drawOverlay(){const night=state.hour>=19||state.hour<5;if(night){ctx.fillStyle='rgba(8,28,49,.23)';ctx.fillRect(0,0,W,H);}const x=W-75,y=H>600?104:82;if(W>800){ctx.save();ctx.translate(x,y);ctx.rotate(-view.angle);ctx.strokeStyle='#295a67';ctx.fillStyle='#244653';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,15);ctx.lineTo(0,-15);ctx.stroke();polygon([{x:0,y:-21},{x:-6,y:-8},{x:6,y:-8}],'#244653');ctx.restore();ctx.fillStyle='#244653';ctx.font='11px "DM Mono",monospace';ctx.textAlign='center';ctx.fillText('N',x,y-30);ctx.textAlign='left';}}
+function draw(dt){ctx.setTransform(DPR,0,0,DPR,0,0);const easing=1-Math.pow(.00004,dt/1000);for(const k of ['x','y','zoom','angle'])view[k]=mix(view[k],target[k],clamp(easing,0,.5));drawSky();drawTerrain();drawLakes();drawPistes();drawRoads();drawLamps();drawTreesAndHouses();drawLifts();drawSkiers();drawLabels();drawOverlay();drawWeather(dt)}
+function loop(t){requestAnimationFrame(loop);if(t-last<38)return;let dt=clamp(t-last,0,90);last=t;animTime=t;if(state.playing){state.hour=(state.hour+dt*.00055)%24;updateTime(false);}draw(dt);}requestAnimationFrame(loop);
+function syncUI(){document.querySelectorAll('[data-season]').forEach(b=>b.classList.toggle('active',b.dataset.season===state.season));document.querySelectorAll('[data-weather]').forEach(b=>b.classList.toggle('active',b.dataset.weather===state.weather));document.querySelectorAll('[data-toggle]').forEach(b=>{b.classList.toggle('active',state[b.dataset.toggle]);b.querySelector('span').textContent=state[b.dataset.toggle]?'◉':'○';});const labels={winter:'HIVER',spring:'PRINTEMPS',summer:'ÉTÉ',autumn:'AUTOMNE'};$('#season-label').textContent=labels[state.season];updateTime(true);}
+function updateTime(slider){let h=Math.floor(state.hour),m=Math.round((state.hour-h)*60),str=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');$('#hour-text').textContent=str;$('#status').textContent=(state.season==='winter'?'❄':state.season==='summer'?'☀':state.season==='autumn'?'🍂':'🌱')+' '+$('#season-label').textContent+' · '+str+' · PANORAMA';if(slider)$('#hour').value=state.hour;else $('#hour').value=state.hour;}
+function focus(id){let p=places.find(z=>z.id===id);if(!p)return;target.x=p.x;target.y=p.y;target.zoom=['plaine','bella'].includes(id)?1.52:1.75;openCard(id);}
+function openCard(id){let p=places.find(z=>z.id===id);if(!p)return;$('#card-title').textContent=p.name;$('#card-alt').textContent=p.alt?'ALTITUDE · '+p.alt:'';$('#card-text').textContent=p.text;$('#detail-card').classList.add('open');}
+$('#close-card').addEventListener('click',()=>$('#detail-card').classList.remove('open'));
+document.querySelectorAll('[data-season]').forEach(b=>b.addEventListener('click',()=>{state.season=b.dataset.season;syncUI()}));document.querySelectorAll('[data-weather]').forEach(b=>b.addEventListener('click',()=>{state.weather=b.dataset.weather;syncUI()}));document.querySelectorAll('[data-toggle]').forEach(b=>b.addEventListener('click',()=>{state[b.dataset.toggle]=!state[b.dataset.toggle];syncUI()}));document.querySelectorAll('[data-place]').forEach(b=>b.addEventListener('click',()=>focus(b.dataset.place)));
+$('#hour').addEventListener('input',e=>{state.hour=Number(e.target.value);state.playing=false;$('#play').textContent='▶';updateTime(false)});$('#play').addEventListener('click',()=>{state.playing=!state.playing;$('#play').textContent=state.playing?'Ⅱ':'▶'});
+$('#home').addEventListener('click',()=>{Object.assign(target,{x:0,y:1,zoom:.88,angle:.22});$('#detail-card').classList.remove('open');});$('#zoom-in').addEventListener('click',()=>target.zoom=clamp(target.zoom*1.23,.55,3.5));$('#zoom-out').addEventListener('click',()=>target.zoom=clamp(target.zoom/1.23,.55,3.5));$('#rotate').addEventListener('click',()=>target.angle+=Math.PI/6);
+function toast(message){let el=$('#toast');el.textContent=message;el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),2600)}
+function serialize(){const v=Object.entries({x:target.x.toFixed(2),y:target.y.toFixed(2),z:target.zoom.toFixed(2),a:target.angle.toFixed(2),s:state.season,h:state.hour.toFixed(1),w:state.weather}).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');return '#'+v;}
+$('#share').addEventListener('click',async()=>{let url=location.href.split('#')[0]+serialize();try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(url);toast('Lien de la vue copié');}else{location.hash=serialize();toast('Lien ajouté à l’adresse du navigateur');}}catch{location.hash=serialize();toast('Vue enregistrée dans l’adresse');}});
+try{const params=new URLSearchParams((location.hash||'').slice(1));for(const k of ['x','y','z','a'])if(params.has(k)){const value=Number(params.get(k));if(Number.isFinite(value)){let key={x:'x',y:'y',z:'zoom',a:'angle'}[k];target[key]=view[key]=k==='z'?clamp(value,.55,3.5):value;}}if(palettes[params.get('s')])state.season=params.get('s');if(params.has('h'))state.hour=clamp(Number(params.get('h'))||14,0,23.75);if(['clear','snow','fog'].includes(params.get('w')))state.weather=params.get('w');}catch{}
+syncUI();
+canvas.addEventListener('wheel',e=>{e.preventDefault();target.zoom=clamp(target.zoom*Math.exp(-e.deltaY*.00125),.55,3.5)},{passive:false});
+let pointers=new Map();canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size===1){drag={x:e.clientX,y:e.clientY,worldX:target.x,worldY:target.y,startX:e.clientX,startY:e.clientY};pinch=null;}else if(pointers.size===2){const pts=[...pointers.values()];pinch={d:Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y),zoom:target.zoom};drag=null;}});
+canvas.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size===2&&pinch){let pts=[...pointers.values()],d=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);target.zoom=clamp(pinch.zoom*d/Math.max(10,pinch.d),.55,3.5);return;}if(drag&&pointers.size===1){let dx=e.clientX-drag.x,dy=e.clientY-drag.y,sc=scale(),ca=Math.cos(view.angle),sa=Math.sin(view.angle);target.x=drag.worldX-(dx*ca/sc+dy*sa/(sc*.64));target.y=drag.worldY-(dx*sa/sc-dy*ca/(sc*.64));}});
+canvas.addEventListener('pointerup',e=>{const isClick=drag&&Math.hypot(e.clientX-drag.startX,e.clientY-drag.startY)<7;pointers.delete(e.pointerId);if(!pointers.size){drag=null;pinch=null;}if(isClick){let hits=hotspots.map(p=>({p,s:project(p.x,p.y,elevation(p.x,p.y)+60)})).filter(x=>Math.hypot(x.s.x-e.clientX,x.s.y-e.clientY)<45);if(hits.length){hits.sort((a,b)=>Math.hypot(a.s.x-e.clientX,a.s.y-e.clientY)-Math.hypot(b.s.x-e.clientX,b.s.y-e.clientY));focus(hits[0].p.id);}}});canvas.addEventListener('pointercancel',e=>{pointers.delete(e.pointerId);drag=null;pinch=null;});
+window.addEventListener('keydown',e=>{if(e.key==='Escape')$('#detail-card').classList.remove('open');if(e.key==='+'||e.key==='=')target.zoom=clamp(target.zoom*1.18,.55,3.5);if(e.key==='-')target.zoom=clamp(target.zoom/1.18,.55,3.5);let d=.25;switch(e.key){case'ArrowLeft':target.x-=d;break;case'ArrowRight':target.x+=d;break;case'ArrowUp':target.y+=d;break;case'ArrowDown':target.y-=d;break;}});
+})();
+</script>
+
+<div id="v3-toolbar" role="group" aria-label="Choix du mode cartographique">
+ <button id="v3-art" class="active" type="button">🎨 Carte illustrée</button>
+ <button id="v3-real" type="button">⛰ 3D réelle</button>
+ <a href="https://map.geo.admin.ch/#/map?lang=fr&amp;center=2602878,1128734&amp;z=9" target="_blank" rel="noopener" title="Carte officielle swisstopo : appuyer sur le cube pour activer la 3D">↗ Officiel</a>
+</div>
+<iframe id="v3-3d" title="Vue 3D de Crans-Montana alimentée par swisstopo" loading="lazy"></iframe>
+<div id="v3-loading" role="status" aria-live="polite">
+ <strong id="v3-load-title">Chargement du relief 3D</strong>
+ <div id="v3-load-text">Connexion à swisstopo. La carte illustrée reste accessible.</div>
+ <small id="v3-load-tip">Sur Android, les fichiers téléchargés peuvent bloquer les services externes. Un hébergement HTTPS est préférable.</small>
+ <button id="v3-back" type="button">Retour à la carte visible</button>
+</div>
+<div id="v3-footer">Carte illustrée : modèle artistique, non cadastral</div>
+<script>
+(function(){
+  // The official Cesium view is loaded from a sibling HTML file.
+const $=x=>document.getElementById(x);
+  const frame=$('v3-3d'), note=$('v3-loading');
+  let launched=false, armed=false, good=false, timer=null;
+  const switchBack=(message)=>{
+    clearTimeout(timer);armed=false;
+    frame.classList.remove('show');note.classList.remove('show');
+    $('v3-art').classList.add('active');$('v3-real').classList.remove('active');
+    $('v3-footer').style.display='block';
+    if(message){launched=false;frame.removeAttribute('src');frame.src='about:blank';const t=document.getElementById('toast');if(t){t.textContent=message;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),5000);}}
+  };
+  const startReal=()=>{
+    if(frame.classList.contains('show'))return;
+    if(good){frame.classList.add('show');note.classList.remove('show');$('v3-real').classList.add('active');$('v3-art').classList.remove('active');$('v3-footer').style.display='none';return;}
+    armed=true;note.classList.add('show');
+    $('v3-load-title').textContent='Chargement des données swisstopo';
+    $('v3-load-text').textContent='Vérification du terrain et des bâtiments 3D. La carte illustrée reste visible.';
+    $('v3-real').classList.add('active');$('v3-art').classList.remove('active');
+    if(!launched){launched=true;frame.src='./3d.html?v=4';}
+    clearTimeout(timer);timer=setTimeout(()=>{
+      if(armed){switchBack('Mode 3D non chargé. Les services externes sont peut-être bloqués sur ce fichier local.');}
+    },23000);
+  };
+  $('v3-art').addEventListener('click',()=>switchBack());
+  $('v3-back').addEventListener('click',()=>switchBack());
+  $('v3-real').addEventListener('click',startReal);
+  window.addEventListener('message',e=>{
+    // Message source restricted to the embedded 3D iframe.
+    if(e.source!==frame.contentWindow || !e.data || e.data.source!=='crans-atlas')return;
+    if(e.data.status==='geo-loaded'&&armed){
+      clearTimeout(timer);armed=false;good=true;frame.classList.add('show');note.classList.remove('show');$('v3-footer').style.display='none';
+    }
+    if((e.data.status==='geo-error'||e.data.status==='geo-timeout')&&armed){
+      switchBack('Impossible de confirmer l’affichage 3D. Utilise la carte illustrée ou héberge le site en HTTPS.');
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
