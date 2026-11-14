@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#173125">
-<title>Isometric Crans-Montana · P0.3 / Ycoor</title>
+<title>Isometric Crans-Montana · P0.4 / Ycoor</title>
 <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--paper:#f6f0dd;--ink:#29291f;--red:#c92430;--blue:#2f5c9e;--edge:#1d221c}
@@ -28,8 +28,17 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
  #status{bottom:calc(115px + env(safe-area-inset-bottom));left:8px;font-size:10px;max-width:min(310px,78vw);line-height:1.15}#tip{display:none}
  #loading{top:115px;font-size:11px}
 }
+#real-frame{position:fixed;inset:0;width:100%;height:100%;border:0;display:block;opacity:0;pointer-events:none;z-index:1;background:#83a4a0;transition:opacity .2s}
+#real-frame.active{opacity:1;pointer-events:auto}
+#real-status{display:none;position:fixed;top:96px;left:50%;transform:translateX(-50%);z-index:9;padding:7px 12px;font-size:12px;max-width:80vw;text-align:center;background:#f5eedc;color:#29281f;border:2px solid #25291e;box-shadow:3px 3px #1720198c}
+#real-status.show{display:block}
+#real-toggle{background:#c52b30;color:#fff}
+#real-toggle.active{background:#306299}
+@media(max-width:650px){#real-status{top:174px;max-width:90vw;font-size:11px}}
 </style></head><body>
 <main id="map" aria-label="Maquette 3D isométrique de 100 mètres autour d'Ycoor"></main>
+<iframe id="real-frame" title="Vrais volumes et toitures 3D de Ycoor (swisstopo)" loading="eager" allow="fullscreen"></iframe>
+<div id="real-status" role="status" aria-live="polite">Connexion aux toitures officielles…</div>
 <section id="place" class="box"><b>Crans-Montana</b><small>Ycoor · Valais · Suisse</small><div>P0 · 100 × 100 m</div><div class="weather">☀ <span id="weather">Météo simulée · clair</span><br><span id="origin">Terrain / OSM en cours...</span><br><a style="color:#174e78;display:inline-block;margin-top:5px" href="https://map.geo.admin.ch/#/map?lang=fr&amp;center=2603036,1128849&amp;z=11" target="_blank" rel="noopener noreferrer" title="Ouvrir swisstopo et activer la vue 3D pour comparer les bâtiments">Comparer à swisstopo ↗</a></div></section>
 <section id="time" class="box" aria-label="Heure et saisons">
  <div class="row"><button id="postcard">postcard</button><button id="sun-mode" class="active">real sun</button></div>
@@ -43,7 +52,7 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
 <section id="sources" class="box"><button id="close-sources" style="float:right" aria-label="Fermer">×</button><h2>Isometric Crans-Montana</h2>
  <p>Une scène miniature de démonstration P0 (100 × 100 m). Modèles en formes géométriques simplifiées, sans copie du code de bb.jest.pro.</p>
  <p><b>Données :</b> empreintes de bâtiments et routes chargées à la demande depuis © OpenStreetMap contributors (ODbL), via Overpass. Relief échantillonné depuis © swisstopo. Si le service ne répond pas, le terrain et les bâtiments de remplacement sont <b>artistiques, pas cadastraux</b>.</p>
- <p><b>Animations :</b> véhicule et piéton entièrement simulés. Aucun GPS ou trafic en direct. Les hauteurs de bâtiments non renseignées par OSM sont estimées. Les toitures sont provisoirement toutes plates et ne correspondent pas à swissBUILDINGS3D.</p>
+ <p><b>Mode 3D officielle :</b> les bâtiments sont fournis sous forme de tuiles swissBUILDINGS3D. Leurs formes de toiture et leurs dimensions sont conservées, les couleurs et la résolution sont stylisées. Le mode illustré reste un modèle OSM simplifié, différent de la 3D officielle.</p><p><b>Animations :</b> véhicule et piéton entièrement simulés. Aucun GPS ou trafic en direct. Les hauteurs de bâtiments non renseignées par OSM sont estimées. Les toitures sont provisoirement toutes plates et ne correspondent pas à swissBUILDINGS3D.</p>
  <p><b>Librairies :</b> Three.js (MIT), Pixelify Sans (SIL OFL).</p>
  <p><a href="https://www.openstreetmap.org/copyright" target="_blank">Licence OSM</a> · <a href="https://www.swisstopo.admin.ch/" target="_blank">swisstopo</a> · <a href="../crans-montana-pixel-atlas/" target="_blank">V5 actuelle</a></p>
  </section>
@@ -53,7 +62,7 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
  <button id="bounds" title="Afficher le cadre de la zone">◇</button>
  <button id="labels" title="Lieux cliquables" class="active">▦</button>
  <button id="minus" title="Zoom arrière">−</button><button id="plus" title="Zoom avant">+</button>
- <button id="about" title="Informations et sources">i</button>
+ <button id="real-toggle" title="Basculer : vrais bâtiments / illustration" aria-pressed="false">3D</button><button id="about" title="Informations et sources">i</button>
 </nav>
 <div id="status">P0 · géométrie artistique initiale</div>
 <div id="loading">Chargement des données géographiques...</div>
@@ -64,6 +73,58 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
 window.__p0Booted=true;
 const $=(id)=>document.getElementById(id);
+const realFrame=$('real-frame');
+let realAvailable=false,realWanted=true,realTimer=0;
+function toReal(action,extra={}){try{realFrame.contentWindow?.postMessage({source:'crans-p0',action,...extra},location.origin)}catch(e){}}
+function updateRealUI(){
+ const yes=realWanted&&realAvailable;
+ realFrame.classList.toggle('active',yes);
+ $('real-toggle').classList.toggle('active',yes);
+ $('real-toggle').setAttribute('aria-pressed',String(yes));
+ if(yes){
+  $('origin').textContent='swissBUILDINGS3D · toitures réelles';
+  $('status').textContent='P0 · bâtiments 3D swisstopo · couleurs pixelisées · animations hors mode réel';
+ }else{
+  $('origin').textContent=osmOk?'Empreintes OSM, volumes simplifiés':'Bâtiments fictifs en mode illustré';
+  $('status').textContent='P0 · modèle illustré · toitures estimées, pas cadastrales';
+ }
+}
+function requestReal(){
+ realWanted=true;
+ if(realAvailable){updateRealUI();return}
+ $('real-status').classList.add('show');$('real-status').textContent='Chargement des vraies toitures swisstopo…';
+ if(!realFrame.getAttribute('src')||realFrame.getAttribute('src')==='about:blank'){
+  realFrame.src='./real-buildings.html?v=1';
+ }
+ clearTimeout(realTimer);
+ realTimer=setTimeout(()=>{
+  if(!realAvailable&&realWanted){$('real-status').textContent='3D indisponible. Vue illustrée conservée. Appuyer sur 3D pour réessayer.';realWanted=false;updateRealUI()}
+ },27000);
+}
+window.addEventListener('message',e=>{
+ if(e.source!==realFrame.contentWindow||e.origin!==location.origin||e.data?.source!=='crans-ycoor-real')return;
+ if(e.data.status==='progress'&&realWanted){$('real-status').textContent=String(e.data.text||'Chargement…').slice(0,115)}
+ if(e.data.status==='ready'){
+  realAvailable=true;clearTimeout(realTimer);$('real-status').classList.remove('show');updateRealUI();
+  toReal('light',{date:state.date,hour:state.clock,real:state.sun});
+  toReal('season',{value:season()});
+ }
+ if(e.data.status==='error'){
+  clearTimeout(realTimer);realWanted=false;realAvailable=false;updateRealUI();
+  $('real-status').textContent='3D officielle : '+String(e.data.reason||'connexion impossible').slice(0,100);
+  $('real-status').classList.add('show');
+ }
+ if(e.data.status==='pick'&&realWanted){
+  $('info-title').textContent=String(e.data.title||'Bâtiment');
+  $('info-desc').textContent=String(e.data.description||'Volume officiel swissBUILDINGS3D');
+  $('info').classList.add('show');
+ }
+});
+$('real-toggle').addEventListener('click',()=>{
+ if(realWanted){realWanted=false;$('real-status').classList.remove('show');updateRealUI()}
+ else if(!realAvailable){realFrame.src='about:blank';realFrame.removeAttribute('src');requestReal()}
+ else{realWanted=true;$('real-status').classList.remove('show');updateRealUI()}
+});
 // Position du terrain de jeux de la place Ycoor, donnees touristiques georeferencees (LV95, WGS84).
 const ORIGIN={lat:46.311036,lon:7.478052,e:2603036,n:1128849};
 const S=100,HALF=50;
@@ -203,7 +264,7 @@ function build(){
  const r=mt('#d1ad66');for(const x of [-50,50])for(const z of [-50,50]){box(2,.14,2,r,x,height(x,z)+.35,z,world).castShadow=false}
  }
  $('origin').textContent=osmOk?('OSM : '+buildingData.length+' empreintes, toits provisoires'):'Géométrie de démonstration';
- $('status').textContent='P0 · '+(osmOk?'empreintes OSM (volumes estimés)':'bâtiments fictifs')+' · '+(terrainOk?'relief swisstopo échantillonné':'relief approximatif')+' · animations simulées';
+ if(!(realWanted&&realAvailable))$('status').textContent='P0 · '+(osmOk?'empreintes OSM (volumes estimés)':'bâtiments fictifs')+' · '+(terrainOk?'relief swisstopo échantillonné':'relief approximatif')+' · animations simulées';
 }
 function transformCam(){
  const radius=130/state.zoom,el=Math.PI/4.4;
@@ -317,20 +378,20 @@ c.addEventListener('pointerup',e=>{if(start&&!start.moved&&pointers.size===1)sel
 c.addEventListener('pointercancel',()=>{pointers.clear();start=null;window.__prevPinch=null});
 c.addEventListener('wheel',e=>{e.preventDefault();state.zoom=Math.min(3,Math.max(.55,state.zoom*Math.exp(-e.deltaY*.001)));needsResize=true},{passive:false});
 function zoom(f){state.zoom=Math.max(.55,Math.min(3,state.zoom*f));needsResize=true}
-$('plus').onclick=()=>zoom(1.22);$('minus').onclick=()=>zoom(1/1.22);
-$('rotleft').onclick=()=>{state.angle-=Math.PI/8};$('rotright').onclick=()=>{state.angle+=Math.PI/8};
-$('reset').onclick=()=>{state.angle=Math.PI/4;state.zoom=1;target.set(0,0,0);needsResize=true};
-$('shot').onclick=saveCanvas;$('postcard').onclick=saveCanvas;
+$('plus').onclick=()=>realWanted&&realAvailable?toReal('zoomIn'):zoom(1.22);$('minus').onclick=()=>realWanted&&realAvailable?toReal('zoomOut'):zoom(1/1.22);
+$('rotleft').onclick=()=>{if(realWanted&&realAvailable)toReal('left');else state.angle-=Math.PI/8};$('rotright').onclick=()=>{if(realWanted&&realAvailable)toReal('right');else state.angle+=Math.PI/8};
+$('reset').onclick=()=>{if(realWanted&&realAvailable){toReal('home');return}state.angle=Math.PI/4;state.zoom=1;target.set(0,0,0);needsResize=true};
+$('shot').onclick=()=>realWanted&&realAvailable?toReal('capture'):saveCanvas();$('postcard').onclick=()=>realWanted&&realAvailable?toReal('capture'):saveCanvas();
 $('about').onclick=()=>$('sources').classList.add('show');$('close-sources').onclick=()=>$('sources').classList.remove('show');$('close-info').onclick=()=>$('info').classList.remove('show');
 $('bounds').onclick=()=>{state.bounds=!state.bounds;$('bounds').classList.toggle('active',state.bounds);build()};
 $('labels').onclick=()=>{state.labels=!state.labels;$('labels').classList.toggle('active',state.labels);$('info').classList.remove('show')};
-$('date').onchange=e=>{state.date=e.target.value||'2026-11-14';build()};
-$('hour').oninput=e=>{state.clock=Number(e.target.value)};
+$('date').onchange=e=>{state.date=e.target.value||'2026-11-14';build();if(realAvailable)toReal('light',{date:state.date,hour:state.clock,real:state.sun})};
+$('hour').oninput=e=>{state.clock=Number(e.target.value);if(realAvailable)toReal('light',{date:state.date,hour:state.clock,real:state.sun})};
 $('run').onclick=()=>{state.play=!state.play;$('run').textContent=state.play?'❚❚':'▶'};
-$('sun-mode').onclick=()=>{state.sun=!state.sun;$('sun-mode').classList.toggle('active',state.sun);$('sun-mode').textContent=state.sun?'real sun':'studio'};
-document.querySelectorAll('[data-season]').forEach(b=>b.onclick=()=>{state.season=b.dataset.season;document.querySelectorAll('[data-season]').forEach(x=>x.classList.toggle('active',x===b));build()});
+$('sun-mode').onclick=()=>{state.sun=!state.sun;$('sun-mode').classList.toggle('active',state.sun);$('sun-mode').textContent=state.sun?'real sun':'studio';if(realAvailable)toReal('light',{date:state.date,hour:state.clock,real:state.sun})};
+document.querySelectorAll('[data-season]').forEach(b=>b.onclick=()=>{state.season=b.dataset.season;document.querySelectorAll('[data-season]').forEach(x=>x.classList.toggle('active',x===b));build();if(realAvailable)toReal('season',{value:season()})});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('info').classList.remove('show');$('sources').classList.remove('show')}if(e.key==='+')zoom(1.2);if(e.key==='-')zoom(1/1.2);if(e.key==='ArrowLeft')state.angle-=.12;if(e.key==='ArrowRight')state.angle+=.12});
-build();requestAnimationFrame(loop);
+build();requestAnimationFrame(loop);requestReal();
 setTimeout(()=>{if($('loading').style.display!=='none')$('loading').textContent='Sources externes lentes : mode démo toujours utilisable';},12000);
 async function refreshData(){
  $('loading').style.display='block';$('loading').style.cursor='default';$('loading').textContent='Lecture des données OSM et swisstopo...';
