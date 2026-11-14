@@ -30,11 +30,11 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
 }
 #real-frame{position:fixed;inset:0;width:100%;height:100%;border:0;display:block;opacity:0;pointer-events:none;z-index:1;background:#83a4a0;transition:opacity .2s}
 #real-frame.active{opacity:1;pointer-events:auto}
-#real-status{display:none;position:fixed;top:96px;left:50%;transform:translateX(-50%);z-index:9;padding:7px 12px;font-size:12px;max-width:80vw;text-align:center;background:#f5eedc;color:#29281f;border:2px solid #25291e;box-shadow:3px 3px #1720198c}
+#real-status{display:none;position:fixed;bottom:135px;top:auto;left:50%;transform:translateX(-50%);z-index:30;padding:9px 12px;font-size:12px;width:min(480px,calc(100vw - 28px));max-width:90vw;line-height:1.3;overflow-wrap:anywhere;text-align:center;background:#f5eedc;color:#29281f;border:2px solid #25291e;box-shadow:3px 3px #1720198c}
 #real-status.show{display:block}#real-status[data-failed='true']{cursor:pointer;text-decoration:underline;background:#f6e6dc;border-color:#b02d35}
 #real-toggle{background:#c52b30;color:#fff}
 #real-toggle.active{background:#306299}
-@media(max-width:650px){#real-status{top:174px;max-width:90vw;font-size:11px}}
+@media(max-width:650px){#real-status{top:auto;bottom:118px;max-width:calc(100vw - 24px);font-size:11px}}
 </style></head><body>
 <main id="map" aria-label="Maquette 3D isométrique de 100 mètres autour d'Ycoor"></main>
 <div id="real-status" role="status" aria-live="polite">Connexion aux toitures officielles…</div>
