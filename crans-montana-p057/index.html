@@ -492,7 +492,7 @@ function renderTraceAreas(parent){
   const p=clipPolygonToPilot(f.points);
   if(p.length<3)continue;
   const mat=f.kind==='water'?waterMaterial:f.kind==='play_surface'?playMaterial:sandMaterial;
-  const area=planePoly(p,mat,parent,f.kind==='water'?.18:.27,f.kind!=='water');
+  const area=planePoly(p,mat,parent,f.kind==='water'?.29:.27,true);
   if(area){
    area.userData={title:f.name,
      desc:'Position estimée depuis la photo aérienne SWISSIMAGE visible dans la vidéo utilisateur. Tracé low-poly pixel-art, précision indicative ±3–6 m, non certifiée.'};
