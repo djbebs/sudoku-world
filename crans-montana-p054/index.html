@@ -51,8 +51,8 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
 <section id="sources" class="box"><button id="close-sources" style="float:right" aria-label="Fermer">×</button><h2>Isometric Crans-Montana</h2>
  <p>Scène géographique P0.5.4 : 100 × 100 m à Ycoor, inspiration rétro isométrique. Les arbres et chemins sont issus de géodonnées, sans positions inventées. En cas de données manquantes, ils restent absents.</p>
  <p><b>Données :</b> empreintes de bâtiments et routes chargées à la demande depuis © OpenStreetMap contributors (ODbL), via Overpass. Relief échantillonné depuis © swisstopo. Si le service ne répond pas, le terrain et les bâtiments de remplacement sont <b>artistiques, pas cadastraux</b>.</p>
- <p><b>P0.5.2 :</b> le chargeur configure le décodeur DRACO requis par les tuiles glTF compressées, teste deux révisions swisstopo et affiche la raison d’un échec. Les vrais modèles n’ont pas encore été validés dans ce moteur Three.js. <a href="../crans-montana-p0/?v=4" target="_blank" rel="noopener noreferrer">Comparer avec le rendu officiel Cesium P0.4 qui fonctionne</a>.</p><p><b>Mode 3D officielle :</b> les bâtiments sont fournis sous forme de tuiles swissBUILDINGS3D. Leurs formes de toiture et leurs dimensions sont conservées, les couleurs et la résolution sont stylisées. Le mode illustré reste un modèle OSM simplifié, différent de la 3D officielle.</p><p><b>Animations :</b> véhicule et piéton simulés sur des segments OSM contrôlés, jamais un trajet GPS réel. Les toitures officielles sont affichées par swissBUILDINGS3D lorsque le chargement réussit, et les volumes OSM restent approximatifs en secours.</p><p><a href="https://www.crans-montana.ch/fr/jardins_ycoor" target="_blank" rel="noopener noreferrer">Photos et activités officielles des Jardins d’Ycoor</a> · <a href="https://docs.geo.admin.ch/visualize-data/3d-tiles.html" target="_blank" rel="noopener noreferrer">Source 3D swisstopo</a></p>
- <p><b>Végétation P0.5.4 :</b> arbre individuel uniquement lorsqu’un point OSM `natural=tree` est connu, ou données officielles de végétation swisstopo 3D. Les arbres sans position individuelle ne sont pas générés au hasard.</p><p><b>Chemins :</b> tracés et intersections issus des coordonnées OSM, largeur par défaut approximative. Le jardin et les équipements de jeux ne sont localisés que si OSM fournit leurs coordonnées.</p><p><b>Librairies :</b> Three.js (MIT), 3d-tiles-renderer (Apache-2.0), Pixelify Sans (SIL OFL).</p>
+ <p><b>Historique P0.5.2 :</b> le chargeur configure le décodeur DRACO requis par les tuiles glTF compressées, teste deux révisions swisstopo et affiche la raison d’un échec. Les vrais modèles n’ont pas encore été validés dans ce moteur Three.js. <a href="../crans-montana-p0/?v=4" target="_blank" rel="noopener noreferrer">Comparer avec le rendu officiel Cesium P0.4 qui fonctionne</a>.</p><p><b>Mode 3D officielle :</b> les bâtiments sont fournis sous forme de tuiles swissBUILDINGS3D. Leurs formes de toiture et leurs dimensions sont conservées, les couleurs et la résolution sont stylisées. Le mode illustré reste un modèle OSM simplifié, différent de la 3D officielle.</p><p><b>Animations :</b> véhicule et piéton simulés sur des segments OSM contrôlés, jamais un trajet GPS réel. Les toitures officielles sont affichées par swissBUILDINGS3D lorsque le chargement réussit, et les volumes OSM restent approximatifs en secours.</p><p><a href="https://www.crans-montana.ch/fr/jardins_ycoor" target="_blank" rel="noopener noreferrer">Photos et activités officielles des Jardins d’Ycoor</a> · <a href="https://docs.geo.admin.ch/visualize-data/3d-tiles.html" target="_blank" rel="noopener noreferrer">Source 3D swisstopo</a></p>
+ <p><b>Végétation P0.5.4 :</b> arbre individuel uniquement lorsqu’un point OSM `natural=tree` est connu, ou données officielles de végétation swisstopo 3D. Les arbres sans position individuelle ne sont pas générés au hasard.</p><p><b>Chemins :</b> tracés et intersections issus des coordonnées OSM, largeur par défaut approximative. Le jardin et les équipements de jeux ne sont localisés que si OSM fournit leurs coordonnées. Les jeux 3D sont des symboles simplifiés, pas des relevés dimensionnels.</p><p><b>Librairies :</b> Three.js (MIT), 3d-tiles-renderer (Apache-2.0), Pixelify Sans (SIL OFL).</p>
  <p><a href="https://www.openstreetmap.org/copyright" target="_blank">Licence OSM</a> · <a href="https://www.swisstopo.admin.ch/" target="_blank">swisstopo</a> · <a href="../crans-montana-pixel-atlas/" target="_blank">V5 actuelle</a></p>
  </section>
 <nav id="tools" aria-label="Commandes de la carte">
@@ -94,7 +94,7 @@ $('real-toggle').onclick=()=>{useOfficial=!useOfficial;if(useOfficial&&tilesStat
 const ORIGIN={lat:46.311036,lon:7.478052,e:2603036,n:1128849};
 const S=100,HALF=50;
 const state={season:'auto',clock:14,date:'2026-11-14',sun:true,play:false,labels:true,bounds:true,angle:Math.PI/4,zoom:1};
-const buildingData=[],streetData=[],treeData=[],playgrounds=[],waters=[],objects=[],animated=[];
+const buildingData=[],streetData=[],treeData=[],playgrounds=[],equipmentData=[],waters=[],objects=[],animated=[];
 let osmPedCount=0,treeCount=0,playCount=0,parkStatus='OSM';
 let vegetationTiles=null,vegetationEnabled=true,vegetationReady=false,vegetationMeshes=0,treeLayer=null;
 let osmOk=false,terrainOk=false,terrainVals=null,frame=0,clockLast=performance.now(),selected=null;
@@ -167,7 +167,7 @@ function updateGeoLabel(){
  const official=vegetationReady&&vegetationEnabled;
  if(treeLayer)treeLayer.visible=!official;
  el.textContent=(official?'Végétation swisstopo 3D':(treeCount+' arbres OSM'))+
-  ' · '+osmPedCount+' chemins · '+playCount+' aires de jeux OSM';
+  ' · '+osmPedCount+' chemins · '+playCount+' jardins · '+equipmentData.length+' jeux OSM';
  const btn=$('veg-switch');btn.classList.toggle('active',official);
  btn.setAttribute('aria-pressed',String(official));
 }
@@ -415,6 +415,36 @@ function renderGeoreferencedFeatures(parent){
    "Coordonnée ou contour OpenStreetMap. Aucun équipement ajouté sans position exacte.");
   }
  }
+ for(const equipment of equipmentData){
+  let p=equipment.point;
+  if(!p&&equipment.points?.length){
+   p={x:equipment.points.reduce((v,q)=>v+q.x,0)/equipment.points.length,
+      z:equipment.points.reduce((v,q)=>v+q.z,0)/equipment.points.length};
+  }
+  if(!p||Math.abs(p.x)>48||Math.abs(p.z)>48)continue;
+  // The equipment type and location are OSM; shape, size and orientation are symbolic.
+  const t=String(equipment.tags.playground||'');
+  const y=height(p.x,p.z);
+  const red=mt('#b53034'),yellow=mt('#deb45d');
+  let symbol;
+  if(t==='slide'){
+   symbol=box(.8,.17,2.5,yellow,p.x,y+.9,p.z,parent);symbol.rotation.x=-.48;
+   cyl(.08,1.5,5,red,p.x-.5,y+.75,p.z-.7,parent);
+  }else if(t==='swing'){
+   for(const x of [-.95,.95])cyl(.12,2.6,5,red,p.x+x,y+1.3,p.z,parent);
+   symbol=box(2.2,.13,.16,yellow,p.x,y+2.6,p.z,parent);
+   box(.9,.12,.45,red,p.x,y+.65,p.z,parent);
+  }else if(t==='climbingframe'){
+   for(const x of [-.9,.9])for(const z of [-.9,.9])cyl(.1,2.4,5,yellow,p.x+x,y+1.2,p.z+z,parent);
+   symbol=box(2,.12,2,red,p.x,y+2.5,p.z,parent);
+  }else{
+   symbol=box(.65,.65,.65,yellow,p.x,y+.7,p.z,parent);
+  }
+  symbol.userData={title:equipment.tags.name||('Jeu : '+t),
+   desc:'Position et type cartographiés dans OSM. Forme, dimensions et orientation seulement illustratives.'};
+  objects.push(symbol);
+
+ }
 }
 function marker(x,z,title,desc,parent=world){
  let pole=cyl(.1,4,5,mats.ink,x,height(x,z)+2,z,parent);
@@ -486,7 +516,7 @@ async function startRoofs(older=false){
  const timeout=setTimeout(()=>{
   if(!tilesMeshes){
    if(!older)startRoofs(true);
-   else{tilesState='error';useOfficial=false;syncRoofs();$('status').textContent='P0.5.2 · toitures indisponibles / OSM illustratif';note('Chargement 3D échoué : '+String(window.__roofError||'modèles non reçus').slice(0,89)+' · appuyer ici pour P0.4')}
+   else{tilesState='error';useOfficial=false;syncRoofs();$('status').textContent='P0.5.4 · toitures indisponibles / OSM illustratif';note('Chargement 3D échoué : '+String(window.__roofError||'modèles non reçus').slice(0,89)+' · appuyer ici pour P0.4')}
   }
  },13000);
  try{
@@ -589,13 +619,14 @@ async function loadOSM(){
    $('loading').textContent='Chargement des arbres, chemins, jardin et étang OSM…';
    const data=await asyncAbort(url+encodeURIComponent(query),14000);
    if(!Array.isArray(data.elements)||data.remark)throw Error(String(data.remark||'invalid OSM'));
-   const buildings=[],streets=[],trees=[],play=[],water=[],unique=new Set();
+   const buildings=[],streets=[],trees=[],play=[],equipment=[],water=[],unique=new Set();
    for(const item of data.elements){
     const tags=item.tags||{},key=item.type+':'+item.id;if(unique.has(key))continue;unique.add(key);
     if(item.type==='node'&&Number.isFinite(item.lat)&&Number.isFinite(item.lon)){
      const p=local(item.lat,item.lon);
      if(tags.natural==='tree')trees.push({x:p.x,z:p.z,id:item.id,tags});
-     if(tags.leisure==='playground'||tags.playground)play.push({point:p,tags,id:item.id});
+     if(tags.leisure==='playground')play.push({point:p,tags,id:item.id});
+     else if(tags.playground)equipment.push({point:p,tags,id:item.id});
     }else if(item.type==='way'&&item.geometry?.length>=2){
      const pts=item.geometry.map(v=>local(v.lat,v.lon));
      if(tags.building&&pts.length>=3)buildings.push({points:pts,tags,id:item.id});
@@ -607,7 +638,8 @@ async function loadOSM(){
       const type=ped||tags.motor_vehicle==='no'||tags.access==='private'||tags.access==='no'?'footway':'road';
       streets.push({points:pts,type,width,id:item.id,tags});
      }
-     if((tags.leisure==='playground'||tags.playground)&&pts.length>=3)play.push({points:pts,tags,id:item.id});
+     if(tags.leisure==='playground'&&pts.length>=3)play.push({points:pts,tags,id:item.id});
+     else if(tags.playground&&pts.length>=3)equipment.push({points:pts,tags,id:item.id});
      if(tags.natural==='water'&&pts.length>=3)water.push({points:pts,tags,id:item.id});
      // natural=tree_row is a row, not a list of precise trunk coordinates; no fake trunks.
     }
@@ -617,6 +649,7 @@ async function loadOSM(){
    streetData.splice(0,streetData.length,...streets);
    treeData.splice(0,treeData.length,...trees);
    playgrounds.splice(0,playgrounds.length,...play);
+   equipmentData.splice(0,equipmentData.length,...equipment);
    waters.splice(0,waters.length,...water);
    osmOk=true;
    osmPedCount=streets.filter(p=>p.type==='footway').length;
