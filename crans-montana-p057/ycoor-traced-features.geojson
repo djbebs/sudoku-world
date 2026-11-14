@@ -1,0 +1,526 @@
+{
+  "type": "FeatureCollection",
+  "name": "Ycoor pixel atlas measured preliminary traced features",
+  "metadata": {
+    "kind": "traced_from_uploaded_screen_recording_of_swisstopo_SWISSIMAGE",
+    "method": "Manual vector tracing on approximate orthorectification of the user's P0.5.6 video, which displayed swisstopo SWISSIMAGE draped onto the 100x100m pilot. Affine calibration derived from the Three.js camera and pilot corners.",
+    "recorded_on": "2026-11-14",
+    "horizontal_accuracy_estimate_m": "typically 3-6, weaker for shaded/occluded southern paths; NOT surveyed or certified",
+    "trace_status": "preliminary",
+    "original_georeference": "P0 center WGS84 lat 46.311036 lon 7.478052, pilot 100m x 100m",
+    "no_photo_texture": true
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "id": "ycoor_main_east_curve",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            7.47826788,
+            46.31138005
+          ],
+          [
+            7.47822367,
+            46.31135221
+          ],
+          [
+            7.47818985,
+            46.31131717
+          ],
+          [
+            7.47817035,
+            46.31128124
+          ],
+          [
+            7.47817295,
+            46.311248
+          ],
+          [
+            7.47818855,
+            46.31121387
+          ],
+          [
+            7.47821456,
+            46.31117254
+          ],
+          [
+            7.47824317,
+            46.31113661
+          ],
+          [
+            7.47828219,
+            46.31109349
+          ],
+          [
+            7.47834461,
+            46.31108092
+          ],
+          [
+            7.47842004,
+            46.31106924
+          ],
+          [
+            7.47848637,
+            46.31105666
+          ],
+          [
+            7.47853969,
+            46.3110378
+          ],
+          [
+            7.47860341,
+            46.31101175
+          ],
+          [
+            7.47865283,
+            46.31098659
+          ]
+        ]
+      },
+      "properties": {
+        "kind": "footpath",
+        "name": "Chemin principal côté étang",
+        "width_m": 2.35,
+        "source": "traced_from_uploaded_screen_recording_of_swisstopo_SWISSIMAGE",
+        "confidence": "moyenne",
+        "accuracy_m": 6,
+        "manual_trace": true,
+        "unit": "WGS84 lon lat"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ycoor_central_south",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            7.47828349,
+            46.31109259
+          ],
+          [
+            7.47825618,
+            46.31106025
+          ],
+          [
+            7.47821586,
+            46.31102522
+          ],
+          [
+            7.47817815,
+            46.31099558
+          ],
+          [
+            7.47813003,
+            46.31096234
+          ],
+          [
+            7.47809101,
+            46.31092371
+          ],
+          [
+            7.4780442,
+            46.31089137
+          ],
+          [
+            7.47800388,
+            46.31085454
+          ]
+        ]
+      },
+      "properties": {
+        "kind": "footpath",
+        "name": "Liaison centrale vers le sud",
+        "width_m": 2,
+        "source": "traced_from_uploaded_screen_recording_of_swisstopo_SWISSIMAGE",
+        "confidence": "moyenne",
+        "accuracy_m": 6,
+        "manual_trace": true,
+        "unit": "WGS84 lon lat"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ycoor_playground_arc",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            7.47785432,
+            46.31102612
+          ],
+          [
+            7.47789204,
+            46.31101354
+          ],
+          [
+            7.47793496,
+            46.31100186
+          ],
+          [
+            7.47798958,
+            46.31099827
+          ],
+          [
+            7.4780533,
+            46.31100546
+          ],
+          [
+            7.47811312,
+            46.31101803
+          ],
+          [
+            7.47817295,
+            46.31104408
+          ],
+          [
+            7.47823277,
+            46.31107912
+          ],
+          [
+            7.47827959,
+            46.3110917
+          ]
+        ]
+      },
+      "properties": {
+        "kind": "footpath",
+        "name": "Allée courbe côté aire de jeux",
+        "width_m": 1.95,
+        "source": "traced_from_uploaded_screen_recording_of_swisstopo_SWISSIMAGE",
+        "confidence": "moyenne",
+        "accuracy_m": 6,
+        "manual_trace": true,
+        "unit": "WGS84 lon lat"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ycoor_south_east_path",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            7.47814564,
+            46.31096324
+          ],
+          [
+            7.47819505,
+            46.3109273
+          ],
+          [
+            7.47826138,
+            46.3108761
+          ],
+          [
+            7.47833421,
+            46.3108258
+          ],
+          [
+            7.47841354,
+            46.3107719
+          ],
+          [
+            7.47849677,
+            46.31070901
+          ],
+          [
+            7.47858651,
+            46.31065691
+          ]
+        ]
+      },
+      "properties": {
+        "kind": "footpath",
+        "name": "Chemin vers le sud-est",
+        "width_m": 1.7,
+        "source": "traced_from_uploaded_screen_recording_of_swisstopo_SWISSIMAGE",
+        "confidence": "moyenne-faible",
+        "accuracy_m": 6,
+        "manual_trace": true,
+        "unit": "WGS84 lon lat"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ycoor_south_west_path",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            7.47782441,
+            46.31091473
+          ],
+          [
+            7.47786603,
+            46.31089137
+          ],
+          [
+            7.47793105,
+            46.31086981
+          ],
+          [
+            7.47799478,
+            46.31084915
+          ],
+          [
+            7.4780442,
+            46.31081052
+          ],
+          [
+            7.47807801,
+            46.31077908
+          ]
+        ]
+      },
+      "properties": {
+        "kind": "footpath",
+        "name": "Chemin en partie sud-ouest",
+        "width_m": 1.45,
+        "source": "traced_from_uploaded_screen_recording_of_swisstopo_SWISSIMAGE",
+        "confidence": "faible",
+        "accuracy_m": 6,
+        "manual_trace": true,
+        "unit": "WGS84 lon lat"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ycoor_playground_surface",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              7.47781791,
+              46.31113032
+            ],
+            [
+              7.47784392,
+              46.31115727
+            ],
+            [
+              7.47790895,
+              46.31117344
+            ],
+            [
+              7.47797137,
+              46.3111959
+            ],
+            [
+              7.4780546,
+              46.3111977
+            ],
+            [
+              7.47812743,
+              46.31118063
+            ],
+            [
+              7.47818725,
+              46.31115278
+            ],
+            [
+              7.47823147,
+              46.31111325
+            ],
+            [
+              7.47822627,
+              46.31107463
+            ],
+            [
+              7.47819115,
+              46.31105037
+            ],
+            [
+              7.47814303,
+              46.31103241
+            ],
+            [
+              7.4780546,
+              46.31102522
+            ],
+            [
+              7.47797657,
+              46.31103869
+            ],
+            [
+              7.47790244,
+              46.31105846
+            ],
+            [
+              7.47784392,
+              46.31109439
+            ],
+            [
+              7.47781791,
+              46.31113032
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "kind": "play_surface",
+        "name": "Sol de jeux visible sur orthophoto",
+        "source": "traced_from_uploaded_screen_recording_of_swisstopo_SWISSIMAGE",
+        "confidence": "moyenne-faible",
+        "accuracy_m": 6,
+        "manual_trace": true,
+        "unit": "WGS84 lon lat"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ycoor_sand_surface",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              7.47794016,
+              46.31100546
+            ],
+            [
+              7.47799868,
+              46.31100546
+            ],
+            [
+              7.47806631,
+              46.31099468
+            ],
+            [
+              7.47813003,
+              46.31097851
+            ],
+            [
+              7.47815864,
+              46.31094437
+            ],
+            [
+              7.47814303,
+              46.31091293
+            ],
+            [
+              7.47810922,
+              46.31089317
+            ],
+            [
+              7.4780572,
+              46.31088598
+            ],
+            [
+              7.47800778,
+              46.31089407
+            ],
+            [
+              7.47795316,
+              46.31091832
+            ],
+            [
+              7.47791935,
+              46.31095875
+            ],
+            [
+              7.47794016,
+              46.31100546
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "kind": "sand_surface",
+        "name": "Surface claire au sud des jeux",
+        "source": "traced_from_uploaded_screen_recording_of_swisstopo_SWISSIMAGE",
+        "confidence": "faible",
+        "accuracy_m": 6,
+        "manual_trace": true,
+        "unit": "WGS84 lon lat"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ycoor_pond_edge",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              7.47848116,
+              46.3114061
+            ],
+            [
+              7.4785709,
+              46.31141329
+            ],
+            [
+              7.47865023,
+              46.31138634
+            ],
+            [
+              7.47870225,
+              46.31135939
+            ],
+            [
+              7.47870225,
+              46.31101354
+            ],
+            [
+              7.47864373,
+              46.31102971
+            ],
+            [
+              7.47859821,
+              46.31106115
+            ],
+            [
+              7.47855139,
+              46.31108541
+            ],
+            [
+              7.47850327,
+              46.31110966
+            ],
+            [
+              7.47846296,
+              46.31113931
+            ],
+            [
+              7.47844085,
+              46.31117344
+            ],
+            [
+              7.47842004,
+              46.31121566
+            ],
+            [
+              7.47842004,
+              46.31125698
+            ],
+            [
+              7.47843175,
+              46.31129382
+            ],
+            [
+              7.47845125,
+              46.31133963
+            ],
+            [
+              7.47848116,
+              46.3114061
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "kind": "water",
+        "name": "Partie visible de l'étang",
+        "source": "traced_from_uploaded_screen_recording_of_swisstopo_SWISSIMAGE",
+        "confidence": "moyenne-faible",
+        "accuracy_m": 6,
+        "manual_trace": true,
+        "unit": "WGS84 lon lat"
+      }
+    }
+  ]
+}
