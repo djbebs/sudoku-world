@@ -227,6 +227,7 @@ function build(){
  }
  if(!(false))$('origin').textContent=osmOk?('OSM : '+buildingData.length+' empreintes, toits provisoires'):'Géométrie de démonstration';
  if(!(false))$('status').textContent='P0 · '+(osmOk?'empreintes OSM (volumes estimés)':'bâtiments fictifs')+' · '+(terrainOk?'relief swisstopo échantillonné':'relief approximatif')+' · animations simulées';
+ syncRoofs();
 }
 
 /* swissBUILDINGS3D (3D Tiles -> Three.js), ECEF transformed to local Y-up. */
