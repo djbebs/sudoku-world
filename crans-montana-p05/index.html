@@ -66,7 +66,7 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
 <div id="status">P0 · géométrie artistique initiale</div>
 <div id="loading">Chargement des données géographiques...</div>
 <div id="tip">glisser : déplacer · roulette/pincer : zoom · ↶ ↷ : rotation</div>
-<footer id="credit">© swisstopo · © OSM<br><b>Empreintes réelles, volumes illustratifs</b></footer>
+<footer id="credit">© swisstopo · © OSM<br><b id="credit-model">Volumes OSM simplifiés</b></footer>
 <script>window.__p0Booted=false;setTimeout(()=>{if(!window.__p0Booted){let t=document.getElementById("loading");if(t)t.innerHTML='Impossible de lancer le moteur 3D. Vérifie le réseau ou réessaie dans Chrome.<br><a style="color:#fff" href="../crans-montana-pixel-atlas/">Retour à la V5</a>'}},14500);</script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}</script>
 <script type="module">
@@ -80,6 +80,7 @@ function note(t,show=true){$('real-status').textContent=t;$('real-status').class
 function syncRoofs(){
  let ready=useOfficial&&tilesMeshes>0;
  if(buildingLayer)buildingLayer.visible=!ready;
+ if($('credit-model'))$('credit-model').textContent=ready?'Bâtiments swissBUILDINGS3D réels':'Volumes OSM simplifiés';
  if(tiles)tiles.group.visible=useOfficial;
  $('real-toggle').classList.toggle('active',ready);
  $('real-toggle').setAttribute('aria-pressed',String(ready));
