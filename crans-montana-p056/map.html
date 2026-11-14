@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ycoor | Vérification des chemins sur orthophoto</title>
+<link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--cream:#f6f0df;--ink:#252a22;--red:#bc2632}
+*{box-sizing:border-box}body{margin:0;background:#9db5b0;font-family:"Pixelify Sans",monospace;color:var(--ink)}
+#map{position:fixed;inset:0;z-index:0}
+.panel{position:absolute;z-index:1000;background:var(--cream);border:3px solid var(--ink);box-shadow:4px 5px #161d18b2;padding:12px;max-width:calc(100vw - 20px)}
+#top{left:12px;top:12px;width:min(345px,calc(100vw - 25px));font-size:15px}
+#top h1{font-size:21px;color:var(--red);margin:0 0 5px}
+#top p{margin:5px 0;font-size:13px;line-height:1.35}
+#bottom{bottom:14px;left:12px;max-width:min(460px,calc(100vw - 25px));font-size:12px;line-height:1.35}
+.actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+button,a.btn{font:600 13px "Pixelify Sans",monospace;background:#fffaf0;border:2px solid var(--ink);box-shadow:2px 2px var(--ink);padding:6px 8px;color:var(--ink);text-decoration:none;cursor:pointer}
+button.sel{background:#2e6199;color:#fff}
+#counts{font-size:12px;line-height:1.45}
+.dot{display:inline-block;width:9px;height:9px;margin-right:4px}
+.leaflet-control-attribution{font-size:10px!important;background:#f8f1dfc9!important}
+@media(max-width:600px){#top{left:8px;top:8px;width:min(300px,calc(100vw - 16px));padding:8px}#top h1{font-size:17px}#top p{font-size:11px}#bottom{left:8px;bottom:40px;font-size:11px;max-width:calc(100vw - 16px)}.actions button,.actions a{font-size:11px;padding:4px 6px}}
+</style></head><body>
+<div id="map"></div>
+<div class="panel" id="top">
+ <h1>Ycoor · carte de contrôle</h1>
+ <p>Les vrais chemins sont visibles sur la photo aérienne swisstopo. <b>Les lignes orange</b> n'apparaissent que si OSM possède un tracé.</p>
+ <div class="actions"><button id="photo" class="sel">Photo aérienne</button><button id="topo">Carte suisse</button><button id="refocus">Recentrer</button></div>
+ <p id="status" role="status">Affichage des photos officielles…</p>
+ <div id="counts"></div>
+ <div class="actions"><button id="retry">Relancer OSM</button><a class="btn" href="./?v=1">Retour au monde 3D</a></div>
+</div>
+<div class="panel" id="bottom">
+ <div><span class="dot" style="background:#f09338"></span>Chemins OSM <span class="dot" style="background:#28a64b"></span>Jardin / parc <span class="dot" style="background:#cb293c"></span>Limite P0 : 100 × 100 m</div>
+ <div>Photographie : © swisstopo · Données vectorielles : © OpenStreetMap contributors. Une ligne absente ne signifie pas que le chemin n'existe pas.</div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+'use strict';
+const center=[46.311036,7.478052], latDelta=50/111320, lonDelta=50/(111320*Math.cos(center[0]*Math.PI/180));
+const bounds=L.latLngBounds([center[0]-latDelta,center[1]-lonDelta],[center[0]+latDelta,center[1]+lonDelta]);
+const map=L.map('map',{zoomControl:false,maxZoom:22});
+L.control.zoom({position:'topright'}).addTo(map);
+map.fitBounds(bounds.pad(.55));
+const tiles='https://wmts.geo.admin.ch/1.0.0/';
+const photo=L.tileLayer(tiles+'ch.swisstopo.swissimage/default/current/3857/{z}/{x}/{y}.jpeg',{maxNativeZoom:19,maxZoom:22,attribution:'© swisstopo',crossOrigin:'anonymous'}).addTo(map);
+const topo=L.tileLayer(tiles+'ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg',{maxNativeZoom:18,maxZoom:22,attribution:'© swisstopo'});
+L.rectangle(bounds,{color:'#cb293c',weight:2,fill:false,dashArray:'8 5',interactive:false}).addTo(map);
+const osmLayer=L.layerGroup().addTo(map);
+const $=id=>document.getElementById(id);
+let control=null;
+$('photo').onclick=()=>{map.removeLayer(topo);photo.addTo(map);$('photo').classList.add('sel');$('topo').classList.remove('sel')};
+$('topo').onclick=()=>{map.removeLayer(photo);topo.addTo(map);$('topo').classList.add('sel');$('photo').classList.remove('sel')};
+$('refocus').onclick=()=>map.fitBounds(bounds.pad(.55));
+$('retry').onclick=loadOSM;
+const box=[center[0]-latDelta-.00012,center[1]-lonDelta-.00015,center[0]+latDelta+.00012,center[1]+lonDelta+.00015].map(n=>n.toFixed(7)).join(',');
+const query='[out:json][timeout:20];(way["highway"~"^(footway|pedestrian|path|steps|cycleway)$"]('+box+');way["leisure"="playground"]('+box+');way["leisure"="park"]('+box+');node["leisure"="playground"]('+box+');way["amenity"="kindergarten"]('+box+'););out geom;';
+const osmUrls=['https://overpass.osm.ch/api/interpreter','https://overpass-api.de/api/interpreter','https://overpass.openstreetmap.fr/api/interpreter'];
+let loading=0;
+async function retrieve(url,signal){
+ let res=await fetch(url+'?data='+encodeURIComponent(query),{signal});
+ if(!res.ok)throw Error('HTTP '+res.status);
+ const body=await res.json();if(body.remark)throw Error(body.remark);
+ if(!Array.isArray(body.elements))throw Error('Réponse OSM invalide');
+ return body;
+}
+async function loadOSM(){
+ const seq=++loading;if(control)control.abort();control=new AbortController();
+ $('status').textContent='Recherche des chemins dans OpenStreetMap…';
+ let result=null,lastError='';
+ for(const url of osmUrls){
+  const timer=setTimeout(()=>control.abort(),10500);
+  try{result=await retrieve(url,control.signal);clearTimeout(timer);break}
+  catch(e){clearTimeout(timer);lastError=String(e.message||e);if(seq!==loading)return;control=new AbortController()}
+ }
+ if(seq!==loading)return;
+ if(!result){$('status').textContent='OSM inaccessible ('+lastError+'). La photo aérienne reste disponible.';return}
+ osmLayer.clearLayers();let paths=0,parks=0,games=0;
+ for(const item of result.elements){
+  const tags=item.tags||{};
+  const coords=item.geometry?.map(p=>[p.lat,p.lon])||[];
+  if(item.type==='node'&&tags.leisure==='playground'){
+   L.circleMarker([item.lat,item.lon],{radius:5,color:'#28a64b'}).addTo(osmLayer).bindPopup('Aire de jeux OSM : '+String(tags.name||'sans nom').replace(/[<>&]/g,''));
+   games++;continue
+  }
+  if(coords.length<2)continue;
+  if(['footway','pedestrian','path','steps','cycleway'].includes(tags.highway)){
+   L.polyline(coords,{color:'#f09338',weight:5,opacity:.9}).addTo(osmLayer).bindPopup('Chemin OSM : '+(tags.name||tags.highway||''));
+   paths++;
+  }else if(tags.leisure==='playground'||tags.leisure==='park'||tags.amenity==='kindergarten'){
+   L.polygon(coords,{color:'#28a64b',weight:2,fillOpacity:.14}).addTo(osmLayer).bindPopup((tags.name||'Espace cartographié'));
+   parks++;
+  }
+ }
+ $('counts').textContent=paths+' tracés piétons OSM · '+parks+' surfaces vertes · '+games+' jeux ponctuels';
+ $('status').textContent=paths?'Chemins OSM en orange, vérifie leur position sur la photo.':'Aucun chemin OSM ici. Les sentiers visibles sur la photo ne sont pas encore vectorisés.';
+}
+photo.on('tileerror',()=>{$('status').textContent='Photo swisstopo momentanément indisponible. Essaie la carte suisse.'});
+loadOSM();
+</script></body></html>
