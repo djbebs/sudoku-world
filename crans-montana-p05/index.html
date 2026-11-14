@@ -267,7 +267,7 @@ async function startRoofs(older=false){
  const timeout=setTimeout(()=>{
   if(!tilesMeshes){
    if(!older)startRoofs(true);
-   else{tilesState='error';useOfficial=false;syncRoofs();$('status').textContent='P0.5.1 · toitures indisponibles / OSM illustratif';note('Chargement 3D échoué : '+String(window.__roofError||'modèles non reçus').slice(0,89)+' · appuyer ici pour P0.4')}
+   else{tilesState='error';useOfficial=false;syncRoofs();$('status').textContent='P0.5.2 · toitures indisponibles / OSM illustratif';note('Chargement 3D échoué : '+String(window.__roofError||'modèles non reçus').slice(0,89)+' · appuyer ici pour P0.4')}
   }
  },13000);
  try{
