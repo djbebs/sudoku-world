@@ -49,9 +49,9 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
 </section>
 <section id="info" class="box"><button id="close-info" aria-label="Fermer">×</button><strong id="info-title">Lieu</strong><p id="info-desc"></p></section>
 <section id="sources" class="box"><button id="close-sources" style="float:right" aria-label="Fermer">×</button><h2>Isometric Crans-Montana</h2>
- <p>Une scène miniature de démonstration P0 (100 × 100 m). Modèles en formes géométriques simplifiées, sans copie du code de bb.jest.pro.</p>
+ <p>Scène géographique P0.5.4 : 100 × 100 m à Ycoor, inspiration rétro isométrique. Les arbres et chemins sont issus de géodonnées, sans positions inventées. En cas de données manquantes, ils restent absents.</p>
  <p><b>Données :</b> empreintes de bâtiments et routes chargées à la demande depuis © OpenStreetMap contributors (ODbL), via Overpass. Relief échantillonné depuis © swisstopo. Si le service ne répond pas, le terrain et les bâtiments de remplacement sont <b>artistiques, pas cadastraux</b>.</p>
- <p><b>P0.5.2 :</b> le chargeur configure le décodeur DRACO requis par les tuiles glTF compressées, teste deux révisions swisstopo et affiche la raison d’un échec. Les vrais modèles n’ont pas encore été validés dans ce moteur Three.js. <a href="../crans-montana-p0/?v=4" target="_blank" rel="noopener noreferrer">Comparer avec le rendu officiel Cesium P0.4 qui fonctionne</a>.</p><p><b>Mode 3D officielle :</b> les bâtiments sont fournis sous forme de tuiles swissBUILDINGS3D. Leurs formes de toiture et leurs dimensions sont conservées, les couleurs et la résolution sont stylisées. Le mode illustré reste un modèle OSM simplifié, différent de la 3D officielle.</p><p><b>Animations :</b> véhicule et piéton entièrement simulés. Aucun GPS ou trafic en direct. Les hauteurs de bâtiments non renseignées par OSM sont estimées. Les toitures sont provisoirement toutes plates et ne correspondent pas à swissBUILDINGS3D.</p>
+ <p><b>P0.5.2 :</b> le chargeur configure le décodeur DRACO requis par les tuiles glTF compressées, teste deux révisions swisstopo et affiche la raison d’un échec. Les vrais modèles n’ont pas encore été validés dans ce moteur Three.js. <a href="../crans-montana-p0/?v=4" target="_blank" rel="noopener noreferrer">Comparer avec le rendu officiel Cesium P0.4 qui fonctionne</a>.</p><p><b>Mode 3D officielle :</b> les bâtiments sont fournis sous forme de tuiles swissBUILDINGS3D. Leurs formes de toiture et leurs dimensions sont conservées, les couleurs et la résolution sont stylisées. Le mode illustré reste un modèle OSM simplifié, différent de la 3D officielle.</p><p><b>Animations :</b> véhicule et piéton simulés sur des segments OSM contrôlés, jamais un trajet GPS réel. Les toitures officielles sont affichées par swissBUILDINGS3D lorsque le chargement réussit, et les volumes OSM restent approximatifs en secours.</p><p><a href="https://www.crans-montana.ch/fr/jardins_ycoor" target="_blank" rel="noopener noreferrer">Photos et activités officielles des Jardins d’Ycoor</a> · <a href="https://docs.geo.admin.ch/visualize-data/3d-tiles.html" target="_blank" rel="noopener noreferrer">Source 3D swisstopo</a></p>
  <p><b>Végétation P0.5.4 :</b> arbre individuel uniquement lorsqu’un point OSM `natural=tree` est connu, ou données officielles de végétation swisstopo 3D. Les arbres sans position individuelle ne sont pas générés au hasard.</p><p><b>Chemins :</b> tracés et intersections issus des coordonnées OSM, largeur par défaut approximative. Le jardin et les équipements de jeux ne sont localisés que si OSM fournit leurs coordonnées.</p><p><b>Librairies :</b> Three.js (MIT), 3d-tiles-renderer (Apache-2.0), Pixelify Sans (SIL OFL).</p>
  <p><a href="https://www.openstreetmap.org/copyright" target="_blank">Licence OSM</a> · <a href="https://www.swisstopo.admin.ch/" target="_blank">swisstopo</a> · <a href="../crans-montana-pixel-atlas/" target="_blank">V5 actuelle</a></p>
  </section>
@@ -256,18 +256,6 @@ function building(polygon,tags,seed,parent=world,demonstration=false){if(parent=
  const center=mesh.position.clone();mesh.userData={title:tags.name||'Bâtiment',desc:demonstration?'Volume de démonstration, position fictive.':('Empreinte réelle © OpenStreetMap. ATTENTION : volume extrudé, toit plat fictif et hauteur '+(rawHeight>2?'extraite d’OSM':levels>0?'estimée selon étages':'estimée')+'. Ce modèle ne reproduit pas encore la vraie toiture swissBUILDINGS3D.')};
  objects.push(mesh);return mesh;
 }
-function demo(){
- for(let k=0;k<13;k++){
- let x=-40+(k%5)*21+seeded(k)*5,z=-38+Math.floor(k/5)*34+seeded(k+18)*6;
- if(Math.hypot(x,z)<14)continue;
- let p=[{x:x-5,z:z-3},{x:x+5,z:z-3},{x:x+5,z:z+4},{x:x-5,z:z+4}];
- building(p,{},k,world,true)
- }
- streetData.length=0;
- streetData.push({points:[{x:-55,z:21},{x:-24,z:16},{x:8,z:18},{x:52,z:9}],type:'road'},
- {points:[{x:-27,z:-54},{x:-22,z:-9},{x:-17,z:56}],type:'road'},
- {points:[{x:28,z:-52},{x:22,z:0},{x:19,z:53}],type:'footway'});
-}
 function winterDetails(parent){
  if(season()!=='winter')return;
  box(12,.17,7,mt('#b7d6d5'),-5,height(-5,-7)+.23,-7,parent);
@@ -373,18 +361,50 @@ function findPedestrianRoute(){
  }
  return best;
 }
+
+// Keep mapped playground and water polygons inside the declared 100 x 100 m pilot.
+function clipPolygonToPilot(points){
+ if(!points||points.length<3)return [];
+ let out=points.slice();
+ const limits=[
+  {a:'x',v:-49.8,sign:1},{a:'x',v:49.8,sign:-1},
+  {a:'z',v:-49.8,sign:1},{a:'z',v:49.8,sign:-1}
+ ];
+ for(const lim of limits){
+  const input=out;out=[];
+  if(!input.length)break;
+  for(let i=0;i<input.length;i++){
+   const A=input[i],B=input[(i+1)%input.length];
+   const ina=(A[lim.a]-lim.v)*lim.sign>=0;
+   const inb=(B[lim.a]-lim.v)*lim.sign>=0;
+   if(ina&&inb)out.push(B);
+   else if(ina&&!inb||!ina&&inb){
+    const den=B[lim.a]-A[lim.a];
+    const t=Math.abs(den)>1e-12?(lim.v-A[lim.a])/den:0;
+    const C={x:A.x+(B.x-A.x)*t,z:A.z+(B.z-A.z)*t};
+    out.push(C);
+    if(!ina&&inb)out.push(B);
+   }
+  }
+ }
+ return out;
+}
+
 function renderGeoreferencedFeatures(parent){
  // No fabricated swings, slides, benches, lamps, or tree rows.
  // Playground geometry is rendered ONLY when OSM provides a point or polygon.
  const turf=mt('#6c945c'),waterMat=mt('#84c4ce');
  for(const region of waters){
-  if(region.points?.length>=4)planePoly(region.points,waterMat,parent,.19);
+  const poly=clipPolygonToPilot(region.points);
+  if(poly.length>=3)planePoly(poly,waterMat,parent,.19);
  }
  for(const zone of playgrounds){
-  if(zone.points?.length>=4){
-   planePoly(zone.points,turf,parent,.23);
-   const count=zone.points.length;
-   for(let i=1;i<count;i++)lineGeom([zone.points[i-1],zone.points[i]],.35,mats.yellow,.32,parent);
+  if(zone.points?.length>=3){
+   const poly=clipPolygonToPilot(zone.points);
+   if(poly.length>=3){
+    planePoly(poly,turf,parent,.23);
+    for(let i=0;i<poly.length;i++)lineGeom([poly[i],poly[(i+1)%poly.length]],.35,mats.yellow,.32,parent);
+   }
   }
   let p=zone.point;
   if(!p&&zone.points?.length){
@@ -664,7 +684,7 @@ $('sun-mode').onclick=()=>{state.sun=!state.sun;$('sun-mode').classList.toggle('
 document.querySelectorAll('[data-season]').forEach(b=>b.onclick=()=>{state.season=b.dataset.season;document.querySelectorAll('[data-season]').forEach(x=>x.classList.toggle('active',x===b));build();if(false)toReal('season',{value:season()})});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('info').classList.remove('show');$('sources').classList.remove('show')}if(e.key==='+')zoom(1.2);if(e.key==='-')zoom(1/1.2);if(e.key==='ArrowLeft')state.angle-=.12;if(e.key==='ArrowRight')state.angle+=.12});
 build();requestAnimationFrame(loop);startRoofs();setTimeout(startVegetation,2800);
-setTimeout(()=>{if($('loading').style.display!=='none')$('loading').textContent='Sources externes lentes : mode démo toujours utilisable';},12000);
+setTimeout(()=>{if($('loading').style.display!=='none')$('loading').textContent='Sources externes lentes : les éléments sans géodonnées restent masqués';},12000);
 async function refreshData(){
  $('loading').style.display='block';$('loading').style.cursor='default';$('loading').textContent='Lecture des données OSM et swisstopo...';
  const results=await Promise.allSettled([loadOSM(),loadHeight()]);
