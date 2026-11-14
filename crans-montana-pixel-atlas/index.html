@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b1821">
-<title>CRANS–MONTANA · Pixel Atlas V4</title>
+<title>CRANS–MONTANA · Pixel Atlas V5</title>
 <style>
 
 :root {--bg:#0d1921;--panel:rgba(10,25,31,.95);--panel2:#182a31;--ink:#eef7ee;--muted:#93acaf;--accent:#a7f1bd;--line:rgba(187,228,209,.17);--sub:#d0a569;}
@@ -29,8 +29,8 @@
 #v3-toolbar button,#v3-toolbar a{background:transparent;border:1px solid transparent;color:#d5e7df;border-radius:7px;font-weight:700;font-size:12px;padding:9px 12px;white-space:nowrap;text-decoration:none;display:inline-block}
 #v3-toolbar button.active{background:#b4efc4;color:#15372e}
 #v3-toolbar button:focus-visible,#v3-toolbar a:focus-visible{outline:2px solid white}
-#v3-3d{position:fixed;inset:0;width:100%;height:100%;z-index:42;border:none;display:none;background:#15262e}
-#v3-3d.show{display:block}
+#v3-3d{position:fixed;inset:0;width:100%;height:100%;z-index:42;border:none;display:block;opacity:0;pointer-events:none;background:#15262e;transition:opacity .25s}
+#v3-3d.show{opacity:1;pointer-events:auto}
 #v3-loading{position:fixed;top:78px;left:50%;transform:translateX(-50%);z-index:50;display:none;max-width:min(440px,94vw);border:1px solid #a3ddbb;background:#132c35f5;color:#ecfaec;border-radius:10px;padding:18px 22px;text-align:center;font-size:13px;line-height:1.55;box-shadow:0 12px 36px #061c24ad}
 #v3-loading.show{display:block}#v3-loading strong{display:block;font-size:16px;margin-bottom:6px}#v3-loading small{display:block;color:#b6cdc5;margin:5px 0 12px;font-size:11px}
 #v3-loading button{border:1px solid #9fd3b5;border-radius:5px;padding:9px 12px;background:#24493f;color:white;font-size:12px;font-weight:700;cursor:pointer}
@@ -195,11 +195,11 @@ window.addEventListener('keydown',e=>{if(e.key==='Escape')$('#detail-card').clas
  <button id="v3-real" type="button">⛰ 3D réelle</button>
  <a href="https://map.geo.admin.ch/#/map?lang=fr&amp;center=2602878,1128734&amp;z=9" target="_blank" rel="noopener" title="Carte officielle swisstopo : appuyer sur le cube pour activer la 3D">↗ Officiel</a>
 </div>
-<iframe id="v3-3d" title="Vue 3D de Crans-Montana alimentée par swisstopo" loading="lazy"></iframe>
+<iframe id="v3-3d" title="Vue 3D de Crans-Montana alimentée par swisstopo" loading="eager"></iframe>
 <div id="v3-loading" role="status" aria-live="polite">
  <strong id="v3-load-title">Chargement du relief 3D</strong>
  <div id="v3-load-text">Connexion à swisstopo. La carte illustrée reste accessible.</div>
- <small id="v3-load-tip">Sur Android, les fichiers téléchargés peuvent bloquer les services externes. Un hébergement HTTPS est préférable.</small>
+ <small id="v3-load-tip">Le chargement des tuiles 3D dépend de la connexion Internet et des capacités du téléphone. Retour automatique en cas de problème.</small>
  <button id="v3-back" type="button">Retour à la carte visible</button>
 </div>
 <div id="v3-footer">Carte illustrée : modèle artistique, non cadastral</div>
@@ -214,7 +214,7 @@ const $=x=>document.getElementById(x);
     frame.classList.remove('show');note.classList.remove('show');
     $('v3-art').classList.add('active');$('v3-real').classList.remove('active');
     $('v3-footer').style.display='block';
-    if(message){launched=false;frame.removeAttribute('src');frame.src='about:blank';const t=document.getElementById('toast');if(t){t.textContent=message;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),5000);}}
+    if(message||!good){launched=false;good=false;frame.removeAttribute('src');frame.src='about:blank';}if(message){const t=document.getElementById('toast');if(t){t.textContent=message;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),7000);}}
   };
   const startReal=()=>{
     if(frame.classList.contains('show'))return;
@@ -223,10 +223,10 @@ const $=x=>document.getElementById(x);
     $('v3-load-title').textContent='Chargement des données swisstopo';
     $('v3-load-text').textContent='Vérification du terrain et des bâtiments 3D. La carte illustrée reste visible.';
     $('v3-real').classList.add('active');$('v3-art').classList.remove('active');
-    if(!launched){launched=true;frame.src='./3d.html?v=4';}
+    if(!launched){launched=true;frame.src='./3d.html?v=5';}
     clearTimeout(timer);timer=setTimeout(()=>{
-      if(armed){switchBack('Mode 3D non chargé. Les services externes sont peut-être bloqués sur ce fichier local.');}
-    },23000);
+      if(armed){switchBack('Le terrain 3D ne répond pas. La carte illustrée reste disponible.');}
+    },20500);
   };
   $('v3-art').addEventListener('click',()=>switchBack());
   $('v3-back').addEventListener('click',()=>switchBack());
@@ -234,11 +234,13 @@ const $=x=>document.getElementById(x);
   window.addEventListener('message',e=>{
     // Message source restricted to the embedded 3D iframe.
     if(e.source!==frame.contentWindow || !e.data || e.data.source!=='crans-atlas')return;
-    if(e.data.status==='geo-loaded'&&armed){
-      clearTimeout(timer);armed=false;good=true;frame.classList.add('show');note.classList.remove('show');$('v3-footer').style.display='none';
+    if(e.data.status==='geo-loaded'){
+      good=true;
+      if(armed){clearTimeout(timer);armed=false;frame.classList.add('show');note.classList.remove('show');$('v3-footer').style.display='none';}
     }
+    if(e.data.status==='geo-progress'&&armed){$('v3-load-text').textContent=String(e.data.label||'Connexion à swisstopo...').slice(0,130);}
     if((e.data.status==='geo-error'||e.data.status==='geo-timeout')&&armed){
-      switchBack('Impossible de confirmer l’affichage 3D. Utilise la carte illustrée ou héberge le site en HTTPS.');
+      switchBack('3D indisponible : '+String(e.data.reason||'le rendu du terrain n’a pas pu être confirmé').slice(0,140));
     }
   });
 })();
