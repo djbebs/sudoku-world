@@ -777,7 +777,7 @@ async function refreshData(){
  const elevations=loadHeight();
  try{
   const [source,rendererModule]=await Promise.all([
-   import('./mo-valais-strict.js?v=1'),
+   import('./mo-valais-strict.js?v=2'),
    import('./cadastre-mesh.js?v=1')
   ]);
   moPainter=rendererModule.renderMOFeatures;
