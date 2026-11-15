@@ -13,6 +13,7 @@ P0.6.6 reprend et améliore P0.6.5 sans modifier les versions P0.5.9, P0.5.8 ni 
 ### Protection anticollision des personnages
 
 - **Nouveau module \`playground-collision.js\`** : enveloppes de volumes solides (boîtes 3D, propres à chaque jeu), tests de pénétration avec une marge corporelle et **échantillonnage des segments** au lieu de vérifier seulement les points de départ et d'arrivée. Un segment traversant un obstacle est rejeté, même si ses extrémités sont dégagées.
+- La validation utilise désormais une marge conservatrice de **24 cm autour du personnage** et une hauteur corporelle de **1,30 m** dans ce modèle simplifié.
 - Les zones de contact autorisées, comme les marches, la surface de glissade et la face avant du filet, ne sont pas classées comme volumes interdits. Les **noyaux solides inférieurs** des plateformes et la face arrière du filet le sont.
 - Chaque variante de jeu doit être entièrement dans le périmètre OSM cartographié et en dehors des volumes interdits. **Si aucune variante n'est valide, l'interaction n'est pas affichée** plutôt que d'animer un trajet incohérent.
 - En complément, un garde-fou teste le déplacement à chaque image et retient la dernière pose sûre si une collision est détectée. Ceci réduit les risques d'intersection si les données de pose changent.
@@ -48,7 +49,7 @@ La phase \`slide\` ne lance plus de cycle de marche. Les phases \`buttLand\`, \`
 
 - Test des volumes interdits : un segment traversant une boîte depuis deux points extérieurs est rejeté ; un détour sûr est accepté.
 - Les scénarios validés sur un polygone d'essai comportent **3 parcours de filet**, **3 fins de petit toboggan** et **2 fins de tube**. Aucun scénario validé ne pénètre les volumes interdits définis.
-- Simulation des animations toutes les 35 ms sur la totalité des boucles : **aucun blocage anticollision**, aucune téléportation détectée, déplacements maximaux entre deux images de 4 à 8 cm.
+- Simulation des animations toutes les 35 ms sur la totalité des boucles, avec la marge de sécurité renforcée : **aucun blocage anticollision**, aucune téléportation détectée, déplacements maximaux entre deux images de 4 à 8 cm.
 - Les variantes changent réellement à chaque boucle pour un même enfant, sans passage abrupt au point de départ.
 - Le comportement précédent des adultes immobiles, les six fichiers GLB, le zoom 12× et les couches géographiques existantes sont conservés.
 - **Limite de validation :** tests de données, syntaxe et simulation dans un environnement JavaScript contrôlé. Les collisions exactes du maillage et le rendu visuel sur navigateur réel ne sont pas prouvés par ces tests.
