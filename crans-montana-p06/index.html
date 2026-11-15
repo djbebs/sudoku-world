@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#173125">
-<title>Isometric Crans-Montana · P0.6.2 / Ycoor</title>
+<title>Isometric Crans-Montana · P0.6.3 / Ycoor</title>
 <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--paper:#f6f0dd;--ink:#29291f;--red:#c92430;--blue:#2f5c9e;--edge:#1d221c}
@@ -30,7 +30,8 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
 }
 #place{max-height:calc(100dvh - 95px);overflow-y:auto}
 #furniture-control{margin-top:8px;padding-top:7px;border-top:2px dashed #bcb5a0;line-height:1.35;font-size:12px}
-#furniture-switch,#photo-switch{font-size:11px;padding:4px 7px;max-width:100%}
+#furniture-switch,#photo-switch,#people-switch{font-size:11px;padding:4px 7px;max-width:100%}
+#people-switch.active{background:#7198bb;color:#142e42}
 #photo-switch.active{background:#f5c858;color:#25291f}
 #furniture-control summary{cursor:pointer;color:#465239;font-weight:700;margin-top:6px;overflow-wrap:anywhere}
 #furniture-results{margin:4px 0;font-size:11px;max-height:145px;overflow-y:auto}
@@ -63,6 +64,10 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
 <div id="photo-control" style="margin-top:7px;padding-top:7px;border-top:1px dashed #bcb5a0">
 <button id="photo-switch" class="active" type="button" aria-pressed="true" title="Afficher ou masquer les jeux illustratifs approuvés d'après les photos d’Ycoor">🛝 Jeux photo : ON</button>
 <div id="photo-status" role="status" style="font-size:11px;margin-top:4px;line-height:1.35">Modèles approuvés · positions indicatives.</div>
+</div>
+<div id="people-control" style="margin-top:7px;padding-top:7px;border-top:1px dashed #bcb5a0">
+ <button id="people-switch" type="button" class="active" aria-pressed="true" title="Activer les personnages 3D originaux, vêtements saisonniers et mouvements">👥 Personnages : ON</button>
+ <div id="people-status" role="status" style="font-size:11px;line-height:1.35;margin-top:4px">Chargement des personnages...</div>
 </div></div></section>
 <section id="time" class="box" aria-label="Heure et saisons">
  <div class="row"><button id="postcard">postcard</button><button id="sun-mode" class="active">real sun</button></div>
@@ -74,10 +79,11 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
 </section>
 <section id="info" class="box"><button id="close-info" aria-label="Fermer">×</button><strong id="info-title">Lieu</strong><p id="info-desc"></p></section>
 <section id="sources" class="box"><button id="close-sources" style="float:right" aria-label="Fermer">×</button>
-<h2>Ycoor · Pixel Atlas P0.6.2</h2>
+<h2>Ycoor · Pixel Atlas P0.6.3</h2>
 <p><b>Sol, routes et jardins :</b> mensuration officielle du Valais, géométries LV95 conservées avec les numéros OBJECTID et les catégories GENRE.</p>
 <p><b>Mobilier urbain :</b> bancs, poubelles, lampadaires, arrêts, fontaines, tables et jeux issus de points OpenStreetMap portant un identifiant et des coordonnées. Ces petits modèles 3D sont <b>symboliques</b> : leurs formes, dimensions et orientations ne sont pas mesurées.</p>
 <p>Les polygones <code>leisure=playground</code> sont maintenant remplis en surface pixel-art. Les surfaces cadastrales de revêtements durs, chemins ou eau restent visuellement prioritaires. Les équipements sont affichés uniquement si un nœud OSM ou une géométrie OSM d'équipement existe. Pour un équipement dessiné comme voie, le symbole est placé au centre représentatif de sa géométrie (position indicative, dérivée de la source).</p>
+<p><b>Personnages :</b> les six modèles 3D originaux du fichier <code>personnages_coiffes.zip</code> fourni par l’utilisateur, sans simplification du maillage. Les matériaux <code>haut</code> et <code>bas</code> sont recolorés avec des couleurs variées. Printemps/été : casquette ou chapeau et vêtements légers ; automne/hiver : variantes bonnet et manches couvrantes. Les bras et jambes articulés par nœuds GLB sont animés en Three.js. Les adultes marchent uniquement sur les lignes piétonnes OSM existantes et/ou stationnent près de l’aire de jeux. Les enfants jouent sur les maquettes photo à positions indicatives, sans prétention de repérage exact.</p>
 <p><b>Couche « Jeux photo » :</b> cinq maquettes 3D approuvées par l’utilisateur : grande structure avec tunnel, toboggan tubulaire courbe, petite structure bleue et rouge, jeux de cordes et banc. Placement déterministe approximatif à l’intérieur du périmètre OpenStreetMap de l’aire de jeux. Le banc est un modèle approuvé, mais sa présence sur ce périmètre reste non confirmée. Les objets sont cliquables et séparés des données OSM et cadastrales. Le contour de l’aire de jeux est orange fluo (#ff6900).</p>
 <p>Des photos locales de 2025 confirment l'existence de structures à grimper et de toboggans à Ycoor, mais ne fournissent pas des coordonnées précises. <a href="https://www.crans-montana.ch/fr/?idcmt=Partenaire_Activite_4ff811345b2094222f969b680bb9ac78" target="_blank" rel="noopener noreferrer">Référence touristique officielle</a>.</p>
 <p>Le rendu est <b>100 % pixel-art</b>, sans photographie ni géométrie dérivée de captures d'écran.</p>
@@ -129,6 +135,7 @@ let osmOk=false,terrainOk=false,terrainVals=null,frame=0,clockLast=performance.n
 let moData={shapes:[],results:[],state:'pending'},moUpdated=null,moPainter=null,moRendered=[];
 let furnitureData={features:[],counts:null,status:'loading',errors:[]},furniturePainter=null,furnitureGroup=null,furnitureDrawn=[],furnitureVisible=true,furnitureBusy=false;
 let photoPainter=null,photoGroup=null,photoDrawn=[],photoVisible=true,photoReason='en attente';
+let peopleSystem=null,peopleModule=null,peopleEnabled=true,peopleGeneration=0,peopleStatus='en attente',peopleError=null;
 const scene=new THREE.Scene();scene.background=new THREE.Color('#729da2');scene.fog=new THREE.Fog('#729da2',190,420);
 const camera=new THREE.OrthographicCamera(-95,95,75,-75,0.1,1500);
 const renderer=new THREE.WebGLRenderer({antialias:false,preserveDrawingBuffer:true,powerPreference:'low-power'});
@@ -193,6 +200,59 @@ function tree(x,z,seed,parent=world,tags={}){
  }
 }
 
+function updatePeoplePanel(){
+ const b=$('people-switch');
+ b.classList.toggle('active',peopleEnabled);
+ b.setAttribute('aria-pressed',String(peopleEnabled));
+ b.textContent='👥 Personnages : '+(peopleEnabled?'ON':'OFF');
+ const el=$('people-status');
+ if(peopleError){el.textContent='Chargement GLB impossible : '+peopleError;return}
+ if(peopleStatus==='loading'){
+  el.textContent='Lecture des six modèles GLB et placement dans la scène…';return;
+ }
+ if(furnitureData.status!=='verified'){
+  el.textContent='En attente du polygone de jeux / des chemins OSM. Aucune foule fictive hors zone.';return;
+ }
+ const n=peopleSystem?.actors?.length||0;
+ el.textContent=n?
+  (peopleSystem.adults+' adultes · '+peopleSystem.children+' enfants · '+season()+
+  '. Marche, observation, discussion et jeux animés. Vêtements saisonniers ; emplacements illustratifs.'):
+  'Aucun personnage placé : pas de zone ni de chemin exploitable.';
+}
+$('people-switch').onclick=()=>{
+ peopleEnabled=!peopleEnabled;
+ if(peopleSystem?.group)peopleSystem.group.visible=peopleEnabled;
+ updatePeoplePanel();
+};
+async function startPeople(){
+ const generation=++peopleGeneration;
+ peopleError=null;
+ if(furnitureData.status!=='verified'){
+  peopleStatus='waiting';updatePeoplePanel();return;
+ }
+ peopleStatus='loading';updatePeoplePanel();
+ let created=null;
+ try{
+  if(!peopleModule)peopleModule=import('./characters.js?v=1');
+  const mod=await peopleModule;
+  created=await mod.createPopulation({
+   THREE,season:season(),height,
+   furnitureData,photoDrawn,visible:peopleEnabled
+  });
+  if(generation!==peopleGeneration){created.dispose();return;}
+  peopleSystem=created;
+  world.add(created.group);
+  created.setPhotoVisible?.(photoVisible);
+  peopleStatus='ready';
+ }catch(e){
+  if(generation!==peopleGeneration){created?.dispose?.();return;}
+  peopleError=String(e.message||e);
+  peopleStatus='error';
+  console.warn('Personnages GLB',e);
+ }
+ updatePeoplePanel();
+}
+
 function updatePhotoPanel(){
  const button=$('photo-switch');
  button.classList.toggle('active',photoVisible);
@@ -216,6 +276,7 @@ function updatePhotoPanel(){
 $('photo-switch').onclick=()=>{
  photoVisible=!photoVisible;
  if(photoGroup)photoGroup.visible=photoVisible;
+ peopleSystem?.setPhotoVisible?.(photoVisible);
  updatePhotoPanel();
 };
 function updateFurniturePanel(){
@@ -287,7 +348,7 @@ async function startFurniture(){
  updateFurniturePanel();
  try{
   const [source,visual,photoModels]=await Promise.all([
-   import('./furniture-source.js?v=2'),
+   import('./furniture-source.js?v=3'),
    import('./furniture-mesh.js?v=3'),
    import('./photo-playground.js?v=2')
   ]);
@@ -602,6 +663,9 @@ function drawOfficialCadastral(parent){
  moRendered=moPainter(THREE,moData.shapes,height,parent,objects,lineGeom);
 }
 function build(){
+ // Dispose per-character material clones; preserve shared original GLB geometry.
+ peopleGeneration++;
+ if(peopleSystem){peopleSystem.dispose();peopleSystem=null;}
  mats.ground.color.set(season()==='winter'?'#c9d1c4':season()==='autumn'?'#929887':'#959d92');
  // Dispose old per-tile / terrain geometry before rebuilding seasons.
  // Official streamed 3D Tiles are separate from world and remain untouched.
@@ -633,8 +697,9 @@ function build(){
  }
  const ok=(moData.results||[]).filter(r=>r.status==='verified').length;
  $('origin').textContent='Mensuration officielle Valais · toits swissBUILDINGS3D';
- $('status').textContent='P0.6.2 · '+ok+'/4 sources MO · '+moRendered.length+' géométries cadastre · '+furnitureDrawn.length+' objets OSM · '+photoDrawn.length+' jeux illustratifs · relief '+(terrainOk?'swisstopo interpolé':'non confirmé');
+ $('status').textContent='P0.6.3 · '+ok+'/4 sources MO · '+moRendered.length+' géométries cadastre · '+furnitureDrawn.length+' objets OSM · '+photoDrawn.length+' jeux illustratifs · relief '+(terrainOk?'swisstopo interpolé':'non confirmé');
  updateGeoLabel();showCadastralAudit();updateFurniturePanel();updatePhotoPanel();syncRoofs();
+ startPeople();
 }
 /* swissBUILDINGS3D (3D Tiles -> Three.js), ECEF transformed to local Y-up. */
 function ecef(lonD,latD,h){
@@ -730,6 +795,7 @@ function angleForSun(){
 }
 function loop(now){
  requestAnimationFrame(loop);let dt=Math.min(0.04,(now-clockLast)/1000);clockLast=now;frame+=dt;
+ peopleSystem?.update(dt);
  if(needsResize){resize();needsResize=false}
  if(state.play){state.clock=(state.clock+dt*.35)%24;$('hour').value=state.clock;if(false&&Math.floor(frame*2)!==Math.floor((frame-dt)*2))toReal('light',{date:state.date,hour:state.clock,real:state.sun})}
  angleForSun();
@@ -776,7 +842,7 @@ const raycaster=new THREE.Raycaster(),mouse=new THREE.Vector2();
 function selectAt(clientX,clientY){
  let rect=renderer.domElement.getBoundingClientRect();
  mouse.set(2*(clientX-rect.left)/rect.width-1,1-2*(clientY-rect.top)/rect.height);
- raycaster.setFromCamera(mouse,camera);let intersections=raycaster.intersectObjects(objects.filter(o=>(furnitureVisible||o.userData.source!=='osm')&&(photoVisible||o.userData.source!=='photo')),false);
+ raycaster.setFromCamera(mouse,camera);let intersections=raycaster.intersectObjects(objects.filter(o=>(furnitureVisible||o.userData.source!=='osm')&&(photoVisible||o.userData.source!=='photo')&&(peopleEnabled||o.userData.source!=='people')),false);
  if(!intersections.length)return;
  let obj=intersections[0].object;if(!obj.userData.title)return;
  $('info-title').textContent=obj.userData.title;$('info-desc').textContent=obj.userData.desc;$('info').classList.add('show');
