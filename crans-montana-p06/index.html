@@ -236,7 +236,7 @@ async function startPeople(){
  peopleStatus='loading';updatePeoplePanel();
  let created=null;
  try{
-  if(!peopleModule)peopleModule=import('./characters.js?v=2');
+  if(!peopleModule)peopleModule=import('./characters.js?v=3');
   const mod=await peopleModule;
   created=await mod.createPopulation({
    THREE,season:season(),height,
@@ -356,7 +356,7 @@ async function startFurniture(){
   const [source,visual,photoModels]=await Promise.all([
    import('./furniture-source.js?v=3'),
    import('./furniture-mesh.js?v=3'),
-   import('./photo-playground.js?v=3')
+   import('./photo-playground.js?v=4')
   ]);
   furniturePainter=visual.drawFurniture;
   photoPainter=photoModels.drawPhotoModels;
