@@ -5,7 +5,7 @@
  */
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { originalGlbBuffers, CHARACTER_FILES, SOURCE } from './characters-assets.js';
-import { compileWalkPath, motionAt } from './people-motion.js?v=2';
+import { compileWalkPath, motionAt } from './people-motion.js?v=3';
 
 const COLORS={
  spring:{tops:['#61b78e','#e1aa61','#7298cf','#e18b9f','#bdac5f'],bottoms:['#374c59','#5c6c76','#6f5945','#667346']},
@@ -136,7 +136,10 @@ export function planPopulationForZones({walkPaths=[],zones=[],maxActors=12,tileH
     add('enfant',item.role,point.x,point.z,{
      modelKey:model.key,zoneId:zone.id,modelSource:'photo',
      offsetY:point.y,facing:item.facing||0,
-     track,minY:typeof item.minY==='number'?item.minY*scale:undefined,
+     // The prefab's local shape and authored stepping script control poses.
+     modelCenter:{x:model.center.x,z:model.center.z},
+     track,sequence:Array.isArray(item.sequence)?item.sequence:null,
+     minY:typeof item.minY==='number'?item.minY*scale:undefined,
      maxY:typeof item.maxY==='number'?item.maxY*scale:undefined
     });
    }
@@ -218,8 +221,11 @@ function buildActors(T,lib,planned,season,height,enabled){
   const parts={leftArm:root.getObjectByName('Bras_G'),rightArm:root.getObjectByName('Bras_D'),
    leftLeg:root.getObjectByName('Jambe_G'),rightLeg:root.getObjectByName('Jambe_D'),
    head:root.getObjectByName('Tete')};
-  const neutral={};
-  for(const [name,obj] of Object.entries(parts))neutral[name]=obj?.rotation?.x||0;
+  const neutral={},neutralZ={};
+  for(const [name,obj] of Object.entries(parts)){
+   neutral[name]=obj?.rotation?.x||0;
+   neutralZ[name]=obj?.rotation?.z||0;
+  }
   const meta={title:(spec.kind==='enfant'?'Enfant':'Adulte')+' · '+spec.role,
    desc:'Modèle fourni : '+style.file+'. Tenue '+style.season+
     ' ; animation comportementale. '+(spec.role==='walk'?
@@ -230,7 +236,7 @@ function buildActors(T,lib,planned,season,height,enabled){
    source:'people',asset:style.file};
   root.traverse(o=>{if(o.isMesh)o.userData={...meta}});
   actors.push({
-   spec,root,anchor,parts,neutral,elapsed:0,
+   spec,root,anchor,parts,neutral,neutralZ,elapsed:0,
    cache:{path:spec.route?compileWalkPath(spec.route):null},
    lastPhase:'initial'
   });
@@ -240,10 +246,11 @@ function buildActors(T,lib,planned,season,height,enabled){
   for(const actor of actors){
    actor.elapsed+=step;
    const pose=motionAt(actor.spec,actor.elapsed,height,actor.cache);
-   const {anchor,parts,neutral,spec}=actor;
+   const {anchor,parts,neutral,neutralZ,spec}=actor;
    anchor.position.set(pose.x,pose.y,pose.z);
    anchor.rotation.y=pose.heading;
-   anchor.rotation.z=pose.bodyZ;
+   anchor.rotation.x=pose.bodyX||0;
+   anchor.rotation.z=pose.bodyZ||0;
    // Important: playing child is hidden when its PHOTO illustration is hidden.
    // A tube slide also hides its rider while inside the opaque tube.
    anchor.visible=pose.visible&&(!spec.modelKey||photoVisible);
@@ -251,6 +258,11 @@ function buildActors(T,lib,planned,season,height,enabled){
    if(parts.rightArm)parts.rightArm.rotation.x=neutral.rightArm+pose.armR;
    if(parts.leftLeg)parts.leftLeg.rotation.x=neutral.leftLeg+pose.legL;
    if(parts.rightLeg)parts.rightLeg.rotation.x=neutral.rightLeg+pose.legR;
+   // The net has sideways hand/foot reaches, not just pendulum legs.
+   if(parts.leftArm)parts.leftArm.rotation.z=neutralZ.leftArm+(pose.armLZ||0);
+   if(parts.rightArm)parts.rightArm.rotation.z=neutralZ.rightArm+(pose.armRZ||0);
+   if(parts.leftLeg)parts.leftLeg.rotation.z=neutralZ.leftLeg+(pose.legLZ||0);
+   if(parts.rightLeg)parts.rightLeg.rotation.z=neutralZ.rightLeg+(pose.legRZ||0);
    if(parts.head)parts.head.rotation.y=pose.headY;
    actor.lastPhase=pose.phase;
   }
