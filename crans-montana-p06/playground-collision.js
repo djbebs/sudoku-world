@@ -10,8 +10,8 @@
  * Sliding on a ramp / climbing a net are authored contact interactions, not
  * forbidden crossings. Every new village prefab supplies its own obstacles.
  */
-export const DEFAULT_RADIUS=0.16;
-export const DEFAULT_BODY_HEIGHT=1.12;
+export const DEFAULT_RADIUS=0.24;
+export const DEFAULT_BODY_HEIGHT=1.30;
 const finite=v=>Number.isFinite(v);
 export function insideBox(p,box,radius=DEFAULT_RADIUS,bodyHeight=DEFAULT_BODY_HEIGHT){
  if(!p||!finite(p.x)||!finite(p.z)||!finite(p.y))return true;
