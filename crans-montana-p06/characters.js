@@ -239,8 +239,8 @@ function createBody(library,kind,season,index){
  });
  return {root,style};
 }
-function buildActors(T,lib,planned,season,height,enabled,photoDrawn=[]){
- const collisionIndex=buildSceneCollisionIndex(T,photoDrawn);
+function buildActors(T,lib,planned,season,height,enabled,photoDrawn=[],extraCollisionModels=[]){
+ const collisionIndex=buildSceneCollisionIndex(T,[...photoDrawn,...extraCollisionModels]);
  const collisionStats={meshCount:collisionIndex.records.length,
   triangleCount:collisionIndex.triangleCount,corrected:0,suppressed:0,latest:null};
  const group=new T.Group();group.name='Animated GLB people (tile-local, reusable)';
@@ -341,7 +341,8 @@ function buildActors(T,lib,planned,season,height,enabled,photoDrawn=[]){
  return {group,actors,update,dispose,setPhotoVisible,collisionStats,
   adults:planned.adults,children:planned.children,plan:planned};
 }
-export async function createPopulation({THREE,season='summer',height,furnitureData,photoDrawn=[],visible=true,tileHalfSize=50,maxActors=12}){
+export async function createPopulation({THREE,season='summer',height,furnitureData,photoDrawn=[],
+ extraCollisionModels=[],visible=true,tileHalfSize=50,maxActors=12}){
  const plan=planPopulation({walkPaths:furnitureData?.walkPaths||[],
   furnitureFeatures:furnitureData?.features||[],photoDrawn,tileHalfSize,maxActors});
  if(!plan.people.length){
@@ -351,5 +352,5 @@ export async function createPopulation({THREE,season='summer',height,furnitureDa
    update(){},setPhotoVisible(){},dispose(){group.removeFromParent()}};
  }
  const library=await loadTemplates();
- return buildActors(THREE,library,plan,season,height,visible,photoDrawn);
+ return buildActors(THREE,library,plan,season,height,visible,photoDrawn,extraCollisionModels);
 }
