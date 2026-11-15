@@ -144,6 +144,140 @@ export const MODEL_INTERACTIONS={
   role:'sit',point:{x:0,z:0,y:.65},facing:0
  }]
 };
+/**
+ * Forbidden solid volumes, approximating the occupied lower bodies of the
+ * ACTUALLY RENDERED pixel-art prefabs. All boxes use the same MODEL-LOCAL
+ * coordinate system as MODEL_INTERACTIONS. Sliding surfaces, stair treads,
+ * and the front face of the rope net are intentionally navigable contact
+ * surfaces and are not classified as forbidden volumes.
+ */
+export const MODEL_SOLIDS={
+ complex:[
+  {minX:-2.65,maxX:-.75,minY:.10,maxY:1.74,minZ:-1.48,maxZ:1.40},
+  {minX:1.10,maxX:2.90,minY:.12,maxY:2.43,minZ:1.37,maxZ:1.74}
+ ],
+ tube:[
+  {minX:-2.27,maxX:-.19,minY:.10,maxY:1.82,minZ:-1.35,maxZ:1.01}
+ ],
+ small:[
+  {minX:-1.23,maxX:1.02,minY:.10,maxY:1.19,minZ:-1.06,maxZ:.65}
+ ],
+ ropes:[
+  {minX:-1.88,maxX:1.03,minY:.10,maxY:2.88,minZ:-1.39,maxZ:-1.12}
+ ],
+ bench:[]
+};
+// Compatibility: the original sequence remains as a fallback, but alternate
+// scripts are explicit. All variants return to their identical start point
+// so changing them between loops cannot cause teleportation.
+const SMALL=MODEL_INTERACTIONS.small[0];
+SMALL.track=[
+ {x:.13,z:.72,y:1.48},{x:.13,z:2.15,y:.37},
+ {x:.15,z:2.50,y:.12},{x:-1.85,z:2.50,y:.12},
+ {x:-1.85,z:-2.55,y:.12},
+ {x:-1.35,z:-2.30,y:.31},{x:-1.27,z:-2.05,y:.56},
+ {x:-1.17,z:-1.80,y:.81},{x:-1.10,z:-1.55,y:1.06},
+ {x:-1.02,z:-1.30,y:1.31},{x:-.90,z:-.95,y:1.43},
+ {x:-.10,z:-.24,y:1.43},{x:.13,z:.72,y:1.48}
+];
+const smallReturn=[
+ ['return',2,3,1.9],['return',3,4,4.6],
+ ['stairs',4,5,.60],['stairs',5,6,.63],
+ ['stairs',6,7,.63],['stairs',7,8,.63],
+ ['stairs',8,9,.63],['stairs',9,10,.75],
+ ['platformWalk',10,11,1.15],['platformWalk',11,12,1.00]
+];
+SMALL.variants=[
+ {name:'finish-on-bottom',track:SMALL.track,sequence:[
+  ['waitTop',0,0,2.3],['slide',0,1,1.15],
+  ['buttLand',1,2,.82],['sitGround',2,2,1.55],
+  ['standUp',2,2,.83],...smallReturn
+ ]},
+ {name:'land-on-feet',track:SMALL.track,sequence:[
+  ['waitTop',0,0,2.85],['slide',0,1,1.1],
+  ['feetLand',1,2,.72],['regainBalance',2,2,.65],
+  ...smallReturn
+ ]},
+ {name:'slide-and-sit-longer',track:SMALL.track,sequence:[
+  ['waitTop',0,0,1.8],['slide',0,1,1.22],
+  ['buttLand',1,2,.83],['sitGround',2,2,2.3],
+  ['standUp',2,2,1.02],...smallReturn
+ ]}
+];
+SMALL.sequence=SMALL.variants[0].sequence;
+
+const TUBE=MODEL_INTERACTIONS.tube[0];
+TUBE.track=[
+ {x:-.45,z:0,y:2.45},{x:1.10,z:.35,y:2.20},
+ {x:2.38,z:2.13,y:.82},{x:2.70,z:2.56,y:.12},
+ {x:2.83,z:2.57,y:.12},{x:-2.91,z:2.57,y:.12},
+ {x:-2.91,z:-1.74,y:.12},{x:-2.55,z:-1.55,y:.12},
+ {x:-2.55,z:-1.20,y:.42},{x:-2.55,z:-.80,y:.79},
+ {x:-2.55,z:-.40,y:1.16},{x:-2.55,z:0,y:1.53},
+ {x:-2.55,z:.40,y:1.90},{x:-1.40,z:-.20,y:2.15},
+ {x:-.45,z:0,y:2.45}
+];
+const tubeReturn=[
+ ['return',3,4,.65],['return',4,5,4.8],
+ ['return',5,6,3.65],['return',6,7,.6],
+ ['stairs',7,8,.65],['stairs',8,9,.68],
+ ['stairs',9,10,.68],['stairs',10,11,.68],
+ ['stairs',11,12,.68],['stairs',12,13,.95],
+ ['platformWalk',13,14,1.2]
+];
+TUBE.variants=[
+ {name:'tube-sit-landing',track:TUBE.track,sequence:[
+  ['waitTop',0,0,2.4],['insideTube',0,1,1.05],
+  ['insideTube',1,2,1.15],['buttLand',2,3,.78],
+  ['sitGround',3,3,1.0],['standUp',3,3,.90],...tubeReturn
+ ]},
+ {name:'tube-feet-landing',track:TUBE.track,sequence:[
+  ['waitTop',0,0,2.2],['insideTube',0,1,1.12],
+  ['insideTube',1,2,1.12],['feetLand',2,3,.71],
+  ['regainBalance',3,3,.69],...tubeReturn
+ ]}
+];
+TUBE.sequence=TUBE.variants[0].sequence;
+
+const NET=MODEL_INTERACTIONS.ropes[0];
+// All paths stay in front of the actual vertical z=-1.15 mesh.
+// Start/end at the same handhold so the actor changes route each cycle.
+const netStart={x:-1.28,z:-.87,y:.34};
+function netScript(track,peak=track.length-2){
+ const stages=[];
+ for(let i=0;i<peak;i++)stages.push(['net-up',i,i+1,.78+(i%3)*.06]);
+ stages.push(['holdNet',peak,peak,1.15]);
+ for(let i=peak;i<track.length-1;i++)stages.push(['net-down',i,i+1,.82+(i%2)*.05]);
+ stages.push(['rest',track.length-1,track.length-1,1.05]);
+ return stages;
+}
+const netLeft=[
+ netStart,{x:-1.28,z:-.87,y:.77},{x:-.75,z:-.87,y:1.03},
+ {x:-.75,z:-.87,y:1.45},{x:-.20,z:-.87,y:1.70},
+ {x:-.20,z:-.87,y:2.16},{x:.35,z:-.87,y:2.39},
+ {x:.35,z:-.87,y:1.91},{x:-.20,z:-.87,y:1.46},
+ {x:-.75,z:-.87,y:.95},netStart
+];
+const netRight=[
+ netStart,{x:-.75,z:-.87,y:.77},{x:-.20,z:-.87,y:1.07},
+ {x:.35,z:-.87,y:1.34},{x:.82,z:-.87,y:1.72},
+ {x:.82,z:-.87,y:2.21},{x:.35,z:-.87,y:2.43},
+ {x:-.20,z:-.87,y:1.95},{x:-.75,z:-.87,y:1.52},
+ {x:-1.28,z:-.87,y:1.04},netStart
+];
+const netShort=[
+ netStart,{x:-1.55,z:-.87,y:.82},{x:-1.55,z:-.87,y:1.24},
+ {x:-1.28,z:-.87,y:1.62},{x:-.75,z:-.87,y:1.97},
+ {x:-.20,z:-.87,y:1.50},{x:-.75,z:-.87,y:1.13},
+ netStart
+];
+NET.variants=[
+ {name:'diagonal-to-top',track:netLeft,sequence:netScript(netLeft,6)},
+ {name:'right-hand-traverse',track:netRight,sequence:netScript(netRight,6)},
+ {name:'short-left-loop',track:netShort,sequence:netScript(netShort,4)}
+];
+NET.track=NET.variants[0].track;
+NET.sequence=NET.variants[0].sequence;
 const COLORS={yellow:'#f5b62c',red:'#d94137',metal:'#aeb9bf',metalLight:'#d1dadd',
   dark:'#262c2d',wood:'#906337',woodLight:'#ba8750',blue:'#176cbd',
   rope:'#26292a',climbing:'#555b5b',grip:'#ec4f3b',grass:'#78b250'};
@@ -380,7 +514,8 @@ export function drawPhotoModels(T,features,height,parent,pickable,visible=true){
   });
   drawn.push({key:p.key,name:p.name,center:{x:p.x,z:p.z},
    scale:p.scale,polygonId:plan.polygonId,
-   interactions:MODEL_INTERACTIONS[p.key]||[]});
+   interactions:MODEL_INTERACTIONS[p.key]||[],
+   solidVolumes:MODEL_SOLIDS[p.key]||[]});
  }
  return {group,drawn,reason:plan.reason,polygonId:plan.polygonId};
 }
