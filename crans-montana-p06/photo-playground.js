@@ -367,22 +367,27 @@ export function planPhotoPlacements(features){
 }
 function builder(T,group){
  const c=COLORS;
- function cube(w,h,d,color,x,y,z){
+ function cube(w,h,d,color,x,y,z,collisionKind='barrier'){
   const m=new T.Mesh(new T.BoxGeometry(w,h,d),material(T,color));
-  m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;group.add(m);return m;
+  m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;
+  m.userData.atlasCollisionKind=collisionKind;
+  group.add(m);return m;
  }
- function cyl(r,h,color,x,y,z,faces=8){
+ function cyl(r,h,color,x,y,z,faces=8,collisionKind='barrier'){
   const m=new T.Mesh(new T.CylinderGeometry(r,r,h,faces),material(T,color));
-  m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;group.add(m);return m;
+  m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;
+  m.userData.atlasCollisionKind=collisionKind;
+  group.add(m);return m;
  }
- function link(x1,y1,z1,x2,y2,z2,r,color,faces=7){
+ function link(x1,y1,z1,x2,y2,z2,r,color,faces=7,collisionKind='barrier'){
   const a=new T.Vector3(x1,y1,z1),b=new T.Vector3(x2,y2,z2);
   const v=new T.Vector3().subVectors(b,a),length=v.length();
   if(length<.01)return null;
   const mesh=new T.Mesh(new T.CylinderGeometry(r,r,length,faces),material(T,color));
   mesh.position.copy(a).add(b).multiplyScalar(.5);
   mesh.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),v.normalize());
-  mesh.castShadow=true;group.add(mesh);return mesh;
+  mesh.castShadow=true;mesh.userData.atlasCollisionKind=collisionKind;
+  group.add(mesh);return mesh;
  }
  function posts(coords,h=2.8,color=c.yellow){
   for(const [x,z] of coords)cyl(.12,h,color,x,h/2,z,6);
@@ -396,8 +401,8 @@ function builder(T,group){
 function buildComplex(T,g){
  const {cube,cyl,link,posts,rails,c}=builder(T,g);
  posts([[-2.85,-1.8],[-2.85,1.5],[-.75,-1.8],[-.75,1.5],[1.2,-1.8],[1.2,1.5],[2.9,-1.8],[2.9,1.5]],3.7);
- cube(2.4,.18,3.2,c.wood,-1.9,2.05,-.13);
- cube(2.7,.18,3.2,c.wood,1.8,2.05,-.13);
+ cube(2.4,.18,3.2,c.wood,-1.9,2.05,-.13,'support');
+ cube(2.7,.18,3.2,c.wood,1.8,2.05,-.13,'support');
  rails(-2.85,-.75,-1.76,2.85);rails(1.20,2.9,-1.76,2.85);
  rails(-2.85,-.75,1.48,2.85);rails(1.20,2.9,1.48,2.85);
  // Horizontal tube connecting the two towers.
@@ -408,7 +413,7 @@ function buildComplex(T,g){
  for(let i=0;i<3;i++)for(let j=0;j<4;j++)
   cube(.16,.14,.16,c.grip,1.3+i*.55,.45+j*.51,1.68);
  // Stairs on one end, no exact dimensions are implied.
- for(let i=0;i<5;i++)cube(.95,.11,.42,c.metalLight,-3.05,.27+i*.37,-1.4+i*.5);
+ for(let i=0;i<5;i++)cube(.95,.11,.42,c.metalLight,-3.05,.27+i*.37,-1.4+i*.5,'support');
  for(const x of [-3.58,-2.52])link(x,.3,-1.55,x,2.25,.55,.08,c.red);
  // Yellow roof / visual accents.
  cube(.75,.18,.8,c.yellow,-2.60,3.35,-1.05);
@@ -416,15 +421,15 @@ function buildComplex(T,g){
 function buildTubeSlide(T,g){
  const {cube,cyl,link,posts,c}=builder(T,g);
  posts([[-2,-1.45],[-2,1.0],[-.4,-1.45],[-.4,1.0]],3.4);
- cube(2.15,.17,2.45,c.wood,-1.20,2.15,-.20);
- for(let i=0;i<5;i++)cube(.82,.12,.33,c.metalLight,-2.55,.36+i*.37,-1.2+i*.4);
+ cube(2.15,.17,2.45,c.wood,-1.20,2.15,-.20,'support');
+ for(let i=0;i<5;i++)cube(.82,.12,.33,c.metalLight,-2.55,.36+i*.37,-1.2+i*.4,'support');
  link(-2.0,2.93,1.02,-.45,2.93,1.02,.06,c.red);
  link(-2.0,2.93,-1.46,-.45,2.93,-1.46,.06,c.red);
  // Curved tube slide made of low-sided silver metal segments.
  const path=[[-.45,2.44,0],[.25,2.40,.10],[1.10,2.2,.35],[1.80,1.87,.87],[2.25,1.38,1.55],[2.33,.82,2.12]];
  for(let i=1;i<path.length;i++){
   const a=path[i-1],b=path[i];
-  link(a[0],a[1],a[2],b[0],b[1],b[2],.54,c.metal,12);
+  link(a[0],a[1],a[2],b[0],b[1],b[2],.54,c.metal,12,'tunnel');
   cyl(.57,.07,c.metalLight,a[0],a[1],a[2],12).rotation.z=.7;
  }
  cyl(.58,.16,c.metalLight,2.35,.77,2.13,12).rotation.x=.62;
@@ -434,7 +439,7 @@ function buildTubeSlide(T,g){
 function buildSmall(T,g){
  const {cube,link,posts,c}=builder(T,g);
  posts([[-1.4,-1.25],[-1.4,.75],[1.1,-1.25],[1.1,.75]],2.75);
- cube(2.35,.17,1.86,c.wood,-.15,1.43,-.23);
+ cube(2.35,.17,1.86,c.wood,-.15,1.43,-.23,'support');
  cube(1.17,.78,.12,c.blue,-1.31,2.20,-.28);
  cube(1.14,.78,.12,c.blue,1.05,2.20,-.28);
  cube(1.6,.7,.11,c.blue,-.05,2.43,-1.27);
@@ -444,15 +449,19 @@ function buildSmall(T,g){
  const stepZ=[-2.30,-2.05,-1.80,-1.55,-1.30];
  for(let i=0;i<5;i++){
   const top=.31+.25*i;
-  cube(.52,.11,.24,c.metalLight,stepX[i],top-.055,stepZ[i]);
+  cube(.52,.11,.24,c.metalLight,stepX[i],top-.055,stepZ[i],'support');
  }
  for(const x of [-1.73,-.70]){
   link(x,.29,-2.47,x,1.70,-1.22,.055,c.red,6);
  }
- // Red open straight slide from platform to the ground.
- link(.13,1.48,.72,.13,.37,2.15,.56,c.red,9);
- cube(1.18,.13,.35,c.red,.13,.33,2.19);
- for(const x of [-.49,.75])link(x,1.46,.74,x,.39,2.14,.065,c.red);
+ // The prior slide was a solid Ø1.12m cylinder with the child travelling
+ // through its center. Rebuild the SAME measured endpoints as a thin, open
+ // tilted slide surface: the child's butt can now rest ABOVE the ramp.
+ const slopeLength=Math.hypot(1.48-.37,2.15-.72);
+ const slide=cube(1.05,.13,slopeLength,c.red,.13,(1.48+.37)/2,(.72+2.15)/2,'slide-surface');
+ slide.rotation.x=Math.atan2(1.48-.37,2.15-.72);
+ cube(1.18,.13,.35,c.red,.13,.33,2.19,'slide-surface');
+ for(const x of [-.49,.75])link(x,1.46,.74,x,.39,2.14,.065,c.red,7,'handrail');
 }
 function buildRopes(T,g){
  const {cube,cyl,link,posts,c}=builder(T,g);
@@ -462,11 +471,11 @@ function buildRopes(T,g){
  // Net of dark cords with distinct red junctions.
  for(let i=0;i<=5;i++){
   const x=-1.8+i*.55;
-  link(x,.18,-1.15,x,2.95,-1.15,.028,c.rope,5);
+  link(x,.18,-1.15,x,2.95,-1.15,.028,c.rope,5,'net-contact');
  }
  for(let j=0;j<=5;j++){
   const y=.27+j*.49;
-  link(-1.8,y,-1.15,.95,y,-1.15,.027,c.rope,5);
+  link(-1.8,y,-1.15,.95,y,-1.15,.027,c.rope,5,'net-contact');
  }
  for(let i=0;i<=5;i++)for(let j=0;j<=5;j++)
   cyl(.07,.10,c.red,-1.8+i*.55,.27+j*.49,-1.15,6).rotation.x=Math.PI/2;
@@ -485,7 +494,7 @@ function buildBench(T,g){
   cube(.14,.57,.16,c.dark,x,.33,-.22);
   cube(.14,.53,.16,c.dark,x,.28,.23);
  }
- cube(2.30,.16,.72,c.woodLight,0,.65,0);
+ cube(2.30,.16,.72,c.woodLight,0,.65,0,'support');
  cube(2.30,.21,.14,c.woodLight,0,1.07,-.34);
  cube(2.30,.19,.14,c.woodLight,0,1.37,-.34);
 }
@@ -515,7 +524,8 @@ export function drawPhotoModels(T,features,height,parent,pickable,visible=true){
   drawn.push({key:p.key,name:p.name,center:{x:p.x,z:p.z},
    scale:p.scale,w:p.w,d:p.d,polygonId:plan.polygonId,
    interactions:MODEL_INTERACTIONS[p.key]||[],
-   solidVolumes:MODEL_SOLIDS[p.key]||[]});
+   solidVolumes:MODEL_SOLIDS[p.key]||[],
+   modelObject:part});
  }
  return {group,drawn,reason:plan.reason,polygonId:plan.polygonId};
 }
