@@ -170,8 +170,8 @@ function clipSegment(a,b,extent=49.6){
 export function drawFurniture(T,data,height,parent,objects,lineGeom){
  const group=new T.Group();group.name='OpenStreetMap street furniture, non-cadastral';
  parent.add(group);
- if(!data?.features?.length)return {group,drawn:[],counts:{}};
- const drawn=[],counts={};
+ if(!data?.features?.length)return {group,drawn:[],counts:{},colliders:[]};
+ const drawn=[],counts={},colliders=[];
  for(const item of data.features){
   if(item.geometry==='polygon'&&item.type==='playground'){
    const poly=item.polygon;
@@ -221,11 +221,12 @@ export function drawFurniture(T,data,height,parent,objects,lineGeom){
     item.sourceURL};
   g.traverse(o=>{
    if(o.isMesh){
-    o.userData={...meta,source:'osm',osmID:item.id};
+    o.userData={...meta,source:'osm',osmID:item.id,atlasCollisionKind:'barrier'};
     objects.push(o);
    }
   });
+  colliders.push({key:'osm-'+item.id,modelObject:g});
   drawn.push(item);counts[item.type]=(counts[item.type]||0)+1;
  }
- return {group,drawn,counts};
+ return {group,drawn,counts,colliders};
 }
