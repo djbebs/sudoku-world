@@ -1,10 +1,45 @@
-# Crans-Montana Pixel Atlas · P0.6.4
+# Crans-Montana Pixel Atlas · P0.6.5
 
 ## Aperçu
 
-**Atlas 3D P0.6.4 :** https://djbebs.github.io/sudoku-world/crans-montana-p06/?v=6
+**Atlas 3D P0.6.5 :** https://djbebs.github.io/sudoku-world/crans-montana-p06/?v=7
 
-P0.6.4 reprend et améliore P0.6.3 sans modifier les versions P0.5.9, P0.5.8 ni Sudoku World.
+P0.6.5 reprend et améliore P0.6.4 sans modifier les versions P0.5.9, P0.5.8 ni Sudoku World.
+
+## P0.6.5 : véritables montées d'escaliers et escalade du filet
+
+Les deux vidéos fournies par l'utilisateur montrent l'enfant près du haut du grand toboggan et un autre enfant sur le filet d'escalade, avec des gestes et des montées trop mécaniques. La correction s'appuie sur **ces séquences et sur la géométrie des modèles pixel-art affichés**, pas sur des positions géographiques inventées.
+
+### 1. Escaliers : un appui de pied par marche
+
+- Le grand toboggan tubulaire et la grande structure possédaient cinq marches géométriques chacun. Les trajectoires ont été alignées sur **les cinq surfaces de marches** (hauteurs et espacements du modèle).
+- La petite structure a désormais **cinq marches low-poly visibles** côté arrière, dont les coordonnées sont identiques à celles utilisées par l'animation.
+- L'enfant n'est plus interpolé du bas vers le haut d'un seul bloc. Chaque marche est un segment distinct d'environ **0,6 à 0,7 seconde** ; au milieu de chaque segment, une jambe se soulève, le corps se penche légèrement et le bras opposé vient en soutien.
+- **Jambe gauche puis jambe droite** alternent ; les jambes restent neutres aux paliers et pendant les attentes.
+- Après les escaliers, l'enfant parcourt la plateforme et se dirige vers le toboggan. Les sorties et boucles de retour précédemment implémentées sont conservées.
+
+### 2. Filet d'escalade : deux bras, deux jambes, déplacement réel
+
+- Le trajet de l'enfant suit les **intersections verticales et horizontales** de la grille de cordes de la maquette 3D : progression en X et Y, puis descente.
+- Deux mains sont placées en posture de préhension ; la main en mouvement change de côté à chaque prise. Les bras ont des rotations autour des axes X et Z.
+- Les genoux et les jambes s'animent en alternance avec les mains, en levant successivement le pied d'appui suivant. Le corps penche légèrement vers le filet.
+- Une **pause en haut** et une **descente alternée** complètent le cycle. L'enfant ne traverse pas le filet sans bouger les membres.
+- Les modèles GLB originaux de l'utilisateur sont réutilisés sans changement de maillage. Il s'agit d'une **animation procédurale simplifiée**, pas d'une simulation physique, d'une cinématique inverse ou d'une capture de mouvement.
+
+### Réutilisation future dans tout le village
+
+Chaque équipement fournit des **données d'animation propres au prefab** dans `MODEL_INTERACTIONS` : `track` (points d'appui) et `sequence` (phases, index de points et durée). Le module `people-motion.js` génère les postures d'escaliers et d'escalade à partir de ces données, sans connaître le nom du jeu ou la carte de Crans-Montana.
+
+Ainsi, des escaliers ou filets ajoutés dans un autre quartier pourront utiliser **le même moteur**, avec leurs propres points d'appui et géométries. Les limites de population et la taille de tuile demeurent configurables dans `characters.js`.
+
+### Vérifications
+
+- Syntaxe JavaScript validée pour les modules de jeux, personnages et animation.
+- Scène intégrée simulée de 8 personnages, dont un grimpe les marches de la grande structure, un remonte les cinq marches du grand toboggan, un escalade celles du petit jeu et un escalade le filet.
+- **Alternance confirmée des deux jambes** à chaque escalier et des deux bras + jambes à chaque montée du filet.
+- Simulation à pas de 33 ms : déplacements continus (saut maximum inférieur à 8 cm par image simulée), même position en début et fin de boucle, jambes fixes pendant l'attente.
+- Les positions sont fondées sur la maquette pixel-art ; les emplacements des équipements dans le véritable Ycoor restent indicatifs et non mesurés.
+- **Le rendu graphique et la perception naturelle du mouvement dans le navigateur réel doivent encore être vérifiés visuellement.**
 
 ## P0.6.4 : mouvements naturels et interactions sur les jeux
 
@@ -50,16 +85,16 @@ Il n'y a **aucune coordonnée de quartier codée en dur dans le moteur d'animati
 
 ## P0.6.3 : personnages saisonniers animés
 
-La version ajoute la **population 3D** que l'utilisateur a fournie dans l'archive \`personnages_coiffes.zip\`. Les six fichiers originaux ont été vérifiés et transférés sans modification de maillage :
+La version ajoute la **population 3D** que l'utilisateur a fournie dans l'archive `personnages_coiffes.zip`. Les six fichiers originaux ont été vérifiés et transférés sans modification de maillage :
 
-- \`adulte_bonnet.glb\`, \`adulte_casquette.glb\`, \`adulte_chapeau.glb\`
-- \`enfant_bonnet.glb\`, \`enfant_casquette.glb\`, \`enfant_chapeau.glb\`
+- `adulte_bonnet.glb`, `adulte_casquette.glb`, `adulte_chapeau.glb`
+- `enfant_bonnet.glb`, `enfant_casquette.glb`, `enfant_chapeau.glb`
 
-Ils sont stockés sous forme d'un pack gzip sans perte, décodé dans le navigateur via \`DecompressionStream('gzip')\`. Le format de stockage comprend six tailles \`uint32 little-endian\` et les six GLB d'origine. Les modules \`people-data-a.js\`, \`people-data-b.js\`, \`people-data-c7.js\`, \`people-data-c8.js\`, \`people-data-c9.js\` et \`people-data-d.js\` contiennent les fragments compressés, et \`characters-assets.js\` les réassemble. **Empreinte SHA-256 de la concaténation originale des fichiers avec leurs tailles : \`4b095541e49c1861bca42bdfecad77c1ab37fde4974aa3b1f54f044ca4850bc8\`.**
+Ils sont stockés sous forme d'un pack gzip sans perte, décodé dans le navigateur via `DecompressionStream('gzip')`. Le format de stockage comprend six tailles `uint32 little-endian` et les six GLB d'origine. Les modules `people-data-a.js`, `people-data-b.js`, `people-data-c7.js`, `people-data-c8.js`, `people-data-c9.js` et `people-data-d.js` contiennent les fragments compressés, et `characters-assets.js` les réassemble. **Empreinte SHA-256 de la concaténation originale des fichiers avec leurs tailles : `4b095541e49c1861bca42bdfecad77c1ab37fde4974aa3b1f54f044ca4850bc8`.**
 
 ### Habillage saisonnier
 
-Le module \`characters.js\` charge les six modèles via Three.js \`GLTFLoader.parse\`. Les matériaux des fichiers \`haut\`, \`bas\`, \`coiffe\` et \`coiffe2\` sont clonés par personnage, puis recolorés suivant une palette variée mais déterministe, sans modifier la couleur de peau ni les cheveux.
+Le module `characters.js` charge les six modèles via Three.js `GLTFLoader.parse`. Les matériaux des fichiers `haut`, `bas`, `coiffe` et `coiffe2` sont clonés par personnage, puis recolorés suivant une palette variée mais déterministe, sans modifier la couleur de peau ni les cheveux.
 
 | Saison | Modèle et vêtements |
 |---|---|
@@ -68,12 +103,12 @@ Le module \`characters.js\` charge les six modèles via Three.js \`GLTFLoader.pa
 | Automne | Bonnet, palette chaude, variante couvrante |
 | Hiver | Bonnet, couleurs hivernales, variante couvrante |
 
-La saison automatique dépend de la date choisie dans l'interface. Les boutons saisonniers permettent de la forcer, le système recrée alors les personnages avec les matériaux correspondants. Les véritables bras et jambes \`Bras_G\`, \`Bras_D\`, \`Jambe_G\`, \`Jambe_D\` sont animés par rotations locales de leurs nœuds, sans squelette artificiellement supposé.
+La saison automatique dépend de la date choisie dans l'interface. Les boutons saisonniers permettent de la forcer, le système recrée alors les personnages avec les matériaux correspondants. Les véritables bras et jambes `Bras_G`, `Bras_D`, `Jambe_G`, `Jambe_D` sont animés par rotations locales de leurs nœuds, sans squelette artificiellement supposé.
 
 ### Occupations et emplacement
 
-- **Adultes** : marche sur les vrais tracés piétons OSM \`highway=footway\`, \`path\`, \`pedestrian\` ou \`living_street\`. Si ces tracés manquent, **aucune route imaginaire** n'est créée. D'autres adultes peuvent être placés à proximité des jeux comme spectateurs ou en conversation.
-- **Enfants** : certains stationnent ou bougent sur les structures photo-approuvées (\`complex\`, \`small\`, \`ropes\`) à positions indicatives. D'autres sautillent, font signe de la main ou jouent au sol sans pénétrer dans l'emprise approximative des maquettes.
+- **Adultes** : marche sur les vrais tracés piétons OSM `highway=footway`, `path`, `pedestrian` ou `living_street`. Si ces tracés manquent, **aucune route imaginaire** n'est créée. D'autres adultes peuvent être placés à proximité des jeux comme spectateurs ou en conversation.
+- **Enfants** : certains stationnent ou bougent sur les structures photo-approuvées (`complex`, `small`, `ropes`) à positions indicatives. D'autres sautillent, font signe de la main ou jouent au sol sans pénétrer dans l'emprise approximative des maquettes.
 - **Banc** : un adulte peut s'asseoir sur le banc photo-illustratif si ce banc a pu être placé, sans prétendre que sa présence physique a été mesurée.
 - Les jambes marchent en alternance, les bras suivent une cadence simple, le corps rebondit légèrement ; une personne joue, grimpe ou salue selon sa fonction.
 - Densité adaptative : jusqu'à environ **4 adultes et 5 enfants**. Le nombre réel affiché dépend des géométries effectivement reçues et de l'espace libre. Les personnages ne figurent pas dans des emplacements géographiques inventés hors du polygone OSM ou du tracé piéton.
@@ -86,7 +121,7 @@ Le panneau **« 👥 Personnages : ON/OFF »** active et masque indépendamment 
 - Les modèles GLB ne sont pas une bibliothèque d'animations squelettiques. Les membres nommés sont articulés par transformations Three.js, sans mouvement réaliste de précision.
 - Le monde utilise toujours les contours cadastraux officiels et les maquettes d'aire de jeux validées dans les versions précédentes.
 - L'API Overpass est élargie à la lecture des voies piétonnes, en plus des objets de mobilier. Les chemins OSM sont convertis en repère local métrique et coupés à la zone P0 avant de servir de trajectoires.
-- Le pack GLB gzip a été contrôlé : 9368 caractères Base64 assemblés, CRC32 du texte \`bb7287e7\`, 100680 octets après décompression attendus, six en-têtes GLB 2.0 vérifiés.
+- Le pack GLB gzip a été contrôlé : 9368 caractères Base64 assemblés, CRC32 du texte `bb7287e7`, 100680 octets après décompression attendus, six en-têtes GLB 2.0 vérifiés.
 - Tests JS : sélection des six variantes saisonnières, planification d'une population simulée avec 4 adultes et 5 enfants, mouvement des marcheurs, articulation et variation des couleurs, masquage des enfants dépendant des maquettes, aucune présence sans géométrie admissible.
 - **Contrôle encore nécessaire :** rendu effectif et performances dans un navigateur connecté avec chargement complet des services OSM et swisstopo. Les scènes réelles peuvent contenir moins de personnages que la scène simulée.
 
