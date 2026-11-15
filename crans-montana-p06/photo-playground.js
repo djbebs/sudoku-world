@@ -15,7 +15,7 @@ export const PHOTO_SOURCE='https://www.crans-montana.ch/fr/?idcmt=Partenaire_Act
 export const APPROVED=[
  {key:'complex',name:'Grande structure + tunnel',w:6.7,d:5.1,preferred:[.26,.32],match:['structure'],evidence:'Équipement de type structure et tunnel illustré dans la galerie touristique'},
  {key:'tube',name:'Grand toboggan tubulaire courbe',w:6.3,d:5.6,preferred:[.77,.30],match:['slide'],evidence:'Type de toboggan visible dans la galerie touristique'},
- {key:'small',name:'Petite structure bleue + toboggan rouge',w:4.1,d:3.7,preferred:[.24,.76],match:['structure','slide'],evidence:'Forme approuvée comme modèle illustratif, détails à vérifier sur place'},
+ {key:'small',name:'Petite structure bleue + toboggan rouge',w:4.1,d:5.4,preferred:[.24,.76],match:['structure','slide'],evidence:'Forme approuvée comme modèle illustratif, détails à vérifier sur place'},
  {key:'ropes',name:'Cordes et boules d’escalade',w:4.7,d:3.8,preferred:[.69,.72],match:['climbing'],evidence:'Catégorie d’équipement ludique à confirmer équipement par équipement'},
  {key:'bench',name:'Banc en bois',w:2.7,d:1.6,preferred:[.88,.83],match:['bench'],evidence:'Modèle approuvé par l’utilisateur ; présence sur ce polygone non vérifiée'}
 ];
