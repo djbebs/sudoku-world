@@ -14,10 +14,10 @@ export const LAYERS=[
 ];
 export const TYPES={
  270:{
- '6':['route','Route / chemin','#77736a'],
- '7':['trottoir','Trottoir','#d2c3a3'],
+ '6':['route','Route / chemin','#6f716d'],
+ '7':['trottoir','Trottoir','#d1c9b5'],
  '11':['bassin','Bassin','#6c9aa9'],
- '12':['dur','Autre revêtement dur','#ada48d'],
+ '12':['dur','Autre revêtement dur','#b9b6ac'],
  '13':['prairie','Champ / pré / pâturage','#80a16d'],
  '14':['prairie','Champ / pré / pâturage','#80a16d'],
  '17':['jardin','Jardin','#769969'],
