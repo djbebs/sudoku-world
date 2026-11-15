@@ -1,10 +1,41 @@
-# Crans-Montana Pixel Atlas · P0.6.6
+# Crans-Montana Pixel Atlas · P0.6.7
 
 ## Aperçu
 
-**Atlas 3D P0.6.6 :** https://djbebs.github.io/sudoku-world/crans-montana-p06/?v=8
+**Atlas 3D P0.6.7 :** https://djbebs.github.io/sudoku-world/crans-montana-p06/?v=9
 
-P0.6.6 reprend et améliore P0.6.5 sans modifier les versions P0.5.9, P0.5.8 ni Sudoku World.
+P0.6.7 reprend et améliore P0.6.6 sans modifier les versions P0.5.9, P0.5.8 ni Sudoku World.
+
+## P0.6.7 : collision réelle de la tête et de tout le corps
+
+Une vidéo de l'utilisateur (2026-11-15, 10 secondes) montre un enfant dont la tête traverse ou chevauche visuellement la structure bleue près du petit toboggan. À la sortie, la posture du personnage devient également incohérente. La protection P0.6.6 vérifiait surtout le **point de position et des volumes 3D simplifiés**, ce qui est insuffisant pour protéger l'ensemble de la tête, des bras et des membres articulés.
+
+### Corrections mises en œuvre
+
+1. **Petite glissade reconstruite sur les vrais points de la maquette** : le gros tube cylindrique rouge était un volume massif dans lequel le personnage se déplaçait par son axe central. Il est remplacé par une **rampe inclinée mince**, avec les mêmes extrémités haut/bas, un plateau de réception et des garde-corps.
+2. **Annotations explicites des pièces 3D** : les poteaux, panneaux, garde-corps, plateformes, marches, filets et surfaces de glissade reçoivent des catégories de collision : `barrier`, `support`, `handrail`, `net-contact`, `slide-surface`, `tunnel`. Les métadonnées survivent à l'attribution des titres d'objets cliquables.
+3. **Nouveau module `people-mesh-guard.js`** : prend directement les triangles des maillages Three.js des objets réellement rendus. Ils sont convertis en coordonnées mondiales une fois lors du chargement du carré.
+4. **Personnage entier** : à chaque pose animée, le moteur échantillonne des volumes corporels autour de la **tête, des cheveux/coiffes, du torse, des bras et des jambes**, à partir des dimensions réelles des meshes GLB fournis. Il calcule les distances entre ces volumes et les triangles de la structure.
+5. **Contact contrôlé** : les mains peuvent entrer en contact avec le filet ou la main courante, les pieds avec les marches ou la surface de glissade. La **tête et le torse ne sont exemptés pour aucune pièce**. Les autres barrières restent interdites aux bras et aux jambes.
+6. **Résolution sans traversée visible** : si la pose entre en conflit avec la structure, le système recherche une petite correction de quelques centimètres sur la verticale ou le côté. **Si aucune correction n'est sûre, cette pose est masquée**, elle n'est pas montrée en traversant le solide.
+7. **Mobilier OSM** : le moteur étend cette vérification aux volumes 3D réellement générés pour les bancs et autres équipements ponctuels cartographiés, en excluant la surface au sol OSM (qui ne constitue pas un obstacle).
+8. **Diagnostics intégrés** : le panneau « Personnages » signale le nombre d'objets 3D examinés et le cumul de poses écartées pour raison d'intersection.
+
+### Architecture pour Crans-Montana
+
+- Les obstacles sont transmis au moteur indépendamment de leur provenance ou de leur emplacement dans le village : `modelObject` pour les jeux illustratifs, `extraCollisionModels` pour le mobilier géolocalisé.
+- L'index de triangles des obstacles est construit **une seule fois par chargement de tuile**, pas à chaque image.
+- Seules les **poses des personnes animées** sont recalculées à chaque frame. Le moteur peut être appelé par chaque tuile chargée lorsque la carte sera élargie.
+- Le chargement/destruction saisonnier des personnages reste inchangé et permet de libérer les références d'obstacles en reconstruisant la tuile.
+- Une prochaine étape importante sera d'ajouter les géométries du flux **swissBUILDINGS3D** lorsqu'elles seront accessibles comme colliders locaux CPU. Les objets de ces tuiles externes ne sont **pas encore** inclus dans la détection. Une absence totale de collisions à l'échelle du village ne peut donc pas encore être garantie.
+
+### Vérifications et limites
+
+- Contrôle de syntaxe des modules JavaScript et dépendances.
+- Test géométrique indépendant : une tête proche d'un panneau triangulaire mince est détectée en collision ; éloignée, elle passe ; si aucun déplacement correcteur sûr n'existe, sa pose est **masquée** (test avec modèle géométrique synthétique).
+- Les six modèles GLB d'origine, les animations P0.6.6, les variantes de trajet et le zoom 12× sont conservés.
+- Les tests contrôlés ne remplacent **pas un examen graphique réel** sur le site GitHub Pages. La classification des surfaces de contact est une approximation physique ; elle peut autoriser un contact souhaité sans simuler complètement la forme de l'enfant et de la structure.
+- Il s'agit d'une **protection supplémentaire et fail-closed**, pas d'une preuve mathématique d'absence de toute intersection sur tous les équipements existants.
 
 ## P0.6.6 : protections anticollision et variété des jeux
 
@@ -12,7 +43,7 @@ P0.6.6 reprend et améliore P0.6.5 sans modifier les versions P0.5.9, P0.5.8 ni 
 
 ### Protection anticollision des personnages
 
-- **Nouveau module \`playground-collision.js\`** : enveloppes de volumes solides (boîtes 3D, propres à chaque jeu), tests de pénétration avec une marge corporelle et **échantillonnage des segments** au lieu de vérifier seulement les points de départ et d'arrivée. Un segment traversant un obstacle est rejeté, même si ses extrémités sont dégagées.
+- **Nouveau module `playground-collision.js`** : enveloppes de volumes solides (boîtes 3D, propres à chaque jeu), tests de pénétration avec une marge corporelle et **échantillonnage des segments** au lieu de vérifier seulement les points de départ et d'arrivée. Un segment traversant un obstacle est rejeté, même si ses extrémités sont dégagées.
 - La validation utilise désormais une marge conservatrice de **24 cm autour du personnage** et une hauteur corporelle de **1,30 m** dans ce modèle simplifié.
 - Les zones de contact autorisées, comme les marches, la surface de glissade et la face avant du filet, ne sont pas classées comme volumes interdits. Les **noyaux solides inférieurs** des plateformes et la face arrière du filet le sont.
 - Chaque variante de jeu doit être entièrement dans le périmètre OSM cartographié et en dehors des volumes interdits. **Si aucune variante n'est valide, l'interaction n'est pas affichée** plutôt que d'animer un trajet incohérent.
@@ -35,14 +66,14 @@ Le petit toboggan comporte trois scénarios de boucle. Le tube métallique en co
 2. **Réception debout** : glissade, absorption du choc avec flexion des genoux, reprise de l'équilibre, puis marche.
 3. **Réception assise prolongée** : glissade, pause assise plus longue, redressement, retour.
 
-La phase \`slide\` ne lance plus de cycle de marche. Les phases \`buttLand\`, \`sitGround\`, \`standUp\`, \`feetLand\` et \`regainBalance\` contrôlent la pose et permettent la transition progressive de la glissade à la station debout.
+La phase `slide` ne lance plus de cycle de marche. Les phases `buttLand`, `sitGround`, `standUp`, `feetLand` et `regainBalance` contrôlent la pose et permettent la transition progressive de la glissade à la station debout.
 
 ### Architecture réutilisable à l'échelle du village
 
-- Les modèles déclarent leurs volumes interdits \`MODEL_SOLIDS\`, leurs trajectoires locales et leurs variantes dans \`photo-playground.js\`.
-- \`playground-collision.js\` réalise la validation des trajectoires pour **n'importe quel prefab de n'importe quel quartier**, sans coordonnée propre à Ycoor.
-- \`people-motion.js\` alterne les séquences en fonction de la durée de chaque cycle et les annote par \`variantName\` et \`cycleIndex\`, sans état global mutable et sans hasard par image.
-- \`characters.js\` retient seulement les variantes sûres pour chaque personnage, garde la densité par tuile et refuse les chemins piétons qui traversent l'emprise des jeux.
+- Les modèles déclarent leurs volumes interdits `MODEL_SOLIDS`, leurs trajectoires locales et leurs variantes dans `photo-playground.js`.
+- `playground-collision.js` réalise la validation des trajectoires pour **n'importe quel prefab de n'importe quel quartier**, sans coordonnée propre à Ycoor.
+- `people-motion.js` alterne les séquences en fonction de la durée de chaque cycle et les annote par `variantName` et `cycleIndex`, sans état global mutable et sans hasard par image.
+- `characters.js` retient seulement les variantes sûres pour chaque personnage, garde la densité par tuile et refuse les chemins piétons qui traversent l'emprise des jeux.
 - Le véritable découpage de tout Crans-Montana en tuiles reste une phase future.
 
 ### Vérifications du patch
