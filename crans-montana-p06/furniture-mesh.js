@@ -195,11 +195,11 @@ export function drawFurniture(T,data,height,parent,objects,lineGeom){
     '. Surface pixel-art stylisée selon '+(surface?'surface='+surface:'la référence visuelle locale')+
     '. Aucun équipement n’est ajouté sans position OSM.'};
    group.add(ground);objects.push(ground);
-   const lineMaterial=mat(T,'#6b8d5b');
+   const lineMaterial=mat(T,'#ff6900');
    for(let i=1;i<poly.length;i++){
     const segment=clipSegment(poly[i-1],poly[i]);
     if(!segment)continue;
-    lineGeom(segment,.24,lineMaterial,.49,group);
+    lineGeom(segment,.48,lineMaterial,.72,group);
    }
    drawn.push(item);counts[item.type]=(counts[item.type]||0)+1;
    continue;
