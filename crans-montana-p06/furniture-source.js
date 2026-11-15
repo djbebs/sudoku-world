@@ -9,7 +9,9 @@
  */
 export const OSM_CREDIT='© OpenStreetMap contributors (ODbL)';
 export const ORIGIN_WGS84={lon:7.478054985916397,lat:46.311038174695724};
-export const PILOT_BBOX={south:46.31058861,west:7.47740560,north:46.31148774,east:7.47870438};
+// Request a slightly larger WGS84 envelope to cover every rotated LV95 corner;
+// exact 100m clipping happens only after conversion to local LV95.
+export const PILOT_BBOX={south:46.310568,west:7.477380,north:46.311508,east:7.478730};
 export const CATEGORIES=[
  {key:'bench',label:'Bancs',emoji:'🪑'},
  {key:'playground',label:'Aires de jeux',emoji:'🛝'},
@@ -62,7 +64,7 @@ function category(tags){
  if(tags.amenity==='drinking_water')return 'water';
  if(tags.amenity==='bicycle_parking')return 'bicycle';
  if(tags.highway==='street_lamp')return 'lamp';
- if(tags.highway==='bus_stop'||tags.public_transport==='platform')return 'bus';
+ if(tags.highway==='bus_stop'||(tags.public_transport==='platform'&&tags.bus==='yes'))return 'bus';
  if(tags.leisure==='picnic_table')return 'picnic';
  if(tags.leisure==='playground')return 'playground';
  if(tags.barrier==='bollard')return 'bollard';
