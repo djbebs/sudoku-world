@@ -19,6 +19,54 @@ export const APPROVED=[
  {key:'ropes',name:'Cordes et boules d’escalade',w:4.7,d:3.8,preferred:[.69,.72],match:['climbing'],evidence:'Catégorie d’équipement ludique à confirmer équipement par équipement'},
  {key:'bench',name:'Banc en bois',w:2.7,d:1.6,preferred:[.88,.83],match:['bench'],evidence:'Modèle approuvé par l’utilisateur ; présence sur ce polygone non vérifiée'}
 ];
+/**
+ * Animation anchors are written in LOCAL COORDINATES of the approved 3D model,
+ * not geographic guesses. Every future playground prefab can define its own
+ * interactions with this same schema, independent of the district or village.
+ *
+ * point/track units: model units, relative to model origin; y above model base.
+ * Track positions are the visible geometry of the *specific* rendered slide.
+ */
+export const MODEL_INTERACTIONS={
+ complex:[{
+  role:'play-platform',point:{x:-1.55,z:-.12,y:2.05},
+  facing:0.8,action:'touch-rail'
+ }],
+ tube:[{
+  role:'play-tube',
+  track:[
+   {x:-.45,z:0,y:2.45},        // platform / entrance
+   {x:1.1,z:.35,y:2.20},       // inside opaque silver tube, invisible
+   {x:2.38,z:2.13,y:.82},      // exit
+   {x:2.70,z:2.56,y:.12},      // ground
+   {x:-2.50,z:1.70,y:.12},     // walk back to yellow support
+   {x:-2.54,z:-1.1,y:.12},     // at steps
+   {x:-2.36,z:-.80,y:2.1},    // climb
+   {x:-.45,z:0,y:2.45}        // top
+  ],
+  facing:0.8
+ }],
+ small:[{
+  role:'play-slide',
+  track:[
+   {x:.13,z:.72,y:1.48},       // child waits on actual small slide
+   {x:.13,z:2.15,y:.37},      // glides down the red ramp
+   {x:.15,z:2.50,y:.12},      // land
+   {x:-1.35,z:2.50,y:.12},    // walk left around play set
+   {x:-1.40,z:-1.22,y:.12},   // reach support/ladder side
+   {x:-1.05,z:-1.12,y:1.43},  // climb back up
+   {x:-.10,z:-.24,y:1.43},   // on platform
+   {x:.13,z:.72,y:1.48}      // queue at slide top
+  ],facing:0
+ }],
+ ropes:[{
+  role:'climb-ropes',point:{x:-.90,z:-1.15,y:.35},
+  minY:.35,maxY:1.78,facing:0
+ }],
+ bench:[{
+  role:'sit',point:{x:0,z:0,y:.65},facing:0
+ }]
+};
 const COLORS={yellow:'#f5b62c',red:'#d94137',metal:'#aeb9bf',metalLight:'#d1dadd',
   dark:'#262c2d',wood:'#906337',woodLight:'#ba8750',blue:'#176cbd',
   rope:'#26292a',climbing:'#555b5b',grip:'#ec4f3b',grass:'#78b250'};
@@ -243,7 +291,8 @@ export function drawPhotoModels(T,features,height,parent,pickable,visible=true){
    pickable.push(obj);
   });
   drawn.push({key:p.key,name:p.name,center:{x:p.x,z:p.z},
-   scale:p.scale,polygonId:plan.polygonId});
+   scale:p.scale,polygonId:plan.polygonId,
+   interactions:MODEL_INTERACTIONS[p.key]||[]});
  }
  return {group,drawn,reason:plan.reason,polygonId:plan.polygonId};
 }
