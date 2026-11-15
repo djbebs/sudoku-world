@@ -18,6 +18,12 @@ export const CATEGORIES=[
  {key:'slide',label:'Toboggans',emoji:'🛝'},
  {key:'swing',label:'Balançoires',emoji:'🎠'},
  {key:'climbing',label:'Jeux à grimper',emoji:'🧗'},
+ {key:'structure',label:'Structures multi-jeux',emoji:'🏗️'},
+ {key:'seesaw',label:'Balançoires à bascule',emoji:'⚖️'},
+ {key:'springy',label:'Jeux à ressort',emoji:'🐴'},
+ {key:'roundabout',label:'Tourniquets',emoji:'🎠'},
+ {key:'zipwire',label:'Tyroliennes',emoji:'🧗'},
+ {key:'sandpit',label:'Bacs à sable',emoji:'🏖️'},
  {key:'waste',label:'Poubelles',emoji:'🗑️'},
  {key:'lamp',label:'Lampadaires',emoji:'💡'},
  {key:'bus',label:'Arrêts de bus',emoji:'🚏'},
@@ -47,6 +53,7 @@ export function overpassQuery(){
  'node["playground"]('+bbox+');'+
  'node["barrier"="bollard"]('+bbox+');'+
  'way["leisure"="playground"]('+bbox+');'+
+ 'way["playground"]('+bbox+');'+
  ');out body geom;';
 }
 export const ENDPOINTS=[
@@ -56,7 +63,13 @@ export const ENDPOINTS=[
 ];
 function category(tags){
  if(tags.playground==='slide')return 'slide';
- if(tags.playground==='swing')return 'swing';
+ if(['swing','baby_swing','basketswing','tire_swing'].includes(tags.playground))return 'swing';
+ if(['structure','play_structure'].includes(tags.playground))return 'structure';
+ if(tags.playground==='seesaw')return 'seesaw';
+ if(['springy','spring_rider'].includes(tags.playground))return 'springy';
+ if(['roundabout','carousel'].includes(tags.playground))return 'roundabout';
+ if(['zipwire','aerialway'].includes(tags.playground))return 'zipwire';
+ if(tags.playground==='sandpit')return 'sandpit';
  if(['climbingframe','climbing_frame','climbingwall','climbing_wall'].includes(tags.playground))return 'climbing';
  if(tags.amenity==='bench')return 'bench';
  if(tags.amenity==='waste_basket')return 'waste';
@@ -77,6 +90,49 @@ function ignored(tags){
   tags['disused:leisure']||tags.construction;
 }
 const same=(a,b)=>Math.abs(a.lat-b.lat)<1e-9&&Math.abs(a.lon-b.lon)<1e-9;
+
+function pointInPolygon(p,ring){
+ let inside=false;
+ for(let i=0,j=ring.length-1;i<ring.length;j=i++){
+  const a=ring[i],b=ring[j];
+  if((a.z>p.z)!==(b.z>p.z) && p.x<(b.x-a.x)*(p.z-a.z)/(b.z-a.z)+a.x)inside=!inside;
+ }
+ return inside;
+}
+function wayRepresentativePoint(poly,closed){
+ // Position is derived from an existing mapped way, not manually placed.
+ // Prefer geometric polygon centroid (if inside), otherwise distance midpoint
+ // on the surveyed OSM outline/line. The symbol has NO measured footprint.
+ if(closed&&poly.length>=4){
+  let area=0,x=0,z=0;
+  for(let i=0;i<poly.length-1;i++){
+   const a=poly[i],b=poly[i+1],cross=a.x*b.z-b.x*a.z;
+   area+=cross;x+=(a.x+b.x)*cross;z+=(a.z+b.z)*cross;
+  }
+  if(Math.abs(area)>1e-8){
+   const center={x:x/(3*area),z:z/(3*area)};
+   if(pointInPolygon(center,poly))return center;
+  }
+ }
+ const distances=[];let total=0;
+ for(let i=1;i<poly.length;i++){
+  const len=Math.hypot(poly[i].x-poly[i-1].x,poly[i].z-poly[i-1].z);
+  distances.push(len);total+=len;
+ }
+ if(total<1e-8)return poly[0];
+ let remaining=total/2;
+ for(let i=1;i<poly.length;i++){
+  const len=distances[i-1];
+  if(remaining<=len){
+   const u=remaining/len;
+   return {x:poly[i-1].x+(poly[i].x-poly[i-1].x)*u,
+           z:poly[i-1].z+(poly[i].z-poly[i-1].z)*u};
+  }
+  remaining-=len;
+ }
+ return poly[poly.length-1];
+}
+
 export function parseOverpass(data){
  if(!Array.isArray(data?.elements))throw Error('Réponse OSM sans tableau elements');
  if(data.remark&&/error|timeout|too many|rate limit/i.test(data.remark))throw Error('Overpass: '+data.remark);
@@ -97,18 +153,27 @@ export function parseOverpass(data){
    if(!Number.isFinite(element.lat)||!Number.isFinite(element.lon))continue;
    const p=wgs84ToLocal(element.lat,element.lon);
    if(!withinPilot(p))continue;
-   features.push({...root,geometry:'point',point:p});
-  }else if(type==='playground'&&Array.isArray(element.geometry)){
-   // Ways are accepted only as real closed polygon boundaries. No centroid
-   // is used as a fabricated equipment point.
+   features.push({...root,geometry:'point',point:p,locationMethod:'mapped_node'});
+  }else if(Array.isArray(element.geometry)){
    const geom=element.geometry;
-   if(geom.length<4||!same(geom[0],geom[geom.length-1]))continue;
-   const polygon=geom.map(g=>wgs84ToLocal(g.lat,g.lon));
-   if(polygon.some(p=>!Number.isFinite(p.x+p.z)))continue;
-   const extents={xmin:Math.min(...polygon.map(p=>p.x)),xmax:Math.max(...polygon.map(p=>p.x)),
-     zmin:Math.min(...polygon.map(p=>p.z)),zmax:Math.max(...polygon.map(p=>p.z))};
-   if(extents.xmax< -50||extents.xmin>50||extents.zmax< -50||extents.zmin>50)continue;
-   features.push({...root,geometry:'polygon',polygon});
+   if(geom.length<2||geom.some(pt=>!Number.isFinite(pt.lat)||!Number.isFinite(pt.lon)))continue;
+   const points=geom.map(g=>wgs84ToLocal(g.lat,g.lon));
+   if(points.some(p=>!Number.isFinite(p.x+p.z)))continue;
+   const closed=geom.length>=4&&same(geom[0],geom[geom.length-1]);
+   if(type==='playground'){
+    // A mapped playground polygon is a precise boundary, not a toy location.
+    if(!closed)continue;
+    const extents={xmin:Math.min(...points.map(p=>p.x)),xmax:Math.max(...points.map(p=>p.x)),
+      zmin:Math.min(...points.map(p=>p.z)),zmax:Math.max(...points.map(p=>p.z))};
+    if(extents.xmax< -50||extents.xmin>50||extents.zmax< -50||extents.zmin>50)continue;
+    features.push({...root,geometry:'polygon',polygon:points,locationMethod:'mapped_polygon'});
+   }else if(['slide','swing','climbing','structure','seesaw','springy','roundabout','zipwire','sandpit'].includes(type)){
+    // Equipment explicitly mapped as an OSM way/area: draw symbol at a
+    // representative point derived from that geometry; never from area outline.
+    const point=wayRepresentativePoint(points,closed);
+    if(!withinPilot(point))continue;
+    features.push({...root,geometry:'point',point,locationMethod:'way_geometry_representative'});
+   }
   }
  }
  const counts=Object.fromEntries(CATEGORIES.map(c=>[c.key,0]));
