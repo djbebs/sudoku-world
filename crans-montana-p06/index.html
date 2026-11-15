@@ -242,10 +242,13 @@ async function startPeople(){
   if(generation!==peopleGeneration){created.dispose();return;}
   peopleSystem=created;
   world.add(created.group);
+  // The animated child meshes are also interactive in raycasting.
+  for(const actor of created.actors){actor.root.traverse(x=>{if(x.isMesh)objects.push(x)})}
   created.setPhotoVisible?.(photoVisible);
   peopleStatus='ready';
  }catch(e){
   if(generation!==peopleGeneration){created?.dispose?.();return;}
+  peopleModule=null; // allow retry after temporary CDN or asset loading failures
   peopleError=String(e.message||e);
   peopleStatus='error';
   console.warn('Personnages GLB',e);
