@@ -78,7 +78,7 @@ export function evaluateSequence(track,frames,t){
    if(!a||!b)return null;
    const u=clamp(now/duration,0,1),moving=from!==to;
    const p={x:lerp(a.x,b.x,u),z:lerp(a.z,b.z,u),y:lerp(a.y,b.y,u)};
-   return {...p,phase,moving,
+   return {...p,phase,moving,fromIndex:from,toIndex:to,
     visible:phase!=='insideTube',
     heading:moving?Math.atan2(b.x-a.x,b.z-a.z):0,
     progress:u,cycleLength:cycle};
@@ -103,7 +103,9 @@ export function motionAt(spec,t,height,cache={}){
  const baseY=ground(baseX,baseZ)+(spec.offsetY||0);
  const pose={
   x:baseX,y:baseY,z:baseZ,heading:spec.facing??(spec.kind==='adulte'?.9:-.5),
-  armL:0,armR:0,legL:0,legR:0,headY:0,bodyZ:0,visible:true,phase:'idle'
+  armL:0,armR:0,legL:0,legR:0,
+  armLZ:0,armRZ:0,legLZ:0,legRZ:0,
+  headY:0,bodyX:0,bodyZ:0,visible:true,phase:'idle'
  };
  const role=spec.role;
  if(role==='walk'){
@@ -121,43 +123,83 @@ export function motionAt(spec,t,height,cache={}){
   }
   return pose;
  }
- if((role==='play-slide'||role==='play-tube')&&spec.track){
-  const sampled=evaluateSequence(spec.track,SCENES[role],secs+(spec.clockOffset||0));
-  if(sampled){
-   pose.x=sampled.x;pose.z=sampled.z;
-   // Track y is height above the *actual* locally sampled terrain.
-   pose.y=height(sampled.x,sampled.z)+.27+sampled.y;
-   pose.visible=sampled.visible;pose.phase=sampled.phase;
-   if(sampled.moving)pose.heading=sampled.heading;
-   if(sampled.phase==='slide'||sampled.phase==='insideTube'){
-    pose.armL=-.32;pose.armR=-.32;
-    pose.legL=.48;pose.legR=.48;
-    pose.bodyZ=-.09;
-   }else if(sampled.phase==='climb'){
-    pose.armL=-.76+.12*Math.sin(6*secs);
-    pose.armR=-.76-.12*Math.sin(6*secs);
-    pose.legL=.30*Math.sin(6*secs);
-    pose.legR=-.30*Math.sin(6*secs);
-   }else if(sampled.phase==='return'||sampled.phase==='land'){
-    const pace=secs*7.2+seed;
-    pose.armL=.27*Math.sin(pace);pose.armR=-pose.armL;
-    pose.legL=-.29*Math.sin(pace);pose.legR=-pose.legL;
-   }
+ // Each playground prefab supplies its own physical track and phase script.
+ // The engine contains no village coordinates and does not need to know
+ // whether the next model is Ycoor, a rope net or another climbing structure.
+ const scripted=spec.track&&Array.isArray(spec.sequence)&&spec.sequence.length>0;
+ const fallback=(role==='play-slide'||role==='play-tube')?SCENES[role]:null;
+ if(spec.track&&(scripted||fallback)){
+  const sampled=evaluateSequence(spec.track,scripted?spec.sequence:fallback,
+   secs+(spec.clockOffset||0));
+  if(!sampled)return pose;
+  pose.x=sampled.x;pose.z=sampled.z;
+  // Model tracks are offsets from the SAME model origin as the rendered mesh.
+  // Sampling terrain at moving x/z would let children float over its fixed
+  // steps on a sloping swisstopo tile.
+  const center=spec.modelCenter||{x:spec.x,z:spec.z};
+  pose.y=height(center.x,center.z)+.27+sampled.y;
+  pose.visible=sampled.visible;pose.phase=sampled.phase;
+  if(sampled.moving)pose.heading=sampled.heading;
+  else pose.heading=spec.facing??pose.heading;
+  const u=clamp(sampled.progress,0,1);
+  const lift=Math.sin(Math.PI*u);  // foot lifted only while crossing a tread
+  const leftLead=sampled.fromIndex%2===0;
+  if(sampled.phase==='stairs'||sampled.phase==='stairs-down'){
+   const ascent=sampled.phase==='stairs';
+   // Distinct step for EACH visible stair tread, with alternating knees.
+   // On a stationary landing both legs return to rest.
+   pose.legL=(leftLead?(ascent?.70:-.42):.09)*lift;
+   pose.legR=(leftLead?.09:(ascent?.70:-.42))*lift;
+   pose.armL=leftLead?-.12*lift:-.48*lift;
+   pose.armR=leftLead?-.48*lift:-.12*lift;
+   pose.armLZ=leftLead?.08*lift:-.12*lift;
+   pose.armRZ=leftLead?.12*lift:-.08*lift;
+   pose.legLZ=leftLead?.07*lift:0;
+   pose.legRZ=!leftLead?-.07*lift:0;
+   pose.bodyX=ascent?-.11:.075;
+   pose.y+=.035*lift;
+   pose.headY=.045*Math.sin(Math.PI*u);
+  }else if(sampled.phase==='net-up'||sampled.phase==='net-down'){
+   const climbingUp=sampled.phase==='net-up';
+   // Hand-to-knot then foot-to-knot: alternating left and right.
+   // The child moves in X AND Y over the rendered spider-web grid.
+   pose.heading=spec.facing??Math.PI;
+   pose.armL=leftLead?(-1.12-.30*lift):(-.72-.08*lift);
+   pose.armR=leftLead?(-.72-.08*lift):(-1.12-.30*lift);
+   pose.armLZ=leftLead?.23*lift:-.08;
+   pose.armRZ=leftLead?.08:-.23*lift;
+   pose.legL=leftLead?(climbingUp?.62:-.48)*lift:.18;
+   pose.legR=leftLead?.18:(climbingUp?.62:-.48)*lift;
+   pose.legLZ=leftLead?.16*lift:-.04;
+   pose.legRZ=leftLead?.04:-.16*lift;
+   pose.bodyX=-.14;pose.bodyZ=.045*(leftLead?1:-1)*lift;
+   pose.y+=.018*lift;
+   pose.headY=climbingUp?.09:-.07;
+  }else if(sampled.phase==='holdNet'){
+   pose.heading=spec.facing??Math.PI;
+   pose.armL=-1.0;pose.armR=-.97;pose.legL=.12;pose.legR=.12;
+   pose.armLZ=.08;pose.armRZ=-.08;
+   pose.bodyX=-.11;
+  }else if(sampled.phase==='slide'||sampled.phase==='insideTube'){
+   pose.armL=-.32;pose.armR=-.32;
+   pose.legL=.48;pose.legR=.48;
+   pose.bodyZ=-.09;
+  }else if(sampled.moving&&(sampled.phase==='return'||sampled.phase==='land'||sampled.phase==='platformWalk')){
+   // Walking only while actually changing world coordinates.
+   const pace=(secs*7.5+seed)*Math.PI*.7;
+   pose.armL=.28*Math.sin(pace);pose.armR=-pose.armL;
+   pose.legL=-.32*Math.sin(pace);pose.legR=-pose.legL;
+   pose.y+=.01*Math.abs(Math.sin(pace));
+  }else if(sampled.phase==='waitTop'||sampled.phase==='waitBottom'||sampled.phase==='rest'){
+   // A waiting child is planted and may occasionally look around.
+   pose.headY=.07*Math.sin(secs*.24+seed);
   }
   return pose;
  }
- if(role==='climb-ropes'){
-  // Actual vertical movement, no walking-in-place. Reach net/handles.
-  const rise=(1-Math.cos(secs*1.16+seed*.15))/2;
-  const maxY=spec.maxY??1.78,minY=spec.minY??.35;
-  pose.y=height(baseX,baseZ)+.27+lerp(minY,maxY,rise);
-  pose.heading=spec.facing??0;
-  pose.phase='climb-ropes';
-  pose.armL=-.88+.16*Math.sin(secs*2.7);
-  pose.armR=-.82-.16*Math.sin(secs*2.7);
-  pose.legL=.18*Math.sin(secs*2.7);
-  pose.legR=-.18*Math.sin(secs*2.7);
-  pose.bodyZ=.04*Math.sin(secs*.75);
+ // A net without authored physical grips is NOT animated as imaginary climbing.
+ // New prefabs must supply their own track and sequence to allow that action.
+ if(role==='climb-ropes'||role==='play-stairs'){
+  pose.armL=-.10;pose.armR=-.10;
   return pose;
  }
  if(role==='skip'||role==='play-ground'){
