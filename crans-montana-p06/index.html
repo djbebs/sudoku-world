@@ -811,6 +811,17 @@ function angleForSun(){
 function loop(now){
  requestAnimationFrame(loop);let dt=Math.min(0.04,(now-clockLast)/1000);clockLast=now;frame+=dt;
  peopleSystem?.update(dt);
+ // Refresh safety diagnostics at most every four seconds, not every frame.
+ // This surfaces any collision-suppressed poses instead of silently losing
+ // characters when a future prefab introduces an incompatible animation.
+ if(peopleSystem?.collisionStats&&frame-(loop.lastSafetyUI||0)>4){
+  loop.lastSafetyUI=frame;
+  const c=peopleSystem.collisionStats;
+  if((loop.lastBlockedCount||0)!==c.suppressed){
+   loop.lastBlockedCount=c.suppressed;
+   updatePeoplePanel();
+  }
+ }
  if(needsResize){resize();needsResize=false}
  if(state.play){state.clock=(state.clock+dt*.35)%24;$('hour').value=state.clock;if(false&&Math.floor(frame*2)!==Math.floor((frame-dt)*2))toReal('light',{date:state.date,hour:state.clock,real:state.sun})}
  angleForSun();
