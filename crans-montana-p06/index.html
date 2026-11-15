@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#173125">
-<title>Isometric Crans-Montana · P0.6.4 / Ycoor</title>
+<title>Isometric Crans-Montana · P0.6.5 / Ycoor</title>
 <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--paper:#f6f0dd;--ink:#29291f;--red:#c92430;--blue:#2f5c9e;--edge:#1d221c}
@@ -79,12 +79,13 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
 </section>
 <section id="info" class="box"><button id="close-info" aria-label="Fermer">×</button><strong id="info-title">Lieu</strong><p id="info-desc"></p></section>
 <section id="sources" class="box"><button id="close-sources" style="float:right" aria-label="Fermer">×</button>
-<h2>Ycoor · Pixel Atlas P0.6.4</h2>
+<h2>Ycoor · Pixel Atlas P0.6.5</h2>
 <p><b>Sol, routes et jardins :</b> mensuration officielle du Valais, géométries LV95 conservées avec les numéros OBJECTID et les catégories GENRE.</p>
 <p><b>Mobilier urbain :</b> bancs, poubelles, lampadaires, arrêts, fontaines, tables et jeux issus de points OpenStreetMap portant un identifiant et des coordonnées. Ces petits modèles 3D sont <b>symboliques</b> : leurs formes, dimensions et orientations ne sont pas mesurées.</p>
 <p>Les polygones <code>leisure=playground</code> sont maintenant remplis en surface pixel-art. Les surfaces cadastrales de revêtements durs, chemins ou eau restent visuellement prioritaires. Les équipements sont affichés uniquement si un nœud OSM ou une géométrie OSM d'équipement existe. Pour un équipement dessiné comme voie, le symbole est placé au centre représentatif de sa géométrie (position indicative, dérivée de la source).</p>
 <p><b>Personnages :</b> les six modèles GLB fournis par l’utilisateur et conservés tels quels, avec vêtements de couleurs différentes selon la saison. La marche est synchronisée avec un véritable déplacement sur un chemin OSM. Pour les personnages immobiles : jambes fixes, mouvements de tête légers et gestes occasionnels des bras, pas de marche sur place.</p>
 <p><b>Jeux interactifs :</b> l'enfant du petit toboggan attend, glisse et retourne vers la plateforme en suivant des points du modèle 3D. Un autre enfant entre dans le grand tube et ressort à l'extrémité. Celui sur les cordes grimpe et descend. Les autres observent ou jouent au sol. Les positions restent illustratives, liées à la maquette photo, et non mesurées.</p>
+<p><b>Amélioration P0.6.5 :</b> les enfants montent réellement les marches visibles des trois jeux à escaliers, en levant alternativement les jambes et les bras. Les marches du petit jeu sont également modélisées. L’enfant du filet d’escalade avance de prise en prise vers le haut et sur le côté avec mouvements coordonnés des deux bras et des deux jambes, puis redescend. Les animations restent symboliques, sans capture de mouvement humain.</p>
 <p><b>Architecture extensible :</b> un moteur indépendant <code>people-motion.js</code> calcule les gestes et déplacements pour n'importe quelle zone. Les points d'interaction sont déclarés par modèle dans <code>photo-playground.js</code>, et <code>characters.js</code> distribue les adultes et enfants selon les polygones de jeux et les chemins réellement reçus. Une limite de population s'applique à chaque zone chargée pour préparer l'extension aux quartiers de Crans-Montana.</p>
 <p><b>Couche « Jeux photo » :</b> cinq maquettes 3D approuvées par l’utilisateur : grande structure avec tunnel, toboggan tubulaire courbe, petite structure bleue et rouge, jeux de cordes et banc. Placement déterministe approximatif à l’intérieur du périmètre OpenStreetMap de l’aire de jeux. Le banc est un modèle approuvé, mais sa présence sur ce périmètre reste non confirmée. Les objets sont cliquables et séparés des données OSM et cadastrales. Le contour de l’aire de jeux est orange fluo (#ff6900).</p>
 <p>Des photos locales de 2025 confirment l'existence de structures à grimper et de toboggans à Ycoor, mais ne fournissent pas des coordonnées précises. <a href="https://www.crans-montana.ch/fr/?idcmt=Partenaire_Activite_4ff811345b2094222f969b680bb9ac78" target="_blank" rel="noopener noreferrer">Référence touristique officielle</a>.</p>
@@ -219,7 +220,7 @@ function updatePeoplePanel(){
  const n=peopleSystem?.actors?.length||0;
  el.textContent=n?
   (peopleSystem.adults+' adultes · '+peopleSystem.children+' enfants · '+season()+
-  '. Marche réelle, gestes rares à l’arrêt, glissade et escalade sur les modèles de jeux. Tenues saisonnières.'):
+  '. Marche réelle, gestes rares à l’arrêt, montée des escaliers marche par marche avec jambes alternées, escalade du filet avec bras et jambes, glissades. Tenues saisonnières.'):
   'Aucun personnage placé : pas de zone ni de chemin exploitable.';
 }
 $('people-switch').onclick=()=>{
@@ -236,7 +237,7 @@ async function startPeople(){
  peopleStatus='loading';updatePeoplePanel();
  let created=null;
  try{
-  if(!peopleModule)peopleModule=import('./characters.js?v=3');
+  if(!peopleModule)peopleModule=import('./characters.js?v=4');
   const mod=await peopleModule;
   created=await mod.createPopulation({
    THREE,season:season(),height,
@@ -356,7 +357,7 @@ async function startFurniture(){
   const [source,visual,photoModels]=await Promise.all([
    import('./furniture-source.js?v=3'),
    import('./furniture-mesh.js?v=3'),
-   import('./photo-playground.js?v=4')
+   import('./photo-playground.js?v=5')
   ]);
   furniturePainter=visual.drawFurniture;
   photoPainter=photoModels.drawPhotoModels;
@@ -703,7 +704,7 @@ function build(){
  }
  const ok=(moData.results||[]).filter(r=>r.status==='verified').length;
  $('origin').textContent='Mensuration officielle Valais · toits swissBUILDINGS3D';
- $('status').textContent='P0.6.4 · '+ok+'/4 sources MO · '+moRendered.length+' géométries cadastre · '+furnitureDrawn.length+' objets OSM · '+photoDrawn.length+' jeux illustratifs · relief '+(terrainOk?'swisstopo interpolé':'non confirmé');
+ $('status').textContent='P0.6.5 · '+ok+'/4 sources MO · '+moRendered.length+' géométries cadastre · '+furnitureDrawn.length+' objets OSM · '+photoDrawn.length+' jeux illustratifs · relief '+(terrainOk?'swisstopo interpolé':'non confirmé');
  updateGeoLabel();showCadastralAudit();updateFurniturePanel();updatePhotoPanel();syncRoofs();
  startPeople();
 }
