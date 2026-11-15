@@ -4,7 +4,7 @@
 
 **Atlas 3D P0.6.4 :** https://djbebs.github.io/sudoku-world/crans-montana-p06/?v=6
 
-P0.6.1 est une correction de P0.6, indépendante de P0.5.9, de P0.5.8 et de Sudoku World.
+P0.6.4 reprend et améliore P0.6.3 sans modifier les versions P0.5.9, P0.5.8 ni Sudoku World.
 
 ## P0.6.4 : mouvements naturels et interactions sur les jeux
 
@@ -20,7 +20,7 @@ P0.6.1 est une correction de P0.6, indépendante de P0.5.9, de P0.5.8 et de Sudo
 | Enfant sur le petit toboggan rouge | Attend en haut, glisse réellement le long de la rampe visible, atterrit, revient en contournant la structure et remonte vers la plateforme. |
 | Enfant du grand toboggan tubulaire | Attend, disparaît pendant la traversée du tube métallique opaque, réapparaît à sa sortie, puis revient vers l'accès. |
 | Enfant sur les cordes | Monte et descend réellement sur une portion verticale du filet ; bouge les bras pour atteindre les prises et les jambes uniquement pendant l'escalade. |
-| Enfant qui joue au sol | Reste la plupart du temps immobile ; petit saut occasionnel, avec mouvement de jambes uniquement pendant ce saut. |
+| Enfant qui joue au sol | Sans trajet documenté, reste immobile, jambes fixes ; seuls quelques gestes occasionnels des bras et de la tête sont animés. |
 | Adulte assis | Pose assise stable, jambes fixes en position pliée, légers mouvements de tête. |
 
 Les positions d'interaction sur les maquettes photo restent **illustratives**. Les séquences et dimensions ont été alignées sur la **géométrie du modèle 3D affiché** : cela ne constitue pas une nouvelle mesure géographique.
@@ -29,12 +29,12 @@ Les positions d'interaction sur les maquettes photo restent **illustratives**. L
 
 Il n'y a **aucune coordonnée de quartier codée en dur dans le moteur d'animation** :
 
-- **\`people-motion.js\`** est un moteur pur de mouvements dépendant du rôle : il calcule la position, l'orientation, les poses des membres et l'état de visibilité. Il ne dépend pas de Three.js, d'OSM ni d'une zone géographique particulière.
-- **\`photo-playground.js\`** fournit \`MODEL_INTERACTIONS\`, un catalogue d'ancres *relatives à chaque prefab de mobilier*. Un nouveau type de jeu ajoutera ses propres ancres et parcours sans réécrire les comportements.
-- **\`characters.js\`** associe des personnages aux jeux et aux polygones de parc, puis à des chemins piétons réellement documentés. La fonction \`planPopulationForZones({ zones, walkPaths, tileHalfSize, maxActors })\` gère plusieurs zones, une dimension de tuile configurable et une densité maximale d'acteurs.
-- **\`index.html\`** conserve le rôle de visualiseur de la tuile pilote. Le système de personnages est une couche autonome ON/OFF. Son animation utilise les modèles GLB fournis et le moteur ci-dessus.
+- **`people-motion.js`** est un moteur pur de mouvements dépendant du rôle : il calcule la position, l'orientation, les poses des membres et l'état de visibilité. Il ne dépend pas de Three.js, d'OSM ni d'une zone géographique particulière.
+- **`photo-playground.js`** fournit `MODEL_INTERACTIONS`, un catalogue d'ancres *relatives à chaque prefab de mobilier*. Un nouveau type de jeu ajoutera ses propres ancres et parcours sans réécrire les comportements.
+- **`characters.js`** associe des personnages aux jeux et aux polygones de parc, puis à des chemins piétons réellement documentés. La fonction `planPopulationForZones({ zones, walkPaths, tileHalfSize, maxActors })` gère plusieurs zones, une dimension de tuile configurable et une densité maximale d'acteurs.
+- **`index.html`** conserve le rôle de visualiseur de la tuile pilote. Le système de personnages est une couche autonome ON/OFF. Son animation utilise les modèles GLB fournis et le moteur ci-dessus.
 
-**Extension future :** lorsque Ycoor sera satisfaisant, découper Crans-Montana en tuiles spatiales et charger seulement celles proches de la caméra. Pour chaque tuile visible, extraire ses surfaces, chemins et équipements documentés, puis appeler \`planPopulationForZones\`. Décharger les tuiles hors champ et n'animer à plein taux que les personnages proches. Une gestion des niveaux de détail et une bibliothèque géométrique partagée seront nécessaires avant de couvrir tout le village. **Ce streaming multi-tuile n'est pas encore implémenté**, seule l'architecture réutilisable du système de personnages l'est.
+**Extension future :** lorsque Ycoor sera satisfaisant, découper Crans-Montana en tuiles spatiales et charger seulement celles proches de la caméra. Pour chaque tuile visible, extraire ses surfaces, chemins et équipements documentés, puis appeler `planPopulationForZones`. Décharger les tuiles hors champ et n'animer à plein taux que les personnages proches. Une gestion des niveaux de détail et une bibliothèque géométrique partagée seront nécessaires avant de couvrir tout le village. **Ce streaming multi-tuile n'est pas encore implémenté**, seule l'architecture réutilisable du système de personnages l'est.
 
 ### Tests
 
@@ -44,8 +44,8 @@ Il n'y a **aucune coordonnée de quartier codée en dur dans le moteur d'animati
 - Grand tube : l'acteur est invisible lorsqu'il traverse le volume fermé, puis réapparaît à la sortie.
 - Cordes : la position verticale et la position des bras changent réellement.
 - Enfant assis : jambes fléchies constantes et pas de cycle de marche.
-- Scène intégrée simulée : 9 personnages avec rôles \`walk\`, \`play-platform\`, \`play-slide\`, \`play-tube\`, \`climb-ropes\`, \`supervise\`, \`chat\`, \`play-ground\`, \`sit\`. Test du masquage des personnages liés aux maquettes photo.
-- Test de planification sur une petite zone et une grande zone avec \`tileHalfSize\` différent, limites de population respectées.
+- Scène intégrée simulée : 9 personnages avec rôles `walk`, `play-platform`, `play-slide`, `play-tube`, `climb-ropes`, `supervise`, `chat`, `play-ground`, `sit`. Test du masquage des personnages liés aux maquettes photo.
+- Test de planification sur une petite zone et une grande zone avec `tileHalfSize` différent, limites de population respectées. Test supplémentaire de 500 poses au sol : jambes toujours immobiles.
 - Syntaxe JavaScript des modules validée avant publication. **Rendu réel dans le navigateur toujours à confirmer visuellement.**
 
 ## P0.6.3 : personnages saisonniers animés
