@@ -289,7 +289,7 @@ async function startFurniture(){
   const [source,visual,photoModels]=await Promise.all([
    import('./furniture-source.js?v=2'),
    import('./furniture-mesh.js?v=3'),
-   import('./photo-playground.js?v=1')
+   import('./photo-playground.js?v=2')
   ]);
   furniturePainter=visual.drawFurniture;
   photoPainter=photoModels.drawPhotoModels;
