@@ -6,7 +6,7 @@
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { originalGlbBuffers, CHARACTER_FILES, SOURCE } from './characters-assets.js';
 import { compileWalkPath, motionAt } from './people-motion.js?v=4';
-import { chooseSafeVariants, guardLivePose, sampleSweptSegment } from './playground-collision.js?v=1';
+import { chooseSafeVariants, guardLivePose, sampleSweptSegment } from './playground-collision.js?v=2';
 
 const COLORS={
  spring:{tops:['#61b78e','#e1aa61','#7298cf','#e18b9f','#bdac5f'],bottoms:['#374c59','#5c6c76','#6f5945','#667346']},
