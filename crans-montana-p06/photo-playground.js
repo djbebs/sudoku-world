@@ -513,7 +513,7 @@ export function drawPhotoModels(T,features,height,parent,pickable,visible=true){
    pickable.push(obj);
   });
   drawn.push({key:p.key,name:p.name,center:{x:p.x,z:p.z},
-   scale:p.scale,polygonId:plan.polygonId,
+   scale:p.scale,w:p.w,d:p.d,polygonId:plan.polygonId,
    interactions:MODEL_INTERACTIONS[p.key]||[],
    solidVolumes:MODEL_SOLIDS[p.key]||[]});
  }
