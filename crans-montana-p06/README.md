@@ -1,10 +1,32 @@
-# Crans-Montana Pixel Atlas · P0.6.1
+# Crans-Montana Pixel Atlas · P0.6.2
 
 ## Aperçu
 
-**Atlas 3D P0.6.1 :** https://djbebs.github.io/sudoku-world/crans-montana-p06/?v=2
+**Atlas 3D P0.6.2 :** https://djbebs.github.io/sudoku-world/crans-montana-p06/?v=3
 
 P0.6.1 est une correction de P0.6, indépendante de P0.5.9, de P0.5.8 et de Sudoku World.
+
+## P0.6.2 : intégration des cinq modèles photo-approuvés
+
+L'utilisateur a validé la feuille de concepts 3D inspirée des photographies d'Ycoor. Cinq nouveaux objets low-poly construits en Three.js ont été ajoutés directement dans le projet :
+
+1. **Grande structure avec tunnel horizontal argenté** : poteaux jaunes, garde-corps rouges, plateforme bois, prises d'escalade rouges.
+2. **Grand toboggan tubulaire courbe** : structure jaune et rouge, tube métallique facetté et sortie foncée.
+3. **Petite structure pour enfants** : panneaux bleus, poteaux jaunes et petit toboggan rouge.
+4. **Jeux de cordes et boules d'escalade** : portique jaune, réseau de cordes, jonctions rouges et boules foncées.
+5. **Banc en bois** : modèle graphique validé, **présence précise dans la zone non démontrée**.
+
+**Source documentaire principale** : [Aire de jeux à Ycoor, galerie officielle Crans-Montana](https://www.crans-montana.ch/fr/?idcmt=Partenaire_Activite_4ff811345b2094222f969b680bb9ac78). Les modèles sont des **reconstitutions illustratives approuvées**, pas des photocopies géométriques ni un inventaire de mobilier 2026 vérifié objet par objet. Les modèles 3, 4 et 5 peuvent encore nécessiter des photographies locales récentes pour valider leurs détails ou présence.
+
+**Positionnement** : aucune coordonnée de mobilier n'est prétendue mesurée. Le moteur recherche d'abord un polygone géoréférencé `leisure=playground` provenant d'OpenStreetMap. Il propose des positions déterministes d'après la forme de ce polygone et s'assure que **la totalité de l'emprise de chacun des objets est à l'intérieur**. Il ne dessine aucun objet photo si le polygone n'est pas présent. Si la zone est trop petite pour les cinq, seuls les modèles qui y tiennent sont affichés. Les équipements individuels déjà localisés en OSM ont priorité et ne sont pas dupliqués.
+
+**Interrupteur indépendant** : le nouveau bouton **« 🛝 Jeux photo : ON/OFF »** permet d'afficher ou masquer uniquement les cinq modèles illustratifs. Le bouton « 🪑 Mobilier : ON/OFF » continue de gérer la couche OSM. Les contours cadastraux et toitures swisstopo ne sont pas affectés.
+
+**Contournage visible** : la limite de l'aire de jeux est maintenant un trait **orange fluo #ff6900** plus épais et surélevé, distinct des matériaux du sol, pour distinguer le périmètre de la surface.
+
+**Information cliquable** : chaque modèle comporte sa catégorie, une indication « position indicative », le polygone OSM parent, les limites de l'interprétation et le lien à la galerie officielle.
+
+**Tests automatisés sans navigateur** : création de 164 surfaces 3D testées avec doubles de Three.js, 5/5 modèles dans un polygone fictif de taille adaptée, aucun placement sans polygone, absence de double en présence d'un élément OSM de même type, géométrie hors polygone interdite, tests du polygone concave et contrôle de la logique de basculement. Syntaxe JavaScript validée. **Le positionnement réel sur Ycoor et l'affichage sur un navigateur restent à inspecter visuellement.**
 
 ## Correction P0.6.1 : jeux et couleurs du sol
 
@@ -66,7 +88,8 @@ Les objets pixel-art sont des **symboles 3D**. Leur présence et leur position s
 - `mo-valais-strict.js` : adaptateur des couches cadastrales officielles du Valais, copie figée de P0.5.9.
 - `cadastre-mesh.js` : maillage des surfaces cadastrales avec trous et limites, copie figée de P0.5.9.
 - `furniture-source.js` : requête Overpass, parsing strict, filtrage sur les 100 m et métadonnées OSM.
-- `furniture-mesh.js` : modèles low-poly au point OSM, sans géométrie fictive de terrain.
+- `furniture-mesh.js` : modèles low-poly au point OSM et contour de l'aire de jeux orange fluo.
+- `photo-playground.js` : cinq maquettes photo-approuvées avec positionnement approximatif déterministe à l'intérieur du périmètre OSM et métadonnées de provenance.
 
 ## Adresses des services
 
