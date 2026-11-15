@@ -1,10 +1,52 @@
-# Crans-Montana Pixel Atlas · P0.6.3
+# Crans-Montana Pixel Atlas · P0.6.4
 
 ## Aperçu
 
-**Atlas 3D P0.6.3 :** https://djbebs.github.io/sudoku-world/crans-montana-p06/?v=4
+**Atlas 3D P0.6.4 :** https://djbebs.github.io/sudoku-world/crans-montana-p06/?v=6
 
 P0.6.1 est une correction de P0.6, indépendante de P0.5.9, de P0.5.8 et de Sudoku World.
+
+## P0.6.4 : mouvements naturels et interactions sur les jeux
+
+**Retour utilisateur traité :** les personnages stationnaires piétinaient continuellement, les enfants restaient souvent figés sur les équipements, et la solution devra ultérieurement être réutilisée dans tout le village de Crans-Montana.
+
+### Rôles désormais séparés
+
+| Rôle / activité | Traitement d'animation |
+|---|---|
+| Adulte qui marche sur un chemin OSM | Avance réellement sur sa polyligne géoréférencée. Bras et jambes n'effectuent un mouvement de marche que pendant le déplacement. |
+| Adulte immobile, qui surveille ou discute | Jambes à zéro en permanence ; tête légèrement orientée, geste de bras bref et occasionnel, avec longue pause entre les gestes. |
+| Enfant sur la plateforme | Se tient debout et touche occasionnellement un garde-corps ; ne marche pas sur place. |
+| Enfant sur le petit toboggan rouge | Attend en haut, glisse réellement le long de la rampe visible, atterrit, revient en contournant la structure et remonte vers la plateforme. |
+| Enfant du grand toboggan tubulaire | Attend, disparaît pendant la traversée du tube métallique opaque, réapparaît à sa sortie, puis revient vers l'accès. |
+| Enfant sur les cordes | Monte et descend réellement sur une portion verticale du filet ; bouge les bras pour atteindre les prises et les jambes uniquement pendant l'escalade. |
+| Enfant qui joue au sol | Reste la plupart du temps immobile ; petit saut occasionnel, avec mouvement de jambes uniquement pendant ce saut. |
+| Adulte assis | Pose assise stable, jambes fixes en position pliée, légers mouvements de tête. |
+
+Les positions d'interaction sur les maquettes photo restent **illustratives**. Les séquences et dimensions ont été alignées sur la **géométrie du modèle 3D affiché** : cela ne constitue pas une nouvelle mesure géographique.
+
+### Architecture réutilisable pour tout Crans-Montana
+
+Il n'y a **aucune coordonnée de quartier codée en dur dans le moteur d'animation** :
+
+- **\`people-motion.js\`** est un moteur pur de mouvements dépendant du rôle : il calcule la position, l'orientation, les poses des membres et l'état de visibilité. Il ne dépend pas de Three.js, d'OSM ni d'une zone géographique particulière.
+- **\`photo-playground.js\`** fournit \`MODEL_INTERACTIONS\`, un catalogue d'ancres *relatives à chaque prefab de mobilier*. Un nouveau type de jeu ajoutera ses propres ancres et parcours sans réécrire les comportements.
+- **\`characters.js\`** associe des personnages aux jeux et aux polygones de parc, puis à des chemins piétons réellement documentés. La fonction \`planPopulationForZones({ zones, walkPaths, tileHalfSize, maxActors })\` gère plusieurs zones, une dimension de tuile configurable et une densité maximale d'acteurs.
+- **\`index.html\`** conserve le rôle de visualiseur de la tuile pilote. Le système de personnages est une couche autonome ON/OFF. Son animation utilise les modèles GLB fournis et le moteur ci-dessus.
+
+**Extension future :** lorsque Ycoor sera satisfaisant, découper Crans-Montana en tuiles spatiales et charger seulement celles proches de la caméra. Pour chaque tuile visible, extraire ses surfaces, chemins et équipements documentés, puis appeler \`planPopulationForZones\`. Décharger les tuiles hors champ et n'animer à plein taux que les personnages proches. Une gestion des niveaux de détail et une bibliothèque géométrique partagée seront nécessaires avant de couvrir tout le village. **Ce streaming multi-tuile n'est pas encore implémenté**, seule l'architecture réutilisable du système de personnages l'est.
+
+### Tests
+
+- Parcours validé pour un véritable marcheur : changements de position et pose de marche synchronisés.
+- 1200 évaluations successives d'un adulte immobile : **zéro rotation de jambe** et mouvement de bras significatif sur environ **4 % des échantillons**.
+- Test de trajectoire : la hauteur descend effectivement pendant une glissade sur le petit jeu ; le retour et la remontée sont des phases distinctes.
+- Grand tube : l'acteur est invisible lorsqu'il traverse le volume fermé, puis réapparaît à la sortie.
+- Cordes : la position verticale et la position des bras changent réellement.
+- Enfant assis : jambes fléchies constantes et pas de cycle de marche.
+- Scène intégrée simulée : 9 personnages avec rôles \`walk\`, \`play-platform\`, \`play-slide\`, \`play-tube\`, \`climb-ropes\`, \`supervise\`, \`chat\`, \`play-ground\`, \`sit\`. Test du masquage des personnages liés aux maquettes photo.
+- Test de planification sur une petite zone et une grande zone avec \`tileHalfSize\` différent, limites de population respectées.
+- Syntaxe JavaScript des modules validée avant publication. **Rendu réel dans le navigateur toujours à confirmer visuellement.**
 
 ## P0.6.3 : personnages saisonniers animés
 
