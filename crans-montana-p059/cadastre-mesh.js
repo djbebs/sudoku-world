@@ -128,13 +128,15 @@ export function triangulateOfficialPolygon(THREE,rings,height,{offset=.22,maxEdg
  buffer.computeVertexNormals();
  return buffer;
 }
+// Cache materials across season changes to avoid WebGL program/material leaks.
+const cachedMaterials=new Map();
 export function renderMOFeatures(THREE,features,height,parent,objectArray,lineGeom){
- const drawn=[],materials=new Map();
+ const drawn=[];
  const material=(c)=>{
-  if(!materials.has(c))materials.set(c,new THREE.MeshLambertMaterial({
+  if(!cachedMaterials.has(c))cachedMaterials.set(c,new THREE.MeshLambertMaterial({
    color:c,flatShading:true,side:THREE.DoubleSide
   }));
-  return materials.get(c);
+  return cachedMaterials.get(c);
  };
  // First ground cover, then miscellaneous official surfaces above it.
  const surfaces=features.filter(f=>f.geometry.rings).sort((a,b)=>a.layer-b.layer);
