@@ -1,10 +1,57 @@
-# Crans-Montana Pixel Atlas · P0.6.5
+# Crans-Montana Pixel Atlas · P0.6.6
 
 ## Aperçu
 
-**Atlas 3D P0.6.5 :** https://djbebs.github.io/sudoku-world/crans-montana-p06/?v=7
+**Atlas 3D P0.6.6 :** https://djbebs.github.io/sudoku-world/crans-montana-p06/?v=8
 
-P0.6.5 reprend et améliore P0.6.4 sans modifier les versions P0.5.9, P0.5.8 ni Sudoku World.
+P0.6.6 reprend et améliore P0.6.5 sans modifier les versions P0.5.9, P0.5.8 ni Sudoku World.
+
+## P0.6.6 : protections anticollision et variété des jeux
+
+**Demande utilisateur :** ne pas laisser les enfants traverser les structures 3D ; renouveler le parcours d'escalade dans le spiderweb ; finir parfois le toboggan en glissant puis en atterrissant sur les fesses plutôt qu'en marchant.
+
+### Protection anticollision des personnages
+
+- **Nouveau module \`playground-collision.js\`** : enveloppes de volumes solides (boîtes 3D, propres à chaque jeu), tests de pénétration avec une marge corporelle et **échantillonnage des segments** au lieu de vérifier seulement les points de départ et d'arrivée. Un segment traversant un obstacle est rejeté, même si ses extrémités sont dégagées.
+- Les zones de contact autorisées, comme les marches, la surface de glissade et la face avant du filet, ne sont pas classées comme volumes interdits. Les **noyaux solides inférieurs** des plateformes et la face arrière du filet le sont.
+- Chaque variante de jeu doit être entièrement dans le périmètre OSM cartographié et en dehors des volumes interdits. **Si aucune variante n'est valide, l'interaction n'est pas affichée** plutôt que d'animer un trajet incohérent.
+- En complément, un garde-fou teste le déplacement à chaque image et retient la dernière pose sûre si une collision est détectée. Ceci réduit les risques d'intersection si les données de pose changent.
+- Les parcours de marcheurs OSM sont **rejetés lorsqu'ils traversent l'emprise totale d'un jeu illustratif**. L'absence de trajet approprié donne moins de marcheurs, plutôt qu'un passage à travers le mobilier.
+- Les volumes de collision sont **approximatifs et maintenus avec le prefab**. Il ne s'agit pas d'un moteur de physique ni d'une garantie de collision exacte de chaque triangle du maillage GLB. L'inspection dans le navigateur reste indispensable.
+
+### Spiderweb : trois circuits alternés
+
+- Trois variantes : **diagonale vers le sommet**, **traversée côté droit** et **petite boucle côté gauche**.
+- Chaque trajet suit des points choisis en face de la grille de cordes visible. La variation touche les positions en X et Y, la hauteur atteinte et les gestes des quatre membres.
+- Le moteur choisit **un trajet différent à chaque cycle**, de manière déterministe pour chaque enfant, sans randomisation d'image en image. Chaque variante démarre et finit au même point pour éviter toute téléportation.
+- Une variante non conforme aux collisions ou au périmètre est exclue de la rotation.
+
+### Toboggans : arrivées variées
+
+Le petit toboggan comporte trois scénarios de boucle. Le tube métallique en comporte deux. Les variantes conservent leurs propres escaliers et parcours de retour évitant le noyau des structures.
+
+1. **Réception assise** : glissade en posture assise, réception sur les fesses, courte pause au sol, puis redressement **avant** le retour en marchant.
+2. **Réception debout** : glissade, absorption du choc avec flexion des genoux, reprise de l'équilibre, puis marche.
+3. **Réception assise prolongée** : glissade, pause assise plus longue, redressement, retour.
+
+La phase \`slide\` ne lance plus de cycle de marche. Les phases \`buttLand\`, \`sitGround\`, \`standUp\`, \`feetLand\` et \`regainBalance\` contrôlent la pose et permettent la transition progressive de la glissade à la station debout.
+
+### Architecture réutilisable à l'échelle du village
+
+- Les modèles déclarent leurs volumes interdits \`MODEL_SOLIDS\`, leurs trajectoires locales et leurs variantes dans \`photo-playground.js\`.
+- \`playground-collision.js\` réalise la validation des trajectoires pour **n'importe quel prefab de n'importe quel quartier**, sans coordonnée propre à Ycoor.
+- \`people-motion.js\` alterne les séquences en fonction de la durée de chaque cycle et les annote par \`variantName\` et \`cycleIndex\`, sans état global mutable et sans hasard par image.
+- \`characters.js\` retient seulement les variantes sûres pour chaque personnage, garde la densité par tuile et refuse les chemins piétons qui traversent l'emprise des jeux.
+- Le véritable découpage de tout Crans-Montana en tuiles reste une phase future.
+
+### Vérifications du patch
+
+- Test des volumes interdits : un segment traversant une boîte depuis deux points extérieurs est rejeté ; un détour sûr est accepté.
+- Les scénarios validés sur un polygone d'essai comportent **3 parcours de filet**, **3 fins de petit toboggan** et **2 fins de tube**. Aucun scénario validé ne pénètre les volumes interdits définis.
+- Simulation des animations toutes les 35 ms sur la totalité des boucles : **aucun blocage anticollision**, aucune téléportation détectée, déplacements maximaux entre deux images de 4 à 8 cm.
+- Les variantes changent réellement à chaque boucle pour un même enfant, sans passage abrupt au point de départ.
+- Le comportement précédent des adultes immobiles, les six fichiers GLB, le zoom 12× et les couches géographiques existantes sont conservés.
+- **Limite de validation :** tests de données, syntaxe et simulation dans un environnement JavaScript contrôlé. Les collisions exactes du maillage et le rendu visuel sur navigateur réel ne sont pas prouvés par ces tests.
 
 ## P0.6.5 : véritables montées d'escaliers et escalade du filet
 
