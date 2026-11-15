@@ -161,12 +161,12 @@ export function motionAt(spec,t,height,cache={}){
   return pose;
  }
  if(role==='skip'||role==='play-ground'){
-  const jumping=pulse(secs,seed,6.7,.80);
-  pose.y=baseY+.15*jumping;
-  pose.phase=jumping>.02?'jump':'idle';
-  pose.legL=.22*jumping;pose.legR=.22*jumping;
-  pose.armL=-.22*jumping;pose.armR=-.24*jumping;
-  pose.headY=.04*Math.sin(secs*.25+seed);
+  // A child with no documented movement route stays firmly planted.
+  // Occasional waving / reaching, but never hopping or cycling their legs.
+  const gesture=pulse(secs,seed,9.8,1.1);
+  pose.phase=gesture>.04?'gesture':'idle';
+  pose.armL=-.12*gesture;pose.armR=-.38*gesture;
+  pose.headY=.055*Math.sin(secs*.22+seed);
   return pose;
  }
  // For STATIONARY people (adult and child) legs are always neutral.
