@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#173125">
-<title>Isometric Crans-Montana · P0.6 / Ycoor</title>
+<title>Isometric Crans-Montana · P0.6.1 / Ycoor</title>
 <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--paper:#f6f0dd;--ink:#29291f;--red:#c92430;--blue:#2f5c9e;--edge:#1d221c}
@@ -45,7 +45,14 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
 </style></head><body>
 <main id="map" aria-label="Maquette 3D isométrique de 100 mètres autour d'Ycoor"></main>
 <div id="real-status" role="status" aria-live="polite">Connexion aux toitures officielles…</div>
-<section id="place" class="box"><b>Crans-Montana</b><small>Ycoor · Valais · Suisse</small><div>P0 · 100 × 100 m</div><div class="weather">☀ <span id="weather">Météo simulée · clair</span><br><span id="origin">Mensuration officielle du Valais : chargement…</span><br><a style="color:#174e78;display:inline-block;margin-top:5px" href="https://map.geo.admin.ch/#/map?lang=fr&amp;center=2603036,1128849&amp;z=11" target="_blank" rel="noopener noreferrer" title="Ouvrir swisstopo et activer la vue 3D pour comparer les bâtiments">Comparer à swisstopo ↗</a></div><div id="geo-status" style="font-size:11px;line-height:1.3;margin-top:5px">Mensuration officielle : interrogation…</div><details id="mo-details" style="font-size:11px;margin-top:4px"><summary>Résultats cadastraux par couche</summary><div id="mo-report" style="padding:4px 0;overflow-wrap:anywhere">Aucune couche encore vérifiée</div></details><div id="mo-warning" style="font-size:11px;margin-top:5px;line-height:1.25;color:#665f44;font-weight:700">Sol : cadastre du Valais · Mobilier : OSM géolocalisé.</div><div style="margin-top:7px"><a href="../crans-montana-p058/verification.html?v=1" style="font-size:12px;display:inline-block;padding:5px 7px;color:#123f70;background:#fffaf1;border:2px solid #242820;box-shadow:2px 2px #2b3228" title="Interroger et compter les objets cadastraux de Ycoor">🔎 Vérifier les objets MO de Ycoor</a></div><button id="veg-switch" type="button" title="Afficher la végétation officielle 3D" style="margin-top:5px;padding:3px 5px;font-size:11px">🌲 Végétation 3D</button><div id="furniture-control">
+<section id="place" class="box"><b>Crans-Montana</b><small>Ycoor · Valais · Suisse</small><div>P0 · 100 × 100 m</div><div class="weather">☀ <span id="weather">Météo simulée · clair</span><br><span id="origin">Mensuration officielle du Valais : chargement…</span><br><a style="color:#174e78;display:inline-block;margin-top:5px" href="https://map.geo.admin.ch/#/map?lang=fr&amp;center=2603036,1128849&amp;z=11" target="_blank" rel="noopener noreferrer" title="Ouvrir swisstopo et activer la vue 3D pour comparer les bâtiments">Comparer à swisstopo ↗</a></div><div id="geo-status" style="font-size:11px;line-height:1.3;margin-top:5px">Mensuration officielle : interrogation…</div><details id="mo-details" style="font-size:11px;margin-top:4px"><summary>Résultats cadastraux par couche</summary><div id="mo-report" style="padding:4px 0;overflow-wrap:anywhere">Aucune couche encore vérifiée</div></details><div id="mo-warning" style="font-size:11px;margin-top:5px;line-height:1.25;color:#665f44;font-weight:700">Sol : cadastre du Valais · Mobilier : OSM géolocalisé.</div>
+<details id="ground-legend" style="font-size:11px;line-height:1.4;margin-top:6px">
+<summary>Couleurs du sol</summary>
+<div style="margin-top:4px"><span style="color:#748e5c">■</span> Vert : jardin cadastral / aire de jeux OSM</div>
+<div><span style="color:#aba7a1">■</span> Gris clair : revêtement dur / trottoir</div>
+<div><span style="color:#5f8eaa">■</span> Bleu : eau cadastrale</div>
+<div><span style="color:#959d92">■</span> Sauge gris : terrain non classé dans la carte</div>
+</details><div style="margin-top:7px"><a href="../crans-montana-p058/verification.html?v=1" style="font-size:12px;display:inline-block;padding:5px 7px;color:#123f70;background:#fffaf1;border:2px solid #242820;box-shadow:2px 2px #2b3228" title="Interroger et compter les objets cadastraux de Ycoor">🔎 Vérifier les objets MO de Ycoor</a></div><button id="veg-switch" type="button" title="Afficher la végétation officielle 3D" style="margin-top:5px;padding:3px 5px;font-size:11px">🌲 Végétation 3D</button><div id="furniture-control">
 <button id="furniture-switch" type="button" class="active" aria-pressed="true" title="Afficher ou masquer le mobilier urbain référencé dans OSM">🪑 Mobilier : ON</button>
 <details id="furniture-details"><summary id="furniture-summary">Mobilier OSM : chargement…</summary>
 <div id="furniture-results" aria-live="polite">Aucune position fictive.</div>
@@ -61,10 +68,11 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
 </section>
 <section id="info" class="box"><button id="close-info" aria-label="Fermer">×</button><strong id="info-title">Lieu</strong><p id="info-desc"></p></section>
 <section id="sources" class="box"><button id="close-sources" style="float:right" aria-label="Fermer">×</button>
-<h2>Ycoor · Pixel Atlas P0.6</h2>
+<h2>Ycoor · Pixel Atlas P0.6.1</h2>
 <p><b>Sol, routes et jardins :</b> mensuration officielle du Valais, géométries LV95 conservées avec les numéros OBJECTID et les catégories GENRE.</p>
 <p><b>Mobilier urbain :</b> bancs, poubelles, lampadaires, arrêts, fontaines, tables et jeux issus de points OpenStreetMap portant un identifiant et des coordonnées. Ces petits modèles 3D sont <b>symboliques</b> : leurs formes, dimensions et orientations ne sont pas mesurées.</p>
-<p>Les aires de jeux cartographiées en polygones utilisent uniquement le contour enregistré dans OSM. On ne place aucune balançoire ni aucun toboggan sans point OSM correspondant. Les données OSM peuvent être incomplètes ; zéro référencé ne signifie pas zéro sur le terrain.</p>
+<p>Les polygones <code>leisure=playground</code> sont maintenant remplis en surface pixel-art. Les surfaces cadastrales de revêtements durs, chemins ou eau restent visuellement prioritaires. Les équipements sont affichés uniquement si un nœud OSM ou une géométrie OSM d'équipement existe. Pour un équipement dessiné comme voie, le symbole est placé au centre représentatif de sa géométrie (position indicative, dérivée de la source).</p>
+<p>Des photos locales de 2025 confirment l'existence de structures à grimper et de toboggans à Ycoor, mais ne fournissent pas des coordonnées précises. <a href="https://www.crans-montana.ch/fr/?idcmt=Partenaire_Activite_4ff811345b2094222f969b680bb9ac78" target="_blank" rel="noopener noreferrer">Référence touristique officielle</a>.</p>
 <p>Le rendu est <b>100 % pixel-art</b>, sans photographie ni géométrie dérivée de captures d'écran.</p>
 <p><b>Sources :</b> <a href="https://sit.vs.ch/arcgis/rest/services/MO/MapServer" target="_blank" rel="noopener noreferrer">État du Valais, MO</a> · <a href="https://map.vsgis.ch/cransmontana/?lang=fr" target="_blank" rel="noopener noreferrer">VSGIS Crans-Montana</a> · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors (ODbL)</a> · swisstopo swissBUILDINGS3D et végétation.</p></section>
 <nav id="tools" aria-label="Commandes de la carte">
@@ -124,7 +132,7 @@ const hemi=new THREE.HemisphereLight(0xe9eeff,0x38432e,2.3);scene.add(hemi);
 const sun=new THREE.DirectionalLight(0xffe9bc,3.3);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);
 sun.shadow.camera.left=-95;sun.shadow.camera.right=95;sun.shadow.camera.top=95;sun.shadow.camera.bottom=-95;sun.shadow.camera.near=0.5;sun.shadow.camera.far=320;sun.shadow.bias=-0.00015;scene.add(sun);scene.add(sun.target);
 const up=new THREE.Vector3(0,1,0),target=new THREE.Vector3(0,0,0);
-const mats={ground:new THREE.MeshLambertMaterial({color:'#6e8552',flatShading:true,side:THREE.DoubleSide}),road:new THREE.MeshLambertMaterial({color:'#48463d',flatShading:true,side:THREE.DoubleSide}),walk:new THREE.MeshLambertMaterial({color:'#cfb68e',flatShading:true,side:THREE.DoubleSide}),white:new THREE.MeshLambertMaterial({color:'#ded9c0',flatShading:true}),ink:new THREE.MeshLambertMaterial({color:'#26342b',flatShading:true}),roof:new THREE.MeshLambertMaterial({color:'#a05c44',flatShading:true,side:THREE.DoubleSide}),red:new THREE.MeshLambertMaterial({color:'#cc342c',flatShading:true}),black:new THREE.MeshLambertMaterial({color:'#202e2d',flatShading:true}),yellow:new THREE.MeshLambertMaterial({color:'#c9bd71',flatShading:true})};
+const mats={ground:new THREE.MeshLambertMaterial({color:'#959d92',flatShading:true,side:THREE.DoubleSide}),road:new THREE.MeshLambertMaterial({color:'#48463d',flatShading:true,side:THREE.DoubleSide}),walk:new THREE.MeshLambertMaterial({color:'#cfb68e',flatShading:true,side:THREE.DoubleSide}),white:new THREE.MeshLambertMaterial({color:'#ded9c0',flatShading:true}),ink:new THREE.MeshLambertMaterial({color:'#26342b',flatShading:true}),roof:new THREE.MeshLambertMaterial({color:'#a05c44',flatShading:true,side:THREE.DoubleSide}),red:new THREE.MeshLambertMaterial({color:'#cc342c',flatShading:true}),black:new THREE.MeshLambertMaterial({color:'#202e2d',flatShading:true}),yellow:new THREE.MeshLambertMaterial({color:'#c9bd71',flatShading:true})};
 function seeded(n){let v=Math.sin(n*84.115+14.115)*43758.5453;return v-Math.floor(v)}
 function local(lat,lon){return {x:(lon-ORIGIN.lon)*111320*Math.cos(ORIGIN.lat*Math.PI/180),z:-(lat-ORIGIN.lat)*111320}}
 function height(x,z){
@@ -203,7 +211,9 @@ function updateFurniturePanel(){
  summary.textContent='Mobilier OSM : '+count+' objet'+(count>1?'s':'')+' référencé'+(count>1?'s':'');
  const groups={
   bench:'Bancs',playground:'Aires de jeux',slide:'Toboggans',swing:'Balançoires',
-  climbing:'Jeux à grimper',waste:'Poubelles',lamp:'Lampadaires',bus:'Arrêts de bus',
+  climbing:'Jeux à grimper',structure:'Structures multi-jeux',seesaw:'Bascule',
+  springy:'Jeux à ressort',roundabout:'Tourniquets',zipwire:'Tyroliennes',
+  sandpit:'Bacs à sable',waste:'Poubelles',lamp:'Lampadaires',bus:'Arrêts de bus',
   picnic:'Tables',fountain:'Fontaines',water:'Eau potable',bicycle:'Arceaux vélos',
   bollard:'Bornes'
  };
@@ -211,6 +221,17 @@ function updateFurniturePanel(){
   const p=document.createElement('p');
   p.textContent=name+' : '+(furnitureData.counts?.[type]||0);
   host.appendChild(p);
+ }
+ const equipmentTypes=['slide','swing','climbing','structure','seesaw','springy','roundabout','zipwire','sandpit'];
+ const mappedEquipment=equipmentTypes.reduce((n,k)=>n+(furnitureData.counts?.[k]||0),0);
+ if((furnitureData.counts?.playground||0)>0&&mappedEquipment===0){
+  const gap=document.createElement('p');gap.style.color='#7e4a2f';gap.style.fontWeight='700';
+  gap.textContent='Aire de jeux connue, mais aucun équipement individuel localisé dans cette réponse OSM. Les photos du site touristique montrent pourtant des structures et toboggans. Les positions ne sont pas inventées.';
+  host.appendChild(gap);
+  const photo=document.createElement('a');
+  photo.href='https://www.crans-montana.ch/fr/?idcmt=Partenaire_Activite_4ff811345b2094222f969b680bb9ac78';
+  photo.target='_blank';photo.rel='noopener noreferrer';photo.textContent='Voir les photos officielles des jeux';
+  host.appendChild(photo);
  }
  const info=document.createElement('p');
  info.textContent='Source OSM · '+(furnitureData.osmTimestamp||'date non fournie')+
@@ -233,8 +254,8 @@ async function startFurniture(){
  updateFurniturePanel();
  try{
   const [source,visual]=await Promise.all([
-   import('./furniture-source.js?v=1'),
-   import('./furniture-mesh.js?v=1')
+   import('./furniture-source.js?v=2'),
+   import('./furniture-mesh.js?v=2')
   ]);
   furniturePainter=visual.drawFurniture;
   furnitureData=await source.fetchFurniture(message=>{
@@ -546,7 +567,7 @@ function drawOfficialCadastral(parent){
  moRendered=moPainter(THREE,moData.shapes,height,parent,objects,lineGeom);
 }
 function build(){
- mats.ground.color.set(season()==='winter'?'#c9d1c4':season()==='autumn'?'#79815a':'#6e8552');
+ mats.ground.color.set(season()==='winter'?'#c9d1c4':season()==='autumn'?'#929887':'#959d92');
  // Dispose old per-tile / terrain geometry before rebuilding seasons.
  // Official streamed 3D Tiles are separate from world and remain untouched.
  world.traverse(node=>{if(node.isMesh&&node.geometry)node.geometry.dispose()});
@@ -570,7 +591,7 @@ function build(){
  }
  const ok=(moData.results||[]).filter(r=>r.status==='verified').length;
  $('origin').textContent='Mensuration officielle Valais · toits swissBUILDINGS3D';
- $('status').textContent='P0.6 · '+ok+'/4 sources MO · '+moRendered.length+' géométries cadastre · '+furnitureDrawn.length+' objets OSM · relief '+(terrainOk?'swisstopo interpolé':'non confirmé');
+ $('status').textContent='P0.6.1 · '+ok+'/4 sources MO · '+moRendered.length+' géométries cadastre · '+furnitureDrawn.length+' objets OSM · relief '+(terrainOk?'swisstopo interpolé':'non confirmé');
  updateGeoLabel();showCadastralAudit();updateFurniturePanel();syncRoofs();
 }
 /* swissBUILDINGS3D (3D Tiles -> Three.js), ECEF transformed to local Y-up. */
