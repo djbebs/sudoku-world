@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#173125">
-<title>Isometric Crans-Montana · P0.6.6 / Ycoor</title>
+<title>Isometric Crans-Montana · P0.6.7 / Ycoor</title>
 <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--paper:#f6f0dd;--ink:#29291f;--red:#c92430;--blue:#2f5c9e;--edge:#1d221c}
@@ -79,13 +79,14 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
 </section>
 <section id="info" class="box"><button id="close-info" aria-label="Fermer">×</button><strong id="info-title">Lieu</strong><p id="info-desc"></p></section>
 <section id="sources" class="box"><button id="close-sources" style="float:right" aria-label="Fermer">×</button>
-<h2>Ycoor · Pixel Atlas P0.6.6</h2>
+<h2>Ycoor · Pixel Atlas P0.6.7</h2>
 <p><b>Sol, routes et jardins :</b> mensuration officielle du Valais, géométries LV95 conservées avec les numéros OBJECTID et les catégories GENRE.</p>
 <p><b>Mobilier urbain :</b> bancs, poubelles, lampadaires, arrêts, fontaines, tables et jeux issus de points OpenStreetMap portant un identifiant et des coordonnées. Ces petits modèles 3D sont <b>symboliques</b> : leurs formes, dimensions et orientations ne sont pas mesurées.</p>
 <p>Les polygones <code>leisure=playground</code> sont maintenant remplis en surface pixel-art. Les surfaces cadastrales de revêtements durs, chemins ou eau restent visuellement prioritaires. Les équipements sont affichés uniquement si un nœud OSM ou une géométrie OSM d'équipement existe. Pour un équipement dessiné comme voie, le symbole est placé au centre représentatif de sa géométrie (position indicative, dérivée de la source).</p>
 <p><b>Personnages :</b> les six modèles GLB fournis par l’utilisateur et conservés tels quels, avec vêtements de couleurs différentes selon la saison. La marche est synchronisée avec un véritable déplacement sur un chemin OSM. Pour les personnages immobiles : jambes fixes, mouvements de tête légers et gestes occasionnels des bras, pas de marche sur place.</p>
 <p><b>Jeux interactifs :</b> l'enfant du petit toboggan attend, glisse et retourne vers la plateforme en suivant des points du modèle 3D. Un autre enfant entre dans le grand tube et ressort à l'extrémité. Celui sur les cordes grimpe et descend. Les autres observent ou jouent au sol. Les positions restent illustratives, liées à la maquette photo, et non mesurées.</p>
 <p><b>Amélioration P0.6.5 :</b> les enfants montent réellement les marches visibles des trois jeux à escaliers, en levant alternativement les jambes et les bras. Les marches du petit jeu sont également modélisées. L’enfant du filet d’escalade avance de prise en prise vers le haut et sur le côté avec mouvements coordonnés des deux bras et des deux jambes, puis redescend. Les animations restent symboliques, sans capture de mouvement humain.</p>
+<p><b>P0.6.7 : collision visuelle complète :</b> après inspection de la vidéo fournie, le gros cylindre rouge du petit toboggan a été remplacé par une vraie rampe inclinée mince, avec les mêmes points haut et bas. Un nouveau module <code>people-mesh-guard.js</code> compare à chaque image la tête, les cheveux/coiffes, le torse, les bras et les jambes contre les triangles des modèles 3D effectivement dessinés (jeux photographiques et mobilier OSM). Une légère correction de position est tentée lorsque cela suffit. Sinon la pose conflictuelle est masquée plutôt que de montrer une tête traversant une structure. Les mains et les pieds peuvent toucher les surfaces d’appui, le filet et les rampes. Il s’agit d’une détection géométrique conservatrice, pas d’une simulation physique complète ni d’une certification d’absence de collision dans les bâtiments externes swissBUILDINGS3D.</p>
 <p><b>P0.6.6 : anticollision et variantes :</b> les parcours sont contrôlés en continu, par échantillonnage des segments, à l’intérieur de l’aire de jeux et hors des volumes solides interdits approximés pour chaque maquette. Une variante qui échoue n’est pas assignée. Les personnages marchant sur des chemins OSM sont également écartés si leur trajet coupe l’emprise d’un jeu. Le filet propose trois circuits différents qui alternent à chaque boucle. Le petit toboggan et le grand tube proposent des fins différentes : glissade, réception parfois sur les fesses, pause assise, redressement puis retour à pied. Ces collisions sont des approximations géométriques 3D, non une simulation physique complète.</p>
 <p><b>Architecture extensible :</b> un moteur indépendant <code>people-motion.js</code> calcule les gestes et déplacements pour n'importe quelle zone. Les points d'interaction sont déclarés par modèle dans <code>photo-playground.js</code>, et <code>characters.js</code> distribue les adultes et enfants selon les polygones de jeux et les chemins réellement reçus. Une limite de population s'applique à chaque zone chargée pour préparer l'extension aux quartiers de Crans-Montana.</p>
 <p><b>Couche « Jeux photo » :</b> cinq maquettes 3D approuvées par l’utilisateur : grande structure avec tunnel, toboggan tubulaire courbe, petite structure bleue et rouge, jeux de cordes et banc. Placement déterministe approximatif à l’intérieur du périmètre OpenStreetMap de l’aire de jeux. Le banc est un modèle approuvé, mais sa présence sur ce périmètre reste non confirmée. Les objets sont cliquables et séparés des données OSM et cadastrales. Le contour de l’aire de jeux est orange fluo (#ff6900).</p>
@@ -138,7 +139,7 @@ let osmPedCount=0,treeCount=0,playCount=0,parkStatus='OSM';
 let vegetationTiles=null,vegetationEnabled=true,vegetationReady=false,vegetationMeshes=0,treeLayer=null;
 let osmOk=false,terrainOk=false,terrainVals=null,frame=0,clockLast=performance.now(),selected=null;
 let moData={shapes:[],results:[],state:'pending'},moUpdated=null,moPainter=null,moRendered=[];
-let furnitureData={features:[],counts:null,status:'loading',errors:[]},furniturePainter=null,furnitureGroup=null,furnitureDrawn=[],furnitureVisible=true,furnitureBusy=false;
+let furnitureData={features:[],counts:null,status:'loading',errors:[]},furniturePainter=null,furnitureGroup=null,furnitureDrawn=[],furnitureColliderModels=[],furnitureVisible=true,furnitureBusy=false;
 let photoPainter=null,photoGroup=null,photoDrawn=[],photoVisible=true,photoReason='en attente';
 let peopleSystem=null,peopleModule=null,peopleEnabled=true,peopleGeneration=0,peopleStatus='en attente',peopleError=null;
 const scene=new THREE.Scene();scene.background=new THREE.Color('#729da2');scene.fog=new THREE.Fog('#729da2',190,420);
@@ -221,7 +222,10 @@ function updatePeoplePanel(){
  const n=peopleSystem?.actors?.length||0;
  el.textContent=n?
   (peopleSystem.adults+' adultes · '+peopleSystem.children+' enfants · '+season()+
-  '. Parcours validés hors volumes interdits. Filet : 3 trajets alternés. Toboggans : réceptions assises ou debout. Tenues saisonnières.'):
+  '. Protection géométrique de la tête, du corps et des membres, '+(peopleSystem.collisionStats?.meshCount||0)+
+  ' objets 3D contrôlés.'+
+  (peopleSystem.collisionStats?.suppressed?' '+peopleSystem.collisionStats.suppressed+' pose(s) écartée(s) pour éviter des intersections.':'')+
+  ' Filet : 3 trajets. Toboggans : réceptions assises ou debout.'):
   'Aucun personnage placé : pas de zone ni de chemin exploitable.';
 }
 $('people-switch').onclick=()=>{
@@ -238,11 +242,12 @@ async function startPeople(){
  peopleStatus='loading';updatePeoplePanel();
  let created=null;
  try{
-  if(!peopleModule)peopleModule=import('./characters.js?v=6');
+  if(!peopleModule)peopleModule=import('./characters.js?v=7');
   const mod=await peopleModule;
   created=await mod.createPopulation({
    THREE,season:season(),height,
-   furnitureData,photoDrawn,visible:peopleEnabled
+   furnitureData,photoDrawn,
+   extraCollisionModels:furnitureColliderModels,visible:peopleEnabled
   });
   if(generation!==peopleGeneration){created.dispose();return;}
   peopleSystem=created;
@@ -357,8 +362,8 @@ async function startFurniture(){
  try{
   const [source,visual,photoModels]=await Promise.all([
    import('./furniture-source.js?v=3'),
-   import('./furniture-mesh.js?v=3'),
-   import('./photo-playground.js?v=6')
+   import('./furniture-mesh.js?v=4'),
+   import('./photo-playground.js?v=7')
   ]);
   furniturePainter=visual.drawFurniture;
   photoPainter=photoModels.drawPhotoModels;
@@ -684,12 +689,13 @@ function build(){
  treeLayer=null;
  buildingLayer=new THREE.Group();world.add(buildingLayer);
  drawOfficialCadastral(world);
- furnitureGroup=null;furnitureDrawn=[];
+ furnitureGroup=null;furnitureDrawn=[];furnitureColliderModels=[];
  if(furniturePainter&&furnitureData.status==='verified'){
   const sceneItems=furniturePainter(THREE,furnitureData,height,world,objects,lineGeom);
   furnitureGroup=sceneItems.group;
   furnitureGroup.visible=furnitureVisible;
   furnitureDrawn=sceneItems.drawn;
+  furnitureColliderModels=sceneItems.colliders||[];
  }
  photoGroup=null;photoDrawn=[];photoReason='en attente';
  if(photoPainter&&furnitureData.status==='verified'){
@@ -705,7 +711,7 @@ function build(){
  }
  const ok=(moData.results||[]).filter(r=>r.status==='verified').length;
  $('origin').textContent='Mensuration officielle Valais · toits swissBUILDINGS3D';
- $('status').textContent='P0.6.6 · '+ok+'/4 sources MO · '+moRendered.length+' géométries cadastre · '+furnitureDrawn.length+' objets OSM · '+photoDrawn.length+' jeux illustratifs · relief '+(terrainOk?'swisstopo interpolé':'non confirmé');
+ $('status').textContent='P0.6.7 · '+ok+'/4 sources MO · '+moRendered.length+' géométries cadastre · '+furnitureDrawn.length+' objets OSM · '+photoDrawn.length+' jeux illustratifs · relief '+(terrainOk?'swisstopo interpolé':'non confirmé');
  updateGeoLabel();showCadastralAudit();updateFurniturePanel();updatePhotoPanel();syncRoofs();
  startPeople();
 }
