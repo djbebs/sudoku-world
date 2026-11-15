@@ -27,41 +27,118 @@ export const APPROVED=[
  * point/track units: model units, relative to model origin; y above model base.
  * Track positions are the visible geometry of the *specific* rendered slide.
  */
+/**
+ * Authoritative positions are for the RENDERED illustrative model only.
+ * A child's foot is anchored to each modeled step, never to a made-up
+ * geographic stair. Every game may provide track + sequence without changing
+ * the reusable motion engine.
+ */
 export const MODEL_INTERACTIONS={
  complex:[{
-  role:'play-platform',point:{x:-1.55,z:-.12,y:2.05},
-  facing:0.8,action:'touch-rail'
+  role:'play-stairs',facing:0,
+  track:[
+   {x:-3.05,z:-1.70,y:.12},  // bottom approach
+   {x:-3.05,z:-1.40,y:.34}, // stair 1
+   {x:-3.05,z:-.90,y:.71},  // stair 2
+   {x:-3.05,z:-.40,y:1.08},// stair 3
+   {x:-3.05,z:.10,y:1.45}, // stair 4
+   {x:-3.05,z:.60,y:1.82}, // stair 5
+   {x:-1.90,z:.40,y:2.06}  // top wooden deck
+  ],
+  sequence:[
+   ['waitBottom',0,0,1.5],
+   ['stairs',0,1,.62],['stairs',1,2,.66],
+   ['stairs',2,3,.66],['stairs',3,4,.66],['stairs',4,5,.66],
+   ['stairs',5,6,.90],
+   ['waitTop',6,6,2.3],
+   ['stairs-down',6,5,.82],
+   ['stairs-down',5,4,.66],['stairs-down',4,3,.66],
+   ['stairs-down',3,2,.66],['stairs-down',2,1,.66],
+   ['stairs-down',1,0,.62]
+  ]
  }],
  tube:[{
-  role:'play-tube',
+  role:'play-tube',facing:0.8,
   track:[
-   {x:-.45,z:0,y:2.45},        // platform / entrance
-   {x:1.1,z:.35,y:2.20},       // inside opaque silver tube, invisible
-   {x:2.38,z:2.13,y:.82},      // exit
-   {x:2.70,z:2.56,y:.12},      // ground
-   {x:-2.50,z:1.70,y:.12},     // walk back to yellow support
-   {x:-2.54,z:-1.1,y:.12},     // at steps
-   {x:-2.36,z:-.80,y:2.1},    // climb
-   {x:-.45,z:0,y:2.45}        // top
+   {x:-.45,z:0,y:2.45},       // entrance platform
+   {x:1.10,z:.35,y:2.20},    // inside silver tube
+   {x:2.38,z:2.13,y:.82},    // tube exit
+   {x:2.70,z:2.56,y:.12},    // ground
+   {x:-2.50,z:1.70,y:.12},   // return around structure
+   {x:-2.55,z:-1.55,y:.12},  // bottom of real modeled staircase
+   {x:-2.55,z:-1.20,y:.42},  // 1
+   {x:-2.55,z:-.80,y:.79},   // 2
+   {x:-2.55,z:-.40,y:1.16}, // 3
+   {x:-2.55,z:0,y:1.53},    // 4
+   {x:-2.55,z:.40,y:1.90},  // 5
+   {x:-1.40,z:-.20,y:2.15}, // upper wooden deck
+   {x:-.45,z:0,y:2.45}      // tube entry
   ],
-  facing:0.8
+  sequence:[
+   ['waitTop',0,0,2.3],
+   ['insideTube',0,1,1.05],['insideTube',1,2,1.15],
+   ['land',2,3,.72],['rest',3,3,1.05],
+   ['return',3,4,3.7],['return',4,5,2.4],
+   ['stairs',5,6,.65],['stairs',6,7,.68],
+   ['stairs',7,8,.68],['stairs',8,9,.68],
+   ['stairs',9,10,.68],['stairs',10,11,.95],
+   ['platformWalk',11,12,1.2]
+  ]
  }],
  small:[{
-  role:'play-slide',
+  role:'play-slide',facing:0,
   track:[
-   {x:.13,z:.72,y:1.48},       // child waits on actual small slide
-   {x:.13,z:2.15,y:.37},      // glides down the red ramp
-   {x:.15,z:2.50,y:.12},      // land
-   {x:-1.35,z:2.50,y:.12},    // walk left around play set
-   {x:-1.40,z:-1.22,y:.12},   // reach support/ladder side
-   {x:-1.05,z:-1.12,y:1.43},  // climb back up
-   {x:-.10,z:-.24,y:1.43},   // on platform
-   {x:.13,z:.72,y:1.48}      // queue at slide top
-  ],facing:0
+   {x:.13,z:.72,y:1.48},     // top of red slide
+   {x:.13,z:2.15,y:.37},    // red slide landing
+   {x:.15,z:2.50,y:.12},    // ground
+   {x:-1.50,z:2.48,y:.12},  // safe route to side
+   {x:-1.50,z:-2.53,y:.12}, // approach rear stairs
+   {x:-1.35,z:-2.30,y:.31}, // stair 1
+   {x:-1.27,z:-2.05,y:.56}, // stair 2
+   {x:-1.17,z:-1.80,y:.81}, // stair 3
+   {x:-1.10,z:-1.55,y:1.06}, // stair 4
+   {x:-1.02,z:-1.30,y:1.31}, // stair 5
+   {x:-.90,z:-.95,y:1.43}, // deck
+   {x:-.10,z:-.24,y:1.43},// walk to slide
+   {x:.13,z:.72,y:1.48}   // slide entrance
+  ],
+  sequence:[
+   ['waitTop',0,0,2.3],['slide',0,1,1.15],
+   ['land',1,2,.7],['rest',2,2,1.2],
+   ['return',2,3,1.5],['return',3,4,3.9],
+   ['stairs',4,5,.60],['stairs',5,6,.63],
+   ['stairs',6,7,.63],['stairs',7,8,.63],
+   ['stairs',8,9,.63],['stairs',9,10,.75],
+   ['platformWalk',10,11,1.15],['platformWalk',11,12,1.00]
+  ]
  }],
  ropes:[{
-  role:'climb-ropes',point:{x:-.90,z:-1.15,y:.35},
-  minY:.35,maxY:1.78,facing:0
+  role:'climb-ropes',
+  // Child stands just in front of the vertical z=-1.15 mesh.
+  // Alternating x and y follows the actual x=-1.8+0.55*i / y=.27+.49*j grid.
+  facing:Math.PI,
+  track:[
+   {x:-1.28,z:-.88,y:.34},
+   {x:-1.28,z:-.88,y:.77},
+   {x:-.75,z:-.88,y:1.03},
+   {x:-.75,z:-.88,y:1.45},
+   {x:-.20,z:-.88,y:1.70},
+   {x:-.20,z:-.88,y:2.16},
+   {x:.35,z:-.88,y:2.39},
+   {x:.35,z:-.88,y:1.91},
+   {x:-.20,z:-.88,y:1.46},
+   {x:-.75,z:-.88,y:.95},
+   {x:-1.28,z:-.88,y:.34}
+  ],
+  sequence:[
+   ['net-up',0,1,.76],['net-up',1,2,.82],
+   ['net-up',2,3,.82],['net-up',3,4,.82],
+   ['net-up',4,5,.84],['net-up',5,6,.84],
+   ['holdNet',6,6,1.2],
+   ['net-down',6,7,.82],['net-down',7,8,.88],
+   ['net-down',8,9,.86],['net-down',9,10,.92],
+   ['rest',10,10,1.2]
+  ]
  }],
  bench:[{
   role:'sit',point:{x:0,z:0,y:.65},facing:0
@@ -227,6 +304,17 @@ function buildSmall(T,g){
  cube(1.17,.78,.12,c.blue,-1.31,2.20,-.28);
  cube(1.14,.78,.12,c.blue,1.05,2.20,-.28);
  cube(1.6,.7,.11,c.blue,-.05,2.43,-1.27);
+ // Five visible pixel-art stair treads. These are the SAME locations used by
+ // MODEL_INTERACTIONS.small, so a child's foot reaches each physical step.
+ const stepX=[-1.35,-1.27,-1.17,-1.10,-1.02];
+ const stepZ=[-2.30,-2.05,-1.80,-1.55,-1.30];
+ for(let i=0;i<5;i++){
+  const top=.31+.25*i;
+  cube(.52,.11,.24,c.metalLight,stepX[i],top-.055,stepZ[i]);
+ }
+ for(const x of [-1.73,-.70]){
+  link(x,.29,-2.47,x,1.70,-1.22,.055,c.red,6);
+ }
  // Red open straight slide from platform to the ground.
  link(.13,1.48,.72,.13,.37,2.15,.56,c.red,9);
  cube(1.18,.13,.35,c.red,.13,.33,2.19);
