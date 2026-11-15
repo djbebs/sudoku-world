@@ -1,10 +1,28 @@
-# Crans-Montana Pixel Atlas · P0.6
+# Crans-Montana Pixel Atlas · P0.6.1
 
 ## Aperçu
 
-**Atlas 3D P0.6 :** https://djbebs.github.io/sudoku-world/crans-montana-p06/?v=1
+**Atlas 3D P0.6.1 :** https://djbebs.github.io/sudoku-world/crans-montana-p06/?v=2
 
-P0.6 est une nouvelle préversion indépendante de P0.5.9, de P0.5.8 et de Sudoku World.
+P0.6.1 est une correction de P0.6, indépendante de P0.5.9, de P0.5.8 et de Sudoku World.
+
+## Correction P0.6.1 : jeux et couleurs du sol
+
+**Cause du problème :** P0.6 ne dessinait que le **contour vert** du polygone OSM `leisure=playground`, sans remplir sa surface. Les modèles de jeux exigeaient un nœud OSM individuel, alors que certains équipements sont cartographiés comme des voies/surfaces, ou ne sont pas cartographiés du tout.
+
+**Corrections :**
+- La surface **délimitée** de l'aire de jeux est maintenant **remplie en low-poly** et suit les altitudes du terrain. Le contour OSM est conservé.
+- Si un tag `surface=grass`, `artificial_turf`, `woodchips`, `sand`, `rubber` ou similaire est présent, le rendu utilise un coloris associé. En absence de tag, l'aire est stylisée en **vert illustratif**, en accord avec les photos du site touristique de Ycoor. Cette couleur ne constitue pas un relevé de matériaux.
+- L'aire de jeux est rendue **sous** les polygones officiels du cadastre (offset faible). Les chemins, revêtements durs et surfaces d'eau vérifiées gardent leur géométrie et leur priorité visuelle ; aucune surface cadastrale n'est écrasée.
+- Le terrain sans classification cadastrale n'est plus affiché comme de la pelouse partout : il apparaît en **gris-vert neutre**.
+- La catégorie cadastrale `GENRE=12` « autre revêtement dur » apparaît en **gris pavé clair** plutôt qu'en marron ambigu. Les surfaces sont restées géométriquement inchangées.
+- L'interrogation OSM inclut désormais **`way["playground"]`**, pas seulement les nœuds `node["playground"]`. Pour un **équipement explicitement cartographié comme way**, le symbole est placé en un point représentatif calculé à partir de sa géométrie OSM, étiqueté « position indicative dérivée de géométrie ».
+- Six types supplémentaires de jeux peuvent être rendus **si et seulement si** OSM contient une géométrie d'équipement : structure multi-jeux, bascule, jeu à ressort, tourniquet, tyrolienne, bac à sable.
+- Le panneau « Mobilier OSM » signale explicitement si un polygone `leisure=playground` existe mais qu'**aucun équipement individuel n'est géolocalisé**. Il contient un lien vers la [galerie touristique officielle de Ycoor](https://www.crans-montana.ch/fr/?idcmt=Partenaire_Activite_4ff811345b2094222f969b680bb9ac78), illustrant notamment les toboggans et structures à grimper.
+
+**Ce qui n'a PAS été fait :** aucun toboggan, balançoire ou jeu n'a été placé à un emplacement arbitraire dans le polygone. La présence d'équipements est confirmée visuellement par les photos touristiques, mais leurs positions individuelles ne le sont pas nécessairement. Les positions des éléments absents d'OSM doivent faire l'objet de données géolocalisées supplémentaires avant une représentation fidèle.
+
+**Tests :** validation syntaxique des sources et des nouveaux types de mobilier ; tests de conversion et de repérage des voies d'équipement OSM ; validation des fichiers GitHub et des références des modules. Rendu sur appareil/navigateur réel et contenu effectif Overpass non encore vérifiés.
 
 ## Fonctionnalités P0.6
 
@@ -14,7 +32,7 @@ P0.6 est une nouvelle préversion indépendante de P0.5.9, de P0.5.8 et de Sudok
 - Bouton **« 🪑 Mobilier : ON/OFF »** dans la carte. Il affiche/cache uniquement le mobilier, sans masquer les surfaces cadastrales.
 - Section dépliante **« Mobilier OSM »** : catégorie, nombre de données référencées, date source OSM quand fournie, erreur serveur si inaccessible, bouton Actualiser.
 - Chaque petit objet 3D possède un identifiant **OSM `node/id`**, nom si fourni, lien vers sa fiche OSM, type et source. Un clic/toucher affiche les détails.
-- Les **aires de jeux** cartographiées en polygone sont délimitées sur les contours OSM. Aucune balançoire, structure ou toboggan n'est placé sans point d'équipement `playground=...`.
+- Les **aires de jeux** cartographiées en polygone sont remplies en sol pixel-art avec contour OSM. Les jeux individuels n'apparaissent que si OSM fournit leur position ponctuelle ou leur géométrie propre.
 - Si OpenStreetMap répond avec **zéro équipement**, le résultat affiché est « zéro référencé », pas « aucun mobilier réel ». Si la requête échoue, l'état est **indisponible** et aucun objet n'est inventé.
 - Aucune photographie affichée, aucun tracé déduit des captures utilisateur, aucune position procédurale aléatoire.
 
@@ -36,7 +54,7 @@ P0.6 est une nouvelle préversion indépendante de P0.5.9, de P0.5.8 et de Sudok
 | Stationnement vélo | `amenity=bicycle_parking` |
 | Borne | `barrier=bollard` |
 
-**Sécurité de provenance :** les catégories sont inférées uniquement depuis les tags d'objets réels. Seuls les nœuds OSM peuvent entraîner la création d'un équipement ou d'un modèle ponctuel. Les voies `leisure=playground` ne servent qu'à dessiner leur véritable périmètre ; leur centre n'est jamais utilisé pour placer un jouet fictif. Les objets de type `access=private`, désaffectés ou détruits sont ignorés.
+**Sécurité de provenance :** les catégories sont inférées uniquement depuis les tags d'objets réels. Les nœuds OSM **et les voies OSM décrivant explicitement un équipement** peuvent entraîner la création d'un modèle symbolique ; la position d'une voie est représentative et dérivée de la géométrie cartographiée. Les voies `leisure=playground` ne servent qu'à dessiner leur véritable périmètre ; leur centre n'est jamais utilisé pour placer un jouet fictif. Les objets de type `access=private`, désaffectés ou détruits sont ignorés.
 
 **Géométrie et précision :** le centre LV95 est **E 2'603'036, N 1'128'849**. La conversion WGS84→LV95 locale s'appuie sur un jacobien calculé par PROJ au centre. Vérification numérique avec PROJ des quatre coins du carré : erreur maximale inférieure à **1 mm** pour cette *transformation*, ce qui ne dit rien de la précision terrain du relevé OSM. Les coordonnées cadastrales sont directement lues en LV95, sans transformation écran.
 
