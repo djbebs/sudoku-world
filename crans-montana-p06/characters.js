@@ -5,7 +5,8 @@
  */
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { originalGlbBuffers, CHARACTER_FILES, SOURCE } from './characters-assets.js';
-import { compileWalkPath, motionAt } from './people-motion.js?v=3';
+import { compileWalkPath, motionAt } from './people-motion.js?v=4';
+import { chooseSafeVariants, guardLivePose, sampleSweptSegment } from './playground-collision.js?v=1';
 
 const COLORS={
  spring:{tops:['#61b78e','#e1aa61','#7298cf','#e18b9f','#bdac5f'],bottoms:['#374c59','#5c6c76','#6f5945','#667346']},
@@ -95,9 +96,24 @@ export function planPopulationForZones({walkPaths=[],zones=[],maxActors=12,tileH
   if(Math.abs(x)>extent||Math.abs(z)>extent)return false;
   people.push({kind,role,x,z,id:people.length+1,...more});return true;
  };
+ // A traced pedestrian line can still run through an illustrative playground
+ // model. Reject such paths rather than letting a walker pass through a game.
+ const occupied=(zones||[]).flatMap(z=>z.models||[]).filter(m=>m.center);
+ const avoidsModels=way=>{
+  for(let i=1;i<way.points.length;i++){
+   const a=way.points[i-1],b=way.points[i];
+   const safe=sampleSweptSegment({x:a.x,y:0,z:a.z},{x:b.x,y:0,z:b.z},p=>
+    occupied.every(m=>{
+     const halfW=(m.w||5*m.scale||4)/2+.24,halfD=(m.d||5*m.scale||4)/2+.24;
+     return Math.abs(p.x-m.center.x)>halfW||Math.abs(p.z-m.center.z)>halfD;
+    }),.14);
+   if(!safe)return false;
+  }
+  return true;
+ };
  const validRoutes=(walkPaths||[]).filter(w=>Array.isArray(w.points)&&w.points.length>=2&&w.length>=5)
   .filter(w=>w.points.every(p=>Number.isFinite(p.x+p.z)&&Math.abs(p.x)<=tileHalfSize&&Math.abs(p.z)<=tileHalfSize))
-  .slice(0,2);
+  .filter(avoidsModels).slice(0,2);
  validRoutes.forEach((way,i)=>{
   const start=way.points[0];
   add('adulte','walk',start.x,start.z,{
@@ -122,23 +138,39 @@ export function planPopulationForZones({walkPaths=[],zones=[],maxActors=12,tileH
     if(people.length>=quota)break;
     if(item.role==='sit')continue; // reserved for adult below
     const scale=model.scale||1;
-    const world=(p)=>({
+    const world=p=>({
      x:model.center.x+p.x*scale,z:model.center.z+p.z*scale,
      y:(p.y||0)*scale
     });
+    if(!model.center||scale<=0)continue;
     let point=item.point?world(item.point):null;
-    const track=Array.isArray(item.track)?item.track.map(world):null;
-    if(track){
-     if(track.some(p=>!inside(p,polygon)||Math.abs(p.x)>=extent||Math.abs(p.z)>=extent))continue;
-     point=track[0];
+    let safeVariants=[];
+    if(Array.isArray(item.track)&&Array.isArray(item.sequence)){
+     // We validate EVERY segment, not only its endpoints. On collision or
+     // outside polygon, the unsafe variant is rejected before any GLB loads.
+     const selection=chooseSafeVariants({model,interaction:item,polygon,extent});
+     safeVariants=selection.safe.map(v=>({
+      name:v.name||'default',
+      track:v.track.map(world),
+      sequence:v.sequence
+     }));
+     if(!safeVariants.length){
+      console.warn('Playground interaction suppressed: collision or outside polygon',
+       model.key,selection.rejected);
+      continue;
+     }
+     point=safeVariants[0].track[0];
     }
     if(!point||!inside(point,polygon))continue;
     add('enfant',item.role,point.x,point.z,{
      modelKey:model.key,zoneId:zone.id,modelSource:'photo',
      offsetY:point.y,facing:item.facing||0,
-     // The prefab's local shape and authored stepping script control poses.
      modelCenter:{x:model.center.x,z:model.center.z},
-     track,sequence:Array.isArray(item.sequence)?item.sequence:null,
+     modelScale:scale,
+     solidVolumes:model.solidVolumes||[],
+     track:safeVariants[0]?.track||null,
+     sequence:safeVariants[0]?.sequence||null,
+     variants:safeVariants.length?safeVariants:null,
      minY:typeof item.minY==='number'?item.minY*scale:undefined,
      maxY:typeof item.maxY==='number'?item.maxY*scale:undefined
     });
@@ -213,6 +245,7 @@ function buildActors(T,lib,planned,season,height,enabled){
  let photoVisible=true;
  for(const spec of planned.people){
   const {root,style}=createBody(lib,spec.kind,season,spec.id);
+  if(spec.modelCenter)spec.modelGroundY=height(spec.modelCenter.x,spec.modelCenter.z)+.27;
   const anchor=new T.Group();anchor.name=spec.kind+' '+spec.role;
   anchor.position.set(spec.x,height(spec.x,spec.z)+.25+(spec.offsetY||0),spec.z);
   anchor.rotation.y=spec.facing??(spec.kind==='adulte'?.9:-.5);
@@ -245,7 +278,8 @@ function buildActors(T,lib,planned,season,height,enabled){
   const step=Math.max(0,Math.min(.06,Number(dt)||0));
   for(const actor of actors){
    actor.elapsed+=step;
-   const pose=motionAt(actor.spec,actor.elapsed,height,actor.cache);
+   const raw=motionAt(actor.spec,actor.elapsed,height,actor.cache);
+   const pose=guardLivePose(raw,actor.spec,actor.cache);
    const {anchor,parts,neutral,neutralZ,spec}=actor;
    anchor.position.set(pose.x,pose.y,pose.z);
    anchor.rotation.y=pose.heading;
@@ -265,6 +299,7 @@ function buildActors(T,lib,planned,season,height,enabled){
    if(parts.rightLeg)parts.rightLeg.rotation.z=neutralZ.rightLeg+(pose.legRZ||0);
    if(parts.head)parts.head.rotation.y=pose.headY;
    actor.lastPhase=pose.phase;
+   actor.lastVariant=pose.variantName||'default';
   }
  }
  function dispose(){
