@@ -228,7 +228,7 @@ export function drawPhotoModels(T,features,height,parent,pickable,visible=true){
  for(const p of plan.planned){
   const part=new T.Group();
   part.name='PHOTO-ILLUSTRATION: '+p.name;
-  part.position.set(p.x,height(p.x,p.z)+.45,p.z);
+  part.position.set(p.x,height(p.x,p.z)+.27,p.z);
   part.scale.set(p.scale,p.scale,p.scale);
   group.add(part);
   BUILDERS[p.key](T,part);
