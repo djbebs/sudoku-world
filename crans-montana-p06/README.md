@@ -1,10 +1,52 @@
-# Crans-Montana Pixel Atlas · P0.6.2
+# Crans-Montana Pixel Atlas · P0.6.3
 
 ## Aperçu
 
-**Atlas 3D P0.6.2 :** https://djbebs.github.io/sudoku-world/crans-montana-p06/?v=3
+**Atlas 3D P0.6.3 :** https://djbebs.github.io/sudoku-world/crans-montana-p06/?v=4
 
 P0.6.1 est une correction de P0.6, indépendante de P0.5.9, de P0.5.8 et de Sudoku World.
+
+## P0.6.3 : personnages saisonniers animés
+
+La version ajoute la **population 3D** que l'utilisateur a fournie dans l'archive \`personnages_coiffes.zip\`. Les six fichiers originaux ont été vérifiés et transférés sans modification de maillage :
+
+- \`adulte_bonnet.glb\`, \`adulte_casquette.glb\`, \`adulte_chapeau.glb\`
+- \`enfant_bonnet.glb\`, \`enfant_casquette.glb\`, \`enfant_chapeau.glb\`
+
+Ils sont stockés sous forme d'un pack gzip sans perte, décodé dans le navigateur via \`DecompressionStream('gzip')\`. Le format de stockage comprend six tailles \`uint32 little-endian\` et les six GLB d'origine. Les modules \`people-data-a.js\`, \`people-data-b.js\`, \`people-data-c7.js\`, \`people-data-c8.js\`, \`people-data-c9.js\` et \`people-data-d.js\` contiennent les fragments compressés, et \`characters-assets.js\` les réassemble. **Empreinte SHA-256 de la concaténation originale des fichiers avec leurs tailles : \`4b095541e49c1861bca42bdfecad77c1ab37fde4974aa3b1f54f044ca4850bc8\`.**
+
+### Habillage saisonnier
+
+Le module \`characters.js\` charge les six modèles via Three.js \`GLTFLoader.parse\`. Les matériaux des fichiers \`haut\`, \`bas\`, \`coiffe\` et \`coiffe2\` sont clonés par personnage, puis recolorés suivant une palette variée mais déterministe, sans modifier la couleur de peau ni les cheveux.
+
+| Saison | Modèle et vêtements |
+|---|---|
+| Printemps | Casquette ou chapeau, couleurs claires, variante de bras plus légère |
+| Été | Casquette ou chapeau, couleurs vives, tenue légère |
+| Automne | Bonnet, palette chaude, variante couvrante |
+| Hiver | Bonnet, couleurs hivernales, variante couvrante |
+
+La saison automatique dépend de la date choisie dans l'interface. Les boutons saisonniers permettent de la forcer, le système recrée alors les personnages avec les matériaux correspondants. Les véritables bras et jambes \`Bras_G\`, \`Bras_D\`, \`Jambe_G\`, \`Jambe_D\` sont animés par rotations locales de leurs nœuds, sans squelette artificiellement supposé.
+
+### Occupations et emplacement
+
+- **Adultes** : marche sur les vrais tracés piétons OSM \`highway=footway\`, \`path\`, \`pedestrian\` ou \`living_street\`. Si ces tracés manquent, **aucune route imaginaire** n'est créée. D'autres adultes peuvent être placés à proximité des jeux comme spectateurs ou en conversation.
+- **Enfants** : certains stationnent ou bougent sur les structures photo-approuvées (\`complex\`, \`small\`, \`ropes\`) à positions indicatives. D'autres sautillent, font signe de la main ou jouent au sol sans pénétrer dans l'emprise approximative des maquettes.
+- **Banc** : un adulte peut s'asseoir sur le banc photo-illustratif si ce banc a pu être placé, sans prétendre que sa présence physique a été mesurée.
+- Les jambes marchent en alternance, les bras suivent une cadence simple, le corps rebondit légèrement ; une personne joue, grimpe ou salue selon sa fonction.
+- Densité adaptative : jusqu'à environ **4 adultes et 5 enfants**. Le nombre réel affiché dépend des géométries effectivement reçues et de l'espace libre. Les personnages ne figurent pas dans des emplacements géographiques inventés hors du polygone OSM ou du tracé piéton.
+
+Le panneau **« 👥 Personnages : ON/OFF »** active et masque indépendamment la couche. Les personnes sont cliquables pour afficher la variante GLB, le rôle et le caractère indicatif de l'animation. Masquer **« Jeux photo »** masque aussi les enfants sur les plateformes désormais invisibles.
+
+### Conventions, limitations et tests
+
+- La population est **illustrative** : elle ne prétend pas représenter des personnes réelles présentes à Ycoor, ni leurs trajets et animations exacts.
+- Les modèles GLB ne sont pas une bibliothèque d'animations squelettiques. Les membres nommés sont articulés par transformations Three.js, sans mouvement réaliste de précision.
+- Le monde utilise toujours les contours cadastraux officiels et les maquettes d'aire de jeux validées dans les versions précédentes.
+- L'API Overpass est élargie à la lecture des voies piétonnes, en plus des objets de mobilier. Les chemins OSM sont convertis en repère local métrique et coupés à la zone P0 avant de servir de trajectoires.
+- Le pack GLB gzip a été contrôlé : 9368 caractères Base64 assemblés, CRC32 du texte \`bb7287e7\`, 100680 octets après décompression attendus, six en-têtes GLB 2.0 vérifiés.
+- Tests JS : sélection des six variantes saisonnières, planification d'une population simulée avec 4 adultes et 5 enfants, mouvement des marcheurs, articulation et variation des couleurs, masquage des enfants dépendant des maquettes, aucune présence sans géométrie admissible.
+- **Contrôle encore nécessaire :** rendu effectif et performances dans un navigateur connecté avec chargement complet des services OSM et swisstopo. Les scènes réelles peuvent contenir moins de personnages que la scène simulée.
 
 ## P0.6.2 : intégration des cinq modèles photo-approuvés
 
