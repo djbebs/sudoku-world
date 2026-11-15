@@ -7,7 +7,6 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { originalGlbBuffers, CHARACTER_FILES, SOURCE } from './characters-assets.js';
 import { compileWalkPath, motionAt } from './people-motion.js?v=4';
 import { chooseSafeVariants, guardLivePose, sampleSweptSegment } from './playground-collision.js?v=2';
-import { buildSceneCollisionIndex, modelCollisionAudit } from './people-mesh-guard.js?v=1';
 
 const COLORS={
  spring:{tops:['#61b78e','#e1aa61','#7298cf','#e18b9f','#bdac5f'],bottoms:['#374c59','#5c6c76','#6f5945','#667346']},
@@ -239,10 +238,7 @@ function createBody(library,kind,season,index){
  });
  return {root,style};
 }
-function buildActors(T,lib,planned,season,height,enabled,photoDrawn=[],extraCollisionModels=[]){
- const collisionIndex=buildSceneCollisionIndex(T,[...photoDrawn,...extraCollisionModels]);
- const collisionStats={meshCount:collisionIndex.records.length,
-  triangleCount:collisionIndex.triangleCount,corrected:0,suppressed:0,latest:null};
+function buildActors(T,lib,planned,season,height,enabled){
  const group=new T.Group();group.name='Animated GLB people (tile-local, reusable)';
  group.visible=enabled;
  const actors=[];
@@ -285,8 +281,7 @@ function buildActors(T,lib,planned,season,height,enabled,photoDrawn=[],extraColl
    const raw=motionAt(actor.spec,actor.elapsed,height,actor.cache);
    const pose=guardLivePose(raw,actor.spec,actor.cache);
    const {anchor,parts,neutral,neutralZ,spec}=actor;
-   const applyPose=pose=>{
-    anchor.position.set(pose.x,pose.y,pose.z);
+   anchor.position.set(pose.x,pose.y,pose.z);
    anchor.rotation.y=pose.heading;
    anchor.rotation.x=pose.bodyX||0;
    anchor.rotation.z=pose.bodyZ||0;
@@ -303,22 +298,8 @@ function buildActors(T,lib,planned,season,height,enabled,photoDrawn=[],extraColl
    if(parts.leftLeg)parts.leftLeg.rotation.z=neutralZ.leftLeg+(pose.legLZ||0);
    if(parts.rightLeg)parts.rightLeg.rotation.z=neutralZ.rightLeg+(pose.legRZ||0);
    if(parts.head)parts.head.rotation.y=pose.headY;
-   };
-   // Validate the WHOLE rendered avatar against the REAL playground triangles,
-   // including the head, hair/hat, torso, arms and legs. A known penetrating
-   // body is never shown: choose only a nearby safe pose, or suppress it.
-   let result={pose,hidden:!pose.visible,corrected:false,collision:null};
-   if(pose.visible&&collisionIndex.records.length){
-    result=modelCollisionAudit(T,actor,collisionIndex,pose,applyPose);
-    if(result.corrected)collisionStats.corrected++;
-    if(result.hidden){
-     collisionStats.suppressed++;
-     collisionStats.latest=result.collision;
-    }
-   }else applyPose(pose);
-   actor.lastPhase=result.pose.phase;
-   actor.lastVariant=result.pose.variantName||'default';
-   actor.lastVisible=!!result.pose.visible;
+   actor.lastPhase=pose.phase;
+   actor.lastVariant=pose.variantName||'default';
   }
  }
  function dispose(){
@@ -333,24 +314,21 @@ function buildActors(T,lib,planned,season,height,enabled,photoDrawn=[],extraColl
  function setPhotoVisible(show){
   photoVisible=!!show;
   for(const a of actors){
-   if(a.spec.modelKey)a.anchor.visible=photoVisible&&a.lastVisible!==false;
+   if(a.spec.modelKey)a.anchor.visible=photoVisible&&a.lastPhase!=='insideTube';
   }
  }
  // Populate actors once; subsequent frames are small O(visible actors).
  update(0);
- return {group,actors,update,dispose,setPhotoVisible,collisionStats,
+ return {group,actors,update,dispose,setPhotoVisible,
   adults:planned.adults,children:planned.children,plan:planned};
 }
-export async function createPopulation({THREE,season='summer',height,furnitureData,photoDrawn=[],
- extraCollisionModels=[],visible=true,tileHalfSize=50,maxActors=12}){
+export async function createPopulation({THREE,season='summer',height,furnitureData,photoDrawn=[],visible=true,tileHalfSize=50,maxActors=12}){
  const plan=planPopulation({walkPaths:furnitureData?.walkPaths||[],
   furnitureFeatures:furnitureData?.features||[],photoDrawn,tileHalfSize,maxActors});
  if(!plan.people.length){
   const group=new THREE.Group();group.visible=visible;
-  return {group,actors:[],adults:0,children:0,plan,
-   collisionStats:{meshCount:0,triangleCount:0,corrected:0,suppressed:0,latest:null},
-   update(){},setPhotoVisible(){},dispose(){group.removeFromParent()}};
+  return {group,actors:[],adults:0,children:0,plan,update(){},setPhotoVisible(){},dispose(){group.removeFromParent()}};
  }
  const library=await loadTemplates();
- return buildActors(THREE,library,plan,season,height,visible,photoDrawn,extraCollisionModels);
+ return buildActors(THREE,library,plan,season,height,visible);
 }
