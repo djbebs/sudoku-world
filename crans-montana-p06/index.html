@@ -238,7 +238,7 @@ async function startPeople(){
  peopleStatus='loading';updatePeoplePanel();
  let created=null;
  try{
-  if(!peopleModule)peopleModule=import('./characters.js?v=5');
+  if(!peopleModule)peopleModule=import('./characters.js?v=6');
   const mod=await peopleModule;
   created=await mod.createPopulation({
    THREE,season:season(),height,
