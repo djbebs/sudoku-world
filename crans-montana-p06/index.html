@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#173125">
-<title>Isometric Crans-Montana · P0.6.1 / Ycoor</title>
+<title>Isometric Crans-Montana · P0.6.2 / Ycoor</title>
 <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--paper:#f6f0dd;--ink:#29291f;--red:#c92430;--blue:#2f5c9e;--edge:#1d221c}
@@ -30,7 +30,8 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
 }
 #place{max-height:calc(100dvh - 95px);overflow-y:auto}
 #furniture-control{margin-top:8px;padding-top:7px;border-top:2px dashed #bcb5a0;line-height:1.35;font-size:12px}
-#furniture-switch{font-size:11px;padding:4px 7px;max-width:100%}
+#furniture-switch,#photo-switch{font-size:11px;padding:4px 7px;max-width:100%}
+#photo-switch.active{background:#f5c858;color:#25291f}
 #furniture-control summary{cursor:pointer;color:#465239;font-weight:700;margin-top:6px;overflow-wrap:anywhere}
 #furniture-results{margin:4px 0;font-size:11px;max-height:145px;overflow-y:auto}
 #furniture-results p{margin:3px 0}
@@ -52,12 +53,17 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
 <div><span style="color:#aba7a1">■</span> Gris clair : revêtement dur / trottoir</div>
 <div><span style="color:#5f8eaa">■</span> Bleu : eau cadastrale</div>
 <div><span style="color:#959d92">■</span> Sauge gris : terrain non classé dans la carte</div>
+<div><span style="color:#ff6900">■</span> Orange fluo : limite OSM de l’aire de jeux</div>
 </details><div style="margin-top:7px"><a href="../crans-montana-p058/verification.html?v=1" style="font-size:12px;display:inline-block;padding:5px 7px;color:#123f70;background:#fffaf1;border:2px solid #242820;box-shadow:2px 2px #2b3228" title="Interroger et compter les objets cadastraux de Ycoor">🔎 Vérifier les objets MO de Ycoor</a></div><button id="veg-switch" type="button" title="Afficher la végétation officielle 3D" style="margin-top:5px;padding:3px 5px;font-size:11px">🌲 Végétation 3D</button><div id="furniture-control">
 <button id="furniture-switch" type="button" class="active" aria-pressed="true" title="Afficher ou masquer le mobilier urbain référencé dans OSM">🪑 Mobilier : ON</button>
 <details id="furniture-details"><summary id="furniture-summary">Mobilier OSM : chargement…</summary>
 <div id="furniture-results" aria-live="polite">Aucune position fictive.</div>
 <button id="furniture-retry" type="button" title="Relancer les requêtes OSM">↻ Actualiser OSM</button>
-</details></div></section>
+</details>
+<div id="photo-control" style="margin-top:7px;padding-top:7px;border-top:1px dashed #bcb5a0">
+<button id="photo-switch" class="active" type="button" aria-pressed="true" title="Afficher ou masquer les jeux illustratifs approuvés d'après les photos d’Ycoor">🛝 Jeux photo : ON</button>
+<div id="photo-status" role="status" style="font-size:11px;margin-top:4px;line-height:1.35">Modèles approuvés · positions indicatives.</div>
+</div></div></section>
 <section id="time" class="box" aria-label="Heure et saisons">
  <div class="row"><button id="postcard">postcard</button><button id="sun-mode" class="active">real sun</button></div>
  <input id="date" aria-label="Date de la scène" type="date" value="2026-11-14">
@@ -68,10 +74,11 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:2px solid v
 </section>
 <section id="info" class="box"><button id="close-info" aria-label="Fermer">×</button><strong id="info-title">Lieu</strong><p id="info-desc"></p></section>
 <section id="sources" class="box"><button id="close-sources" style="float:right" aria-label="Fermer">×</button>
-<h2>Ycoor · Pixel Atlas P0.6.1</h2>
+<h2>Ycoor · Pixel Atlas P0.6.2</h2>
 <p><b>Sol, routes et jardins :</b> mensuration officielle du Valais, géométries LV95 conservées avec les numéros OBJECTID et les catégories GENRE.</p>
 <p><b>Mobilier urbain :</b> bancs, poubelles, lampadaires, arrêts, fontaines, tables et jeux issus de points OpenStreetMap portant un identifiant et des coordonnées. Ces petits modèles 3D sont <b>symboliques</b> : leurs formes, dimensions et orientations ne sont pas mesurées.</p>
 <p>Les polygones <code>leisure=playground</code> sont maintenant remplis en surface pixel-art. Les surfaces cadastrales de revêtements durs, chemins ou eau restent visuellement prioritaires. Les équipements sont affichés uniquement si un nœud OSM ou une géométrie OSM d'équipement existe. Pour un équipement dessiné comme voie, le symbole est placé au centre représentatif de sa géométrie (position indicative, dérivée de la source).</p>
+<p><b>Couche « Jeux photo » :</b> cinq maquettes 3D approuvées par l’utilisateur : grande structure avec tunnel, toboggan tubulaire courbe, petite structure bleue et rouge, jeux de cordes et banc. Placement déterministe approximatif à l’intérieur du périmètre OpenStreetMap de l’aire de jeux. Le banc est un modèle approuvé, mais sa présence sur ce périmètre reste non confirmée. Les objets sont cliquables et séparés des données OSM et cadastrales. Le contour de l’aire de jeux est orange fluo (#ff6900).</p>
 <p>Des photos locales de 2025 confirment l'existence de structures à grimper et de toboggans à Ycoor, mais ne fournissent pas des coordonnées précises. <a href="https://www.crans-montana.ch/fr/?idcmt=Partenaire_Activite_4ff811345b2094222f969b680bb9ac78" target="_blank" rel="noopener noreferrer">Référence touristique officielle</a>.</p>
 <p>Le rendu est <b>100 % pixel-art</b>, sans photographie ni géométrie dérivée de captures d'écran.</p>
 <p><b>Sources :</b> <a href="https://sit.vs.ch/arcgis/rest/services/MO/MapServer" target="_blank" rel="noopener noreferrer">État du Valais, MO</a> · <a href="https://map.vsgis.ch/cransmontana/?lang=fr" target="_blank" rel="noopener noreferrer">VSGIS Crans-Montana</a> · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors (ODbL)</a> · swisstopo swissBUILDINGS3D et végétation.</p></section>
@@ -121,6 +128,7 @@ let vegetationTiles=null,vegetationEnabled=true,vegetationReady=false,vegetation
 let osmOk=false,terrainOk=false,terrainVals=null,frame=0,clockLast=performance.now(),selected=null;
 let moData={shapes:[],results:[],state:'pending'},moUpdated=null,moPainter=null,moRendered=[];
 let furnitureData={features:[],counts:null,status:'loading',errors:[]},furniturePainter=null,furnitureGroup=null,furnitureDrawn=[],furnitureVisible=true,furnitureBusy=false;
+let photoPainter=null,photoGroup=null,photoDrawn=[],photoVisible=true,photoReason='en attente';
 const scene=new THREE.Scene();scene.background=new THREE.Color('#729da2');scene.fog=new THREE.Fog('#729da2',190,420);
 const camera=new THREE.OrthographicCamera(-95,95,75,-75,0.1,1500);
 const renderer=new THREE.WebGLRenderer({antialias:false,preserveDrawingBuffer:true,powerPreference:'low-power'});
@@ -185,6 +193,31 @@ function tree(x,z,seed,parent=world,tags={}){
  }
 }
 
+function updatePhotoPanel(){
+ const button=$('photo-switch');
+ button.classList.toggle('active',photoVisible);
+ button.setAttribute('aria-pressed',String(photoVisible));
+ button.textContent='🛝 Jeux photo : '+(photoVisible?'ON':'OFF');
+ const display=$('photo-status');
+ if(furnitureData.status==='loading'){
+  display.textContent='Recherche du périmètre cartographié de l’aire de jeux…';
+ }else if(furnitureData.status!=='verified'){
+  display.textContent='Aire de jeux non récupérée : modèles photo non placés.';
+ }else if(photoDrawn.length){
+  display.textContent=photoDrawn.length+'/5 modèles photo-approuvés placés à titre indicatif dans le périmètre OSM. '+
+    'Les positions, tailles et orientations ne sont pas mesurées.';
+ }else{
+  display.textContent=photoReason==='missing-playground-polygon'?
+   'Aucun polygone OSM d’aire de jeux trouvé : aucun placement illustratif.':
+   photoReason==='playground-too-small'?'Surface OSM trop petite pour un placement fiable.':
+   'Aucun emplacement libre confirmé dans le périmètre OSM.';
+ }
+}
+$('photo-switch').onclick=()=>{
+ photoVisible=!photoVisible;
+ if(photoGroup)photoGroup.visible=photoVisible;
+ updatePhotoPanel();
+};
 function updateFurniturePanel(){
  const b=$('furniture-switch');b.classList.toggle('active',furnitureVisible);
  b.setAttribute('aria-pressed',String(furnitureVisible));
@@ -253,11 +286,13 @@ async function startFurniture(){
  furnitureData={features:[],counts:null,status:'loading',errors:[]};
  updateFurniturePanel();
  try{
-  const [source,visual]=await Promise.all([
+  const [source,visual,photoModels]=await Promise.all([
    import('./furniture-source.js?v=2'),
-   import('./furniture-mesh.js?v=2')
+   import('./furniture-mesh.js?v=3'),
+   import('./photo-playground.js?v=1')
   ]);
   furniturePainter=visual.drawFurniture;
+  photoPainter=photoModels.drawPhotoModels;
   furnitureData=await source.fetchFurniture(message=>{
    $('furniture-summary').textContent=message;
   });
@@ -584,6 +619,13 @@ function build(){
   furnitureGroup.visible=furnitureVisible;
   furnitureDrawn=sceneItems.drawn;
  }
+ photoGroup=null;photoDrawn=[];photoReason='en attente';
+ if(photoPainter&&furnitureData.status==='verified'){
+  const reconstructed=photoPainter(THREE,furnitureData.features,height,world,objects,photoVisible);
+  photoGroup=reconstructed.group;
+  photoDrawn=reconstructed.drawn;
+  photoReason=reconstructed.reason;
+ }
  if(state.bounds){
   const m=mt('#d1ad66');
   for(const x of [-50,50])for(const z of [-50,50])
@@ -591,8 +633,8 @@ function build(){
  }
  const ok=(moData.results||[]).filter(r=>r.status==='verified').length;
  $('origin').textContent='Mensuration officielle Valais · toits swissBUILDINGS3D';
- $('status').textContent='P0.6.1 · '+ok+'/4 sources MO · '+moRendered.length+' géométries cadastre · '+furnitureDrawn.length+' objets OSM · relief '+(terrainOk?'swisstopo interpolé':'non confirmé');
- updateGeoLabel();showCadastralAudit();updateFurniturePanel();syncRoofs();
+ $('status').textContent='P0.6.2 · '+ok+'/4 sources MO · '+moRendered.length+' géométries cadastre · '+furnitureDrawn.length+' objets OSM · '+photoDrawn.length+' jeux illustratifs · relief '+(terrainOk?'swisstopo interpolé':'non confirmé');
+ updateGeoLabel();showCadastralAudit();updateFurniturePanel();updatePhotoPanel();syncRoofs();
 }
 /* swissBUILDINGS3D (3D Tiles -> Three.js), ECEF transformed to local Y-up. */
 function ecef(lonD,latD,h){
@@ -734,7 +776,7 @@ const raycaster=new THREE.Raycaster(),mouse=new THREE.Vector2();
 function selectAt(clientX,clientY){
  let rect=renderer.domElement.getBoundingClientRect();
  mouse.set(2*(clientX-rect.left)/rect.width-1,1-2*(clientY-rect.top)/rect.height);
- raycaster.setFromCamera(mouse,camera);let intersections=raycaster.intersectObjects(furnitureVisible?objects:objects.filter(o=>o.userData.source!=='osm'),false);
+ raycaster.setFromCamera(mouse,camera);let intersections=raycaster.intersectObjects(objects.filter(o=>(furnitureVisible||o.userData.source!=='osm')&&(photoVisible||o.userData.source!=='photo')),false);
  if(!intersections.length)return;
  let obj=intersections[0].object;if(!obj.userData.title)return;
  $('info-title').textContent=obj.userData.title;$('info-desc').textContent=obj.userData.desc;$('info').classList.add('show');
