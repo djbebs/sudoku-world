@@ -177,15 +177,38 @@ function updateGeoLabel(){
  b.setAttribute('aria-pressed',String(official));
 }
 function showCadastralAudit(){
- const results=moData.results||[];
  const report=$('mo-report');report.replaceChildren();
+ const results=moData.results||[];
+ if(!results.length){report.textContent='Service cadastral : pas de réponse vérifiée.';return}
  for(const r of results){
-  const p=document.createElement('p');p.style.margin='5px 0';
-  p.textContent='Couche '+r.layer+' : '+(r.status==='verified'?r.total+' objets reçus, '+r.shapes.length+' catégories dessinables':'INDISPONIBLE ('+r.error+')');
-  report.appendChild(p);
+  const d=document.createElement('details');
+  d.style.margin='5px 0';
+  const header=document.createElement('summary');
+  header.textContent='Couche '+r.layer+' : '+(r.status==='verified'?
+   r.total+' objets reçus, '+r.shapes.length+' géométries exploitées':
+   'INDISPONIBLE');
+  d.appendChild(header);
+  if(r.status==='verified'){
+   const list=Object.entries(r.byGenre||{});
+   if(!list.length){const p=document.createElement('p');p.textContent='Réponse valide : aucun objet dans ce carré.';d.appendChild(p)}
+   else for(const [genre,group] of list){
+    const p=document.createElement('p');p.style.margin='4px 0';
+    const ids=(group.objectIDs||[]).slice(0,40).join(', ');
+    p.textContent=genre+' · '+group.label+' : '+group.count+' objet(s), OBJECTID '+(ids||'non renseigné')+((group.objectIDs||[]).length>40?'…':'');
+    d.appendChild(p);
+   }
+   const link=document.createElement('a');link.href=r.url;link.target='_blank';
+   link.rel='noopener noreferrer';link.textContent='Voir la requête officielle';
+   d.appendChild(link);
+  }else{
+   const p=document.createElement('p');p.textContent='Requête impossible : '+r.error;
+   d.appendChild(p);
+  }
+  report.appendChild(d);
  }
- if(!results.length)report.textContent='Aucune donnée reçue du service cadastral.';
- if(moData.checkedAt){const p=document.createElement('p');p.textContent='Date UTC : '+moData.checkedAt;report.appendChild(p)}
+ if(moData.checkedAt){
+  const p=document.createElement('p');p.textContent='Interrogé en UTC : '+moData.checkedAt;report.appendChild(p);
+ }
 }
 $('veg-switch').onclick=()=>{
  vegetationEnabled=!vegetationEnabled;
@@ -443,6 +466,9 @@ function drawOfficialCadastral(parent){
 }
 function build(){
  mats.ground.color.set(season()==='winter'?'#c9d1c4':season()==='autumn'?'#79815a':'#6e8552');
+ // Dispose old per-tile / terrain geometry before rebuilding seasons.
+ // Official streamed 3D Tiles are separate from world and remain untouched.
+ world.traverse(node=>{if(node.isMesh&&node.geometry)node.geometry.dispose()});
  while(world.children.length)world.remove(world.children[0]);
  objects.length=0;animated.length=0;
  terrain(world);
