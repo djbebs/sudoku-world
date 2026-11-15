@@ -87,6 +87,35 @@ export function evaluateSequence(track,frames,t){
  }
  return null;
 }
+/** Rotates through all safe variants each completed cycle, without jumps.
+ * Different loop lengths are supported, and the order is seeded by actor id.
+ * No per-frame randomness and no mutable global state: village-scale safe.
+ */
+export function sequenceDuration(sequence){
+ return Array.isArray(sequence)?sequence.reduce((sum,item)=>sum+(Number(item[3])||0),0):0;
+}
+export function selectMotionVariant(spec,elapsed){
+ const variants=Array.isArray(spec.variants)&&spec.variants.length?spec.variants:null;
+ if(!variants){
+  const sequence=spec.sequence||SCENES[spec.role]||[];
+  return {track:spec.track,sequence,elapsed,variantName:'default',cycleIndex:0};
+ }
+ const durations=variants.map(v=>sequenceDuration(v.sequence));
+ const all=durations.reduce((a,b)=>a+b,0);
+ if(all<=0)return null;
+ const seed=((spec.id||1)%variants.length+variants.length)%variants.length;
+ let at=((elapsed%all)+all)%all;
+ for(let n=0;n<variants.length;n++){
+  const index=(seed+n)%variants.length,d=durations[index];
+  if(at<d||n===variants.length-1){
+   const v=variants[index];
+   return {track:v.track,sequence:v.sequence,elapsed:Math.min(at,d),
+    variantName:v.name||'option-'+index,cycleIndex:Math.floor(elapsed/all)*variants.length+n};
+  }
+  at-=d;
+ }
+ return null;
+}
 function pulse(time,seed,period=11,length=1.2){
  // Every actor's gesture is a rare, short event, never perpetual flailing.
  const phase=((time+(hash(seed+61)%100)/100*period)%period+period)%period;
@@ -128,9 +157,10 @@ export function motionAt(spec,t,height,cache={}){
  // whether the next model is Ycoor, a rope net or another climbing structure.
  const scripted=spec.track&&Array.isArray(spec.sequence)&&spec.sequence.length>0;
  const fallback=(role==='play-slide'||role==='play-tube')?SCENES[role]:null;
- if(spec.track&&(scripted||fallback)){
-  const sampled=evaluateSequence(spec.track,scripted?spec.sequence:fallback,
-   secs+(spec.clockOffset||0));
+ if(spec.track&&(scripted||fallback||spec.variants?.length)){
+  const active=selectMotionVariant(spec,secs+(spec.clockOffset||0));
+  if(!active)return pose;
+  const sampled=evaluateSequence(active.track,active.sequence,active.elapsed);
   if(!sampled)return pose;
   pose.x=sampled.x;pose.z=sampled.z;
   // Model tracks are offsets from the SAME model origin as the rendered mesh.
@@ -139,6 +169,7 @@ export function motionAt(spec,t,height,cache={}){
   const center=spec.modelCenter||{x:spec.x,z:spec.z};
   pose.y=height(center.x,center.z)+.27+sampled.y;
   pose.visible=sampled.visible;pose.phase=sampled.phase;
+  pose.variantName=active.variantName;pose.cycleIndex=active.cycleIndex;
   if(sampled.moving)pose.heading=sampled.heading;
   else pose.heading=spec.facing??pose.heading;
   const u=clamp(sampled.progress,0,1);
@@ -180,18 +211,51 @@ export function motionAt(spec,t,height,cache={}){
    pose.armL=-1.0;pose.armR=-.97;pose.legL=.12;pose.legR=.12;
    pose.armLZ=.08;pose.armRZ=-.08;
    pose.bodyX=-.11;
-  }else if(sampled.phase==='slide'||sampled.phase==='insideTube'){
-   pose.armL=-.32;pose.armR=-.32;
-   pose.legL=.48;pose.legR=.48;
-   pose.bodyZ=-.09;
-  }else if(sampled.moving&&(sampled.phase==='return'||sampled.phase==='land'||sampled.phase==='platformWalk')){
-   // Walking only while actually changing world coordinates.
+  }else if(sampled.phase==='slide'){
+   // Sitting slide posture: no walking-style leg cycle on the ramp.
+   pose.armL=-.24;pose.armR=-.24;
+   pose.legL=1.02;pose.legR=1.02;
+   pose.bodyX=.31;pose.bodyZ=-.035;
+  }else if(sampled.phase==='insideTube'){
+   pose.armL=-.20;pose.armR=-.20;
+   pose.legL=1.0;pose.legR=1.0;
+   pose.bodyX=.28;
+  }else if(sampled.phase==='buttLand'){
+   // Butt-first landing continues the seated slide; the child cannot
+   // suddenly begin a walk cycle before their feet reach the ground.
+   pose.legL=1.05+.25*u;pose.legR=1.05+.25*u;
+   pose.armL=-.38-.13*u;pose.armR=-.34-.13*u;
+   pose.bodyX=.30+.27*u;pose.bodyZ=-.065*(1-u);
+   pose.y-=.045*u;
+  }else if(sampled.phase==='sitGround'){
+   pose.legL=1.30;pose.legR=1.30;
+   pose.armL=-.21;pose.armR=-.16;
+   pose.bodyX=.57;pose.headY=.075*Math.sin(.85*secs+seed);
+   pose.y-=.045;
+  }else if(sampled.phase==='standUp'){
+   const ease=u*u*(3-2*u);
+   pose.legL=1.30*(1-ease);pose.legR=1.30*(1-ease);
+   pose.armL=-.21*(1-ease);pose.armR=-.16*(1-ease);
+   pose.bodyX=.57*(1-ease);
+   pose.y-=.045*(1-ease);
+  }else if(sampled.phase==='feetLand'||sampled.phase==='land'){
+   // Absorb the landing with knees: no walking at the slide exit.
+   const crouch=Math.sin(Math.PI*u);
+   pose.legL=.47*crouch;pose.legR=.47*crouch;
+   pose.armL=-.37*crouch;pose.armR=-.37*crouch;
+   pose.bodyX=.13*crouch;
+  }else if(sampled.phase==='regainBalance'){
+   const ease=Math.sin(Math.PI*u);
+   pose.legL=.13*ease;pose.legR=.13*ease;
+   pose.armL=-.18*ease;pose.armR=-.13*ease;
+   pose.headY=.11*Math.sin(secs*.7+seed);
+  }else if(sampled.moving&&(sampled.phase==='return'||sampled.phase==='platformWalk')){
+   // Only after standUp / recovery may the child resume walking.
    const pace=(secs*7.5+seed)*Math.PI*.7;
    pose.armL=.28*Math.sin(pace);pose.armR=-pose.armL;
    pose.legL=-.32*Math.sin(pace);pose.legR=-pose.legL;
    pose.y+=.01*Math.abs(Math.sin(pace));
   }else if(sampled.phase==='waitTop'||sampled.phase==='waitBottom'||sampled.phase==='rest'){
-   // A waiting child is planted and may occasionally look around.
    pose.headY=.07*Math.sin(secs*.24+seed);
   }
   return pose;
