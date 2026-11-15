@@ -57,17 +57,17 @@ function segmentInside(a,b,ring){
  return true;
 }
 function distance(p,q){return Math.hypot(p.x-q.x,p.z-q.z)}
-function distinctCandidate(ring,blocked,previous,preferred=0){
+function distinctCandidate(ring,blocked,previous,preferred=0,halfExtent=49){
  const xs=ring.map(p=>p.x),zs=ring.map(p=>p.z);
- const box={l:Math.max(-49,Math.min(...xs)),r:Math.min(49,Math.max(...xs)),
-  t:Math.max(-49,Math.min(...zs)),b:Math.min(49,Math.max(...zs))};
+ const box={l:Math.max(-halfExtent,Math.min(...xs)),r:Math.min(halfExtent,Math.max(...xs)),
+  t:Math.max(-halfExtent,Math.min(...zs)),b:Math.min(halfExtent,Math.max(...zs))};
  const candidates=[];
  for(let i=1;i<20;i++)for(let j=1;j<20;j++){
   const p={x:box.l+(box.r-box.l)*i/20,z:box.t+(box.b-box.t)*j/20};
   if(!inside(p,ring))continue;
   if(blocked.some(b=>distance(p,b)<(b.r||3)))continue;
   if(previous.some(b=>distance(p,b)<2.3))continue;
-  if(Math.abs(p.x)>49||Math.abs(p.z)>49)continue;
+  if(Math.abs(p.x)>halfExtent||Math.abs(p.z)>halfExtent)continue;
   candidates.push(p);
  }
  return candidates.length?candidates[hash(preferred)%candidates.length]:null;
@@ -84,18 +84,19 @@ function getPolygon(features){
  * Later, village tiles can independently instantiate this planner with their
  * own provider results; maxActors prevents unbounded density per loaded tile.
  */
-export function planPopulationForZones({walkPaths=[],zones=[],maxActors=12}={}){
+export function planPopulationForZones({walkPaths=[],zones=[],maxActors=12,tileHalfSize=50}={}){
  const people=[];
  const quota=Math.max(0,Math.floor(maxActors));
+ const extent=Math.max(3,tileHalfSize-.5);
  const add=(kind,role,x,z,more={})=>{
   if(people.length>=quota||!Number.isFinite(x)||!Number.isFinite(z))return false;
   // Pilot limit applies to the current tile; future regions use their own
   // tile-local 100m/other extent and can pass a different maxLocalExtent.
-  if(Math.abs(x)>49.5||Math.abs(z)>49.5)return false;
+  if(Math.abs(x)>extent||Math.abs(z)>extent)return false;
   people.push({kind,role,x,z,id:people.length+1,...more});return true;
  };
  const validRoutes=(walkPaths||[]).filter(w=>Array.isArray(w.points)&&w.points.length>=2&&w.length>=5)
-  .filter(w=>w.points.every(p=>Number.isFinite(p.x+p.z)&&Math.abs(p.x)<=50&&Math.abs(p.z)<=50))
+  .filter(w=>w.points.every(p=>Number.isFinite(p.x+p.z)&&Math.abs(p.x)<=tileHalfSize&&Math.abs(p.z)<=tileHalfSize))
   .slice(0,2);
  validRoutes.forEach((way,i)=>{
   const start=way.points[0];
@@ -128,7 +129,7 @@ export function planPopulationForZones({walkPaths=[],zones=[],maxActors=12}={}){
     let point=item.point?world(item.point):null;
     const track=Array.isArray(item.track)?item.track.map(world):null;
     if(track){
-     if(track.some(p=>!inside(p,polygon)||Math.abs(p.x)>=49.5||Math.abs(p.z)>=49.5))continue;
+     if(track.some(p=>!inside(p,polygon)||Math.abs(p.x)>=extent||Math.abs(p.z)>=extent))continue;
      point=track[0];
     }
     if(!point||!inside(point,polygon))continue;
@@ -143,7 +144,7 @@ export function planPopulationForZones({walkPaths=[],zones=[],maxActors=12}={}){
   const occupied=people.map(p=>({x:p.x,z:p.z}));
   // Supervising parents are anchored in free parts of the playground.
   for(let i=0;i<2&&people.length<quota;i++){
-   const p=distinctCandidate(polygon,blocked,occupied,i+12+hash(zone.id?.length||0));
+   const p=distinctCandidate(polygon,blocked,occupied,i+12+hash(zone.id?.length||0),extent);
    if(!p)continue;
    if(add('adulte',i?'chat':'supervise',p.x,p.z,{zoneId:zone.id})){
     occupied.push(p);
@@ -152,7 +153,7 @@ export function planPopulationForZones({walkPaths=[],zones=[],maxActors=12}={}){
   // A single ground-play child per zone, jumping occasionally, not jogging
   // in place. Additional children belong to actual prefabs.
   if(people.length<quota){
-   const p=distinctCandidate(polygon,blocked,occupied,29+hash(zone.id?.length||0));
+   const p=distinctCandidate(polygon,blocked,occupied,29+hash(zone.id?.length||0),extent);
    if(p)add('enfant','play-ground',p.x,p.z,{zoneId:zone.id});
   }
   for(const model of models){
@@ -174,7 +175,7 @@ export function planPopulationForZones({walkPaths=[],zones=[],maxActors=12}={}){
   children:people.filter(p=>p.kind==='enfant').length};
 }
 export function planPopulation({walkPaths=[],furnitureFeatures=[],photoDrawn=[],
- zones=null,maxActors=12}={}){
+ zones=null,maxActors=12,tileHalfSize=50}={}){
  let resolvedZones=zones;
  if(!resolvedZones){
   const playgrounds=(furnitureFeatures||[]).filter(f=>
@@ -184,7 +185,7 @@ export function planPopulation({walkPaths=[],furnitureFeatures=[],photoDrawn=[],
    models:photoDrawn.filter(m=>m.polygonId===g.id)
   }));
  }
- return planPopulationForZones({walkPaths,zones:resolvedZones,maxActors});
+ return planPopulationForZones({walkPaths,zones:resolvedZones,maxActors,tileHalfSize});
 }
 function createBody(library,kind,season,index){
  const style=outfitFor(kind,season,index);
@@ -274,9 +275,9 @@ function buildActors(T,lib,planned,season,height,enabled){
  return {group,actors,update,dispose,setPhotoVisible,
   adults:planned.adults,children:planned.children,plan:planned};
 }
-export async function createPopulation({THREE,season='summer',height,furnitureData,photoDrawn=[],visible=true}){
+export async function createPopulation({THREE,season='summer',height,furnitureData,photoDrawn=[],visible=true,tileHalfSize=50,maxActors=12}){
  const plan=planPopulation({walkPaths:furnitureData?.walkPaths||[],
-  furnitureFeatures:furnitureData?.features||[],photoDrawn});
+  furnitureFeatures:furnitureData?.features||[],photoDrawn,tileHalfSize,maxActors});
  if(!plan.people.length){
   const group=new THREE.Group();group.visible=visible;
   return {group,actors:[],adults:0,children:0,plan,update(){},setPhotoVisible(){},dispose(){group.removeFromParent()}};
