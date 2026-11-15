@@ -517,7 +517,7 @@ export function drawPhotoModels(T,features,height,parent,pickable,visible=true){
     'Documentation : '+PHOTO_SOURCE;
   part.traverse(obj=>{
    if(!obj.isMesh)return;
-   obj.userData={title:p.name,desc,source:'photo',photoReference:PHOTO_SOURCE,
+   obj.userData={...obj.userData,title:p.name,desc,source:'photo',photoReference:PHOTO_SOURCE,
       positionQuality:'approximate',id:p.key,playgroundOSM:plan.polygonId};
    pickable.push(obj);
   });
