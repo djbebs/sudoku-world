@@ -100,7 +100,7 @@ export function planPopulation({walkPaths=[],furnitureFeatures=[],photoDrawn=[]}
   const scale=p.scale||1;
   const x=p.center.x+dx*scale,z=p.center.z+dz*scale;
   if(polygon&&!inside({x,z},polygon))return;
-  add('enfant',role,x,z,{modelKey:name,offsetY:platform*scale+.25,
+  add('enfant',role,x,z,{modelKey:name,offsetY:platform*scale,
    modelSource:'photo',phase:hash(name.length+people.length)%11});
  };
  k('complex',-1.55,-.10,2.04,'play-platform');
@@ -229,14 +229,20 @@ function buildActors(T,lib,planned,season,height,enabled){
   });
   group.removeFromParent();
  }
- return {group,actors,update,dispose,adults:planned.adults,children:planned.children,plan:planned};
+ function setPhotoVisible(show){
+  for(const a of actors){
+   if(a.spec.modelKey&&a.spec.modelKey!=='bench')a.anchor.visible=show;
+   if(a.spec.modelKey==='bench')a.anchor.visible=show;
+  }
+ }
+ return {group,actors,update,dispose,setPhotoVisible,adults:planned.adults,children:planned.children,plan:planned};
 }
 export async function createPopulation({THREE,season='summer',height,furnitureData,photoDrawn=[],visible=true}){
  const plan=planPopulation({walkPaths:furnitureData?.walkPaths||[],
   furnitureFeatures:furnitureData?.features||[],photoDrawn});
  if(!plan.people.length){
   const group=new THREE.Group();group.visible=visible;
-  return {group,actors:[],adults:0,children:0,plan,update(){},dispose(){group.removeFromParent()}};
+  return {group,actors:[],adults:0,children:0,plan,update(){},setPhotoVisible(){},dispose(){group.removeFromParent()}};
  }
  const library=await loadTemplates();
  return buildActors(THREE,library,plan,season,height,visible);
