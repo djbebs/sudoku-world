@@ -54,6 +54,7 @@ export function overpassQuery(){
  'node["barrier"="bollard"]('+bbox+');'+
  'way["leisure"="playground"]('+bbox+');'+
  'way["playground"]('+bbox+');'+
+ 'way["highway"~"^(footway|path|pedestrian|living_street)$"]('+bbox+');'+
  ');out body geom;';
 }
 export const ENDPOINTS=[
@@ -133,10 +134,56 @@ function wayRepresentativePoint(poly,closed){
  return poly[poly.length-1];
 }
 
+function clipLine(a,b,extent=49.4){
+ const dx=b.x-a.x,dz=b.z-a.z;
+ let lower=0,upper=1;
+ for(const [p,q] of [
+  [-dx,a.x+extent],[dx,extent-a.x],[-dz,a.z+extent],[dz,extent-a.z]
+ ]){
+  if(Math.abs(p)<1e-12){if(q<0)return null;continue}
+  const t=q/p;
+  if(p<0)lower=Math.max(lower,t);else upper=Math.min(upper,t);
+  if(lower>upper)return null;
+ }
+ return [{x:a.x+lower*dx,z:a.z+lower*dz},
+         {x:a.x+upper*dx,z:a.z+upper*dz}];
+}
+function walksFromOSMWays(elements){
+ const routes=[];
+ for(const item of elements){
+  const tags=item.tags||{};
+  if(item.type!=='way'||!['footway','path','pedestrian','living_street'].includes(tags.highway)||ignored(tags))continue;
+  if(tags.area==='yes'||tags.tunnel==='yes'||tags.access==='private')continue;
+  const geometry=item.geometry;
+  if(!Array.isArray(geometry)||geometry.length<2)continue;
+  const points=geometry.map(p=>wgs84ToLocal(p.lat,p.lon));
+  let curr=[];
+  const push=()=>{
+   if(curr.length>=2){
+    const length=curr.slice(1).reduce((n,p,i)=>n+Math.hypot(p.x-curr[i].x,p.z-curr[i].z),0);
+    if(length>=5)routes.push({id:'way/'+item.id,points:curr,length,source:'osm'});
+   }
+   curr=[];
+  };
+  for(let i=1;i<points.length;i++){
+   const clipped=clipLine(points[i-1],points[i]);
+   if(!clipped){push();continue}
+   const [a,b]=clipped;
+   if(curr.length&&Math.hypot(curr[curr.length-1].x-a.x,curr[curr.length-1].z-a.z)>.1)push();
+   if(!curr.length)curr.push(a);
+   if(Math.hypot(b.x-a.x,b.z-a.z)>.1)curr.push(b);
+  }
+  push();
+ }
+ routes.sort((a,b)=>b.length-a.length);
+ return routes.slice(0,12);
+}
+
 export function parseOverpass(data){
  if(!Array.isArray(data?.elements))throw Error('Réponse OSM sans tableau elements');
  if(data.remark&&/error|timeout|too many|rate limit/i.test(data.remark))throw Error('Overpass: '+data.remark);
  const features=[],seen=new Set();
+ const walkPaths=walksFromOSMWays(data.elements);
  for(const element of data.elements){
   const t=element.tags||{},type=category(t);
   if(!type||ignored(t)||!['node','way'].includes(element.type))continue;
@@ -178,7 +225,7 @@ export function parseOverpass(data){
  }
  const counts=Object.fromEntries(CATEGORIES.map(c=>[c.key,0]));
  for(const f of features)counts[f.type]++;
- return {features,counts,osmTimestamp:data.osm3s?.timestamp_osm_base||null};
+ return {features,counts,walkPaths,osmTimestamp:data.osm3s?.timestamp_osm_base||null};
 }
 async function getEndpoint(endpoint,query,timeoutMs){
  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),timeoutMs);
@@ -201,6 +248,6 @@ export async function fetchFurniture(onStatus=()=>{}){
    return {...parsed,status:'verified',checkedAt:new Date().toISOString(),errors:issues};
   }catch(err){issues.push(endpoint+' : '+String(err.message||err))}
  }
- return {features:[],counts:null,status:'unavailable',endpoint:null,requestURL:null,
+ return {features:[],counts:null,walkPaths:[],status:'unavailable',endpoint:null,requestURL:null,
    checkedAt:new Date().toISOString(),osmTimestamp:null,errors:issues};
 }
